@@ -1,0 +1,10 @@
+server:
+  port: 8080
+
+token:
+  timeout: 7200
+  active_timeout: 1800
+
+storage:
+  type: memory
+  key_prefix: "sa-token:"
