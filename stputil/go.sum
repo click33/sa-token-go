@@ -1,0 +1,4 @@
+github.com/click33/sa-token-go/core v0.1.1 h1:SS3cHpxAHZbqMnEwBbQogPG6s33A5CXuRS4qAAiwfLM=
+github.com/click33/sa-token-go/core v0.1.1/go.mod h1:cPkCNAwofNg3PqYsJxMC6uHT95OgT2/RAHbJGAInk3c=
+github.com/golang-jwt/jwt/v5 v5.2.1 h1:OuVbFODueb089Lh128TAcimifWaLhJwVflnrgM17wHk=
+github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=

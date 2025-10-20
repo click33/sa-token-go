@@ -1,3 +1,5 @@
+github.com/click33/sa-token-go/stputil v0.0.0-20251017234446-3cf2bdee68cc h1:eO0gXHsvf9Z4TDqkudxv61EyKuYO5v9gUDQs2zT1EpE=
+github.com/click33/sa-token-go/stputil v0.0.0-20251017234446-3cf2bdee68cc/go.mod h1:17xZ/7tp2Q7LSZVgZfxfVK2wojp0k00zFDJ9qWAN+OY=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
 github.com/golang-jwt/jwt v3.2.2+incompatible h1:IfV12K8xAKAnZqdXVzCZ+TOjboZ2keLg81eXfW3O+oY=
 github.com/golang-jwt/jwt/v5 v5.2.1 h1:OuVbFODueb089Lh128TAcimifWaLhJwVflnrgM17wHk=
