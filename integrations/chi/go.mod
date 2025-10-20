@@ -2,7 +2,7 @@ module github.com/click33/sa-token-go/integrations/chi
 
 go 1.21
 
-require github.com/click33/sa-token-go/core v0.1.0
+require github.com/click33/sa-token-go/core v0.1.1
 
 require (
 	github.com/bytedance/sonic v1.9.1 // indirect
