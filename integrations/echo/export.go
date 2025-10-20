@@ -239,8 +239,8 @@ func IsDisable(loginID interface{}) bool {
 }
 
 // CheckDisable checks if account is disabled (throws error if disabled) | 检查账号是否被封禁（被封禁则抛出错误）
-func CheckDisable(loginID interface{}) error {
-	return stputil.CheckDisable(loginID)
+func CheckDisableByToken(tokenValue string) error {
+	return stputil.CheckDisable(tokenValue)
 }
 
 // GetDisableTime gets remaining disabled time | 获取账号剩余封禁时间
@@ -256,8 +256,8 @@ func Untie(loginID interface{}) error {
 // ============ Permission Check | 权限验证 ============
 
 // CheckPermission checks if the account has specified permission | 检查账号是否拥有指定权限
-func CheckPermission(loginID interface{}, permission string) error {
-	return stputil.CheckPermission(loginID, permission)
+func CheckPermissionByToken(tokenValue string, permission string) error {
+	return stputil.CheckPermission(tokenValue, permission)
 }
 
 // HasPermission checks if the account has specified permission (returns bool) | 检查账号是否拥有指定权限（返回布尔值）
@@ -266,25 +266,25 @@ func HasPermission(loginID interface{}, permission string) bool {
 }
 
 // CheckPermissionAnd checks if the account has all specified permissions (AND logic) | 检查账号是否拥有所有指定权限（AND逻辑）
-func CheckPermissionAnd(loginID interface{}, permissions ...string) error {
-	return stputil.CheckPermissionAnd(loginID, permissions...)
+func CheckPermissionAndByToken(tokenValue string, permissions []string) error {
+	return stputil.CheckPermissionAnd(tokenValue, permissions)
 }
 
 // CheckPermissionOr checks if the account has any of the specified permissions (OR logic) | 检查账号是否拥有指定权限中的任意一个（OR逻辑）
-func CheckPermissionOr(loginID interface{}, permissions ...string) error {
-	return stputil.CheckPermissionOr(loginID, permissions...)
+func CheckPermissionOrByToken(tokenValue string, permissions []string) error {
+	return stputil.CheckPermissionOr(tokenValue, permissions)
 }
 
 // GetPermissionList gets the permission list for an account | 获取账号的权限列表
-func GetPermissionList(loginID interface{}) []string {
-	return stputil.GetPermissionList(loginID)
+func GetPermissionListByToken(tokenValue string) ([]string, error) {
+	return stputil.GetPermissionList(tokenValue)
 }
 
 // ============ Role Check | 角色验证 ============
 
 // CheckRole checks if the account has specified role | 检查账号是否拥有指定角色
-func CheckRole(loginID interface{}, role string) error {
-	return stputil.CheckRole(loginID, role)
+func CheckRoleByToken(tokenValue string, role string) error {
+	return stputil.CheckRole(tokenValue, role)
 }
 
 // HasRole checks if the account has specified role (returns bool) | 检查账号是否拥有指定角色（返回布尔值）
@@ -293,18 +293,18 @@ func HasRole(loginID interface{}, role string) bool {
 }
 
 // CheckRoleAnd checks if the account has all specified roles (AND logic) | 检查账号是否拥有所有指定角色（AND逻辑）
-func CheckRoleAnd(loginID interface{}, roles ...string) error {
-	return stputil.CheckRoleAnd(loginID, roles...)
+func CheckRoleAndByToken(tokenValue string, roles []string) error {
+	return stputil.CheckRoleAnd(tokenValue, roles)
 }
 
 // CheckRoleOr checks if the account has any of the specified roles (OR logic) | 检查账号是否拥有指定角色中的任意一个（OR逻辑）
-func CheckRoleOr(loginID interface{}, roles ...string) error {
-	return stputil.CheckRoleOr(loginID, roles...)
+func CheckRoleOrByToken(tokenValue string, roles []string) error {
+	return stputil.CheckRoleOr(tokenValue, roles)
 }
 
 // GetRoleList gets the role list for an account | 获取账号的角色列表
-func GetRoleList(loginID interface{}) []string {
-	return stputil.GetRoleList(loginID)
+func GetRoleListByToken(tokenValue string) ([]string, error) {
+	return stputil.GetRoleList(tokenValue)
 }
 
 // ============ Session Management | Session管理 ============
@@ -327,9 +327,6 @@ func GetTokenSession(tokenValue string) (*Session, error) {
 // ============ Token Renewal | Token续期 ============
 
 // RenewTimeout renews token timeout | 续期Token超时时间
-func RenewTimeout(tokenValue string) error {
-	return stputil.RenewTimeout(tokenValue)
-}
 
 // ============ Security Features | 安全特性 ============
 
@@ -339,17 +336,17 @@ func GenerateNonce() (string, error) {
 }
 
 // VerifyNonce verifies a nonce token | 验证Nonce令牌
-func VerifyNonce(nonce string) error {
+func VerifyNonce(nonce string) bool {
 	return stputil.VerifyNonce(nonce)
 }
 
 // LoginWithRefreshToken performs login and returns both access token and refresh token | 登录并返回访问令牌和刷新令牌
-func LoginWithRefreshToken(loginID interface{}, device ...string) (accessToken string, refreshToken string, err error) {
+func LoginWithRefreshToken(loginID interface{}, device ...string) (*RefreshTokenInfo, error) {
 	return stputil.LoginWithRefreshToken(loginID, device...)
 }
 
 // RefreshAccessToken refreshes the access token using a refresh token | 使用刷新令牌刷新访问令牌
-func RefreshAccessToken(refreshToken string) (newAccessToken string, newRefreshToken string, err error) {
+func RefreshAccessToken(refreshToken string) (*RefreshTokenInfo, error) {
 	return stputil.RefreshAccessToken(refreshToken)
 }
 

@@ -1,10 +1,13 @@
 package stputil
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/click33/sa-token-go/core/manager"
+	"github.com/click33/sa-token-go/core/oauth2"
+	"github.com/click33/sa-token-go/core/security"
 	"github.com/click33/sa-token-go/core/session"
 )
 
@@ -288,7 +291,7 @@ func VerifyNonce(nonce string) bool {
 	return globalManager.VerifyNonce(nonce)
 }
 
-func LoginWithRefreshToken(loginID interface{}, device ...string) (*core.RefreshTokenInfo, error) {
+func LoginWithRefreshToken(loginID interface{}, device ...string) (*security.RefreshTokenInfo, error) {
 	if globalManager == nil {
 		panic("Manager not initialized. Call stputil.SetManager() first")
 	}
@@ -296,10 +299,10 @@ func LoginWithRefreshToken(loginID interface{}, device ...string) (*core.Refresh
 	if len(device) > 0 {
 		deviceType = device[0]
 	}
-	return globalManager.LoginWithRefreshToken(interfaceToString(loginID), deviceType)
+	return globalManager.LoginWithRefreshToken(fmt.Sprintf("%v", loginID), deviceType)
 }
 
-func RefreshAccessToken(refreshToken string) (*core.RefreshTokenInfo, error) {
+func RefreshAccessToken(refreshToken string) (*security.RefreshTokenInfo, error) {
 	if globalManager == nil {
 		panic("Manager not initialized. Call stputil.SetManager() first")
 	}
@@ -313,9 +316,118 @@ func RevokeRefreshToken(refreshToken string) error {
 	return globalManager.RevokeRefreshToken(refreshToken)
 }
 
-func GetOAuth2Server() *core.OAuth2Server {
+func GetOAuth2Server() *oauth2.OAuth2Server {
 	if globalManager == nil {
 		panic("Manager not initialized. Call stputil.SetManager() first")
 	}
 	return globalManager.GetOAuth2Server()
+}
+
+// ============ Check Functions for Token-based operations | 基于Token的检查函数 ============
+
+// CheckDisable checks if the account associated with the token is disabled | 检查Token对应账号是否被封禁
+func CheckDisable(tokenValue string) error {
+	loginID, err := GetLoginID(tokenValue)
+	if err != nil {
+		return err
+	}
+	if IsDisable(loginID) {
+		return fmt.Errorf("account is disabled")
+	}
+	return nil
+}
+
+// CheckPermission checks if the token has the specified permission | 检查Token是否拥有指定权限
+func CheckPermission(tokenValue string, permission string) error {
+	loginID, err := GetLoginID(tokenValue)
+	if err != nil {
+		return err
+	}
+	if !HasPermission(loginID, permission) {
+		return fmt.Errorf("permission denied: %s", permission)
+	}
+	return nil
+}
+
+// CheckPermissionAnd checks if the token has all specified permissions | 检查Token是否拥有所有指定权限
+func CheckPermissionAnd(tokenValue string, permissions []string) error {
+	loginID, err := GetLoginID(tokenValue)
+	if err != nil {
+		return err
+	}
+	if !HasPermissionsAnd(loginID, permissions) {
+		return fmt.Errorf("permission denied: %v", permissions)
+	}
+	return nil
+}
+
+// CheckPermissionOr checks if the token has any of the specified permissions | 检查Token是否拥有任一指定权限
+func CheckPermissionOr(tokenValue string, permissions []string) error {
+	loginID, err := GetLoginID(tokenValue)
+	if err != nil {
+		return err
+	}
+	if !HasPermissionsOr(loginID, permissions) {
+		return fmt.Errorf("permission denied: %v", permissions)
+	}
+	return nil
+}
+
+// GetPermissionList gets permission list for the token | 获取Token对应的权限列表
+func GetPermissionList(tokenValue string) ([]string, error) {
+	loginID, err := GetLoginID(tokenValue)
+	if err != nil {
+		return nil, err
+	}
+	return GetPermissions(loginID)
+}
+
+// CheckRole checks if the token has the specified role | 检查Token是否拥有指定角色
+func CheckRole(tokenValue string, role string) error {
+	loginID, err := GetLoginID(tokenValue)
+	if err != nil {
+		return err
+	}
+	if !HasRole(loginID, role) {
+		return fmt.Errorf("role denied: %s", role)
+	}
+	return nil
+}
+
+// CheckRoleAnd checks if the token has all specified roles | 检查Token是否拥有所有指定角色
+func CheckRoleAnd(tokenValue string, roles []string) error {
+	loginID, err := GetLoginID(tokenValue)
+	if err != nil {
+		return err
+	}
+	if !HasRolesAnd(loginID, roles) {
+		return fmt.Errorf("role denied: %v", roles)
+	}
+	return nil
+}
+
+// CheckRoleOr checks if the token has any of the specified roles | 检查Token是否拥有任一指定角色
+func CheckRoleOr(tokenValue string, roles []string) error {
+	loginID, err := GetLoginID(tokenValue)
+	if err != nil {
+		return err
+	}
+	if !HasRolesOr(loginID, roles) {
+		return fmt.Errorf("role denied: %v", roles)
+	}
+	return nil
+}
+
+// GetRoleList gets role list for the token | 获取Token对应的角色列表
+func GetRoleList(tokenValue string) ([]string, error) {
+	loginID, err := GetLoginID(tokenValue)
+	if err != nil {
+		return nil, err
+	}
+	return GetRoles(loginID)
+}
+
+// GetTokenSession gets session for the token | 获取Token对应的Session
+func GetTokenSession(tokenValue string) (*session.Session, error) {
+	return GetSessionByToken(tokenValue)
 }
