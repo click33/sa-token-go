@@ -16,7 +16,7 @@ func main() {
 	config := sagin.DefaultConfig()
 	config.TokenName = "token"
 	config.Timeout = 7200
-	config.IsPrint = true
+	config.IsPrintBanner = true
 
 	// 创建管理器 | Create manager
 	manager := sagin.NewManager(storage, config)
