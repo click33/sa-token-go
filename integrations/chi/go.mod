@@ -12,4 +12,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 )
 
-replace github.com/click33/sa-token-go/core => ../../core
+replace (
+	github.com/click33/sa-token-go/core => ../../core
+	github.com/click33/sa-token-go/stputil => ../../stputil
+)
