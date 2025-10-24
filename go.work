@@ -2,19 +2,6 @@ go 1.21
 
 use (
 	./core
-	./examples/annotation/annotation-example
-	./examples/chi/chi-example
-	./examples/echo/echo-example
-	./examples/fiber/fiber-example
-	./examples/gin/gin-example
-	./examples/gin/gin-simple
-	./examples/jwt-example
-	./examples/listener-example
-	./examples/oauth2-example
-	./examples/quick-start/simple-example
-	./examples/redis-example
-	./examples/security-features
-	./examples/token-styles
 	./integrations/chi
 	./integrations/echo
 	./integrations/fiber
