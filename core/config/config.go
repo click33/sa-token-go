@@ -1,5 +1,7 @@
 package config
 
+import "fmt"
+
 // TokenStyle Token generation style | Token生成风格
 type TokenStyle string
 
@@ -23,6 +25,39 @@ const (
 	// TokenStyleTik Short ID style (like TikTok) | Tik风格短ID（类似抖音）
 	TokenStyleTik TokenStyle = "tik"
 )
+
+// SameSiteMode Cookie SameSite attribute values | Cookie的SameSite属性值
+type SameSiteMode string
+
+const (
+	// SameSiteStrict Strict mode | 严格模式
+	SameSiteStrict SameSiteMode = "Strict"
+	// SameSiteLax Lax mode | 宽松模式
+	SameSiteLax SameSiteMode = "Lax"
+	// SameSiteNone None mode | 无限制模式
+	SameSiteNone SameSiteMode = "None"
+)
+
+// Default configuration constants | 默认配置常量
+const (
+	DefaultTokenName         = "satoken"
+	DefaultTimeout           = 2592000 // 30 days in seconds | 30天（秒）
+	DefaultMaxLoginCount     = 12      // Maximum concurrent logins | 最大并发登录数
+	DefaultCookiePath        = "/"
+	NoLimit                  = -1 // No limit flag | 不限制标志
+)
+
+// IsValid checks if the TokenStyle is valid | 检查TokenStyle是否有效
+func (ts TokenStyle) IsValid() bool {
+	switch ts {
+	case TokenStyleUUID, TokenStyleSimple, TokenStyleRandom32,
+		TokenStyleRandom64, TokenStyleRandom128, TokenStyleJWT,
+		TokenStyleHash, TokenStyleTimestamp, TokenStyleTik:
+		return true
+	default:
+		return false
+	}
+}
 
 // Config Sa-Token configuration | Sa-Token配置
 type Config struct {
@@ -93,7 +128,7 @@ type CookieConfig struct {
 	HttpOnly bool
 
 	// SameSite SameSite attribute (Strict, Lax, None) | SameSite属性（Strict、Lax、None）
-	SameSite string
+	SameSite SameSiteMode
 
 	// MaxAge Cookie expiration time in seconds | 过期时间（单位：秒）
 	MaxAge int
@@ -102,31 +137,71 @@ type CookieConfig struct {
 // DefaultConfig Returns default configuration | 返回默认配置
 func DefaultConfig() *Config {
 	return &Config{
-		TokenName:              "sa-token",
-		Timeout:                2592000, // 30 days | 30天
-		ActiveTimeout:          -1,      // No limit | 不限制
-		IsConcurrent:           true,    // Allow concurrent login | 允许并发登录
-		IsShare:                true,    // Share Token | 共享Token
-		MaxLoginCount:          12,      // Max 12 logins | 最多12个
-		IsReadBody:             false,   // Don't read from Body (default) | 不从Body读取（默认）
-		IsReadHeader:           true,    // Read from Header (recommended) | 从Header读取（推荐）
-		IsReadCookie:           false,   // Don't read from Cookie (default) | 不从Cookie读取（默认）
+		TokenName:              DefaultTokenName,
+		Timeout:                DefaultTimeout,
+		ActiveTimeout:          NoLimit,
+		IsConcurrent:           true,
+		IsShare:                true,
+		MaxLoginCount:          DefaultMaxLoginCount,
+		IsReadBody:             false,
+		IsReadHeader:           true,
+		IsReadCookie:           false,
 		TokenStyle:             TokenStyleUUID,
-		DataRefreshPeriod:      -1,    // No auto-refresh | 不自动续签
-		TokenSessionCheckLogin: true,  // Check on login | 登录时检查
-		AutoRenew:              true,  // Auto-renew | 自动续期
-		JwtSecretKey:           "",    // Empty by default | 默认空
-		IsLog:                  false, // No logging | 不输出日志
-		IsPrintBanner:          true,  // Print startup banner | 打印启动 Banner
+		DataRefreshPeriod:      NoLimit,
+		TokenSessionCheckLogin: true,
+		AutoRenew:              true,
+		JwtSecretKey:           "",
+		IsLog:                  false,
+		IsPrintBanner:          true,
 		CookieConfig: &CookieConfig{
 			Domain:   "",
-			Path:     "/",
+			Path:     DefaultCookiePath,
 			Secure:   false,
 			HttpOnly: true,
-			SameSite: "Lax",
+			SameSite: SameSiteLax,
 			MaxAge:   0,
 		},
 	}
+}
+
+// Validate validates the configuration | 验证配置是否合理
+func (c *Config) Validate() error {
+	// Check TokenName
+	if c.TokenName == "" {
+		return fmt.Errorf("TokenName cannot be empty")
+	}
+
+	// Check TokenStyle
+	if !c.TokenStyle.IsValid() {
+		return fmt.Errorf("invalid TokenStyle: %s", c.TokenStyle)
+	}
+
+	// Check JWT secret key when using JWT style
+	if c.TokenStyle == TokenStyleJWT && c.JwtSecretKey == "" {
+		return fmt.Errorf("JwtSecretKey is required when TokenStyle is JWT")
+	}
+
+	// Check Timeout
+	if c.Timeout < NoLimit {
+		return fmt.Errorf("Timeout must be >= -1, got: %d", c.Timeout)
+	}
+
+	// Check ActiveTimeout
+	if c.ActiveTimeout < NoLimit {
+		return fmt.Errorf("ActiveTimeout must be >= -1, got: %d", c.ActiveTimeout)
+	}
+
+	// Check MaxLoginCount
+	if c.MaxLoginCount < NoLimit {
+		return fmt.Errorf("MaxLoginCount must be >= -1, got: %d", c.MaxLoginCount)
+	}
+
+	// Check if at least one read source is enabled
+	if !c.IsReadHeader && !c.IsReadCookie && !c.IsReadBody {
+		return fmt.Errorf("at least one of IsReadHeader, IsReadCookie, or IsReadBody must be true")
+	}
+
+	return nil
 }
 
 // Clone Clone configuration | 克隆配置
@@ -169,9 +244,45 @@ func (c *Config) SetIsShare(isShare bool) *Config {
 	return c
 }
 
+// SetMaxLoginCount Set maximum login count | 设置最大登录数量
+func (c *Config) SetMaxLoginCount(count int) *Config {
+	c.MaxLoginCount = count
+	return c
+}
+
+// SetIsReadBody Set whether to read Token from body | 设置是否从请求体读取Token
+func (c *Config) SetIsReadBody(isReadBody bool) *Config {
+	c.IsReadBody = isReadBody
+	return c
+}
+
+// SetIsReadHeader Set whether to read Token from header | 设置是否从Header读取Token
+func (c *Config) SetIsReadHeader(isReadHeader bool) *Config {
+	c.IsReadHeader = isReadHeader
+	return c
+}
+
+// SetIsReadCookie Set whether to read Token from cookie | 设置是否从Cookie读取Token
+func (c *Config) SetIsReadCookie(isReadCookie bool) *Config {
+	c.IsReadCookie = isReadCookie
+	return c
+}
+
 // SetTokenStyle Set Token generation style | 设置Token风格
 func (c *Config) SetTokenStyle(style TokenStyle) *Config {
 	c.TokenStyle = style
+	return c
+}
+
+// SetDataRefreshPeriod Set data refresh period | 设置数据刷新周期
+func (c *Config) SetDataRefreshPeriod(period int64) *Config {
+	c.DataRefreshPeriod = period
+	return c
+}
+
+// SetTokenSessionCheckLogin Set whether to check token session on login | 设置登录时是否检查token会话
+func (c *Config) SetTokenSessionCheckLogin(check bool) *Config {
+	c.TokenSessionCheckLogin = check
 	return c
 }
 
@@ -190,5 +301,17 @@ func (c *Config) SetAutoRenew(autoRenew bool) *Config {
 // SetIsLog Set whether to enable logging | 设置是否输出日志
 func (c *Config) SetIsLog(isLog bool) *Config {
 	c.IsLog = isLog
+	return c
+}
+
+// SetIsPrintBanner Set whether to print banner | 设置是否打印Banner
+func (c *Config) SetIsPrintBanner(isPrint bool) *Config {
+	c.IsPrintBanner = isPrint
+	return c
+}
+
+// SetCookieConfig Set cookie configuration | 设置Cookie配置
+func (c *Config) SetCookieConfig(cookieConfig *CookieConfig) *Config {
+	c.CookieConfig = cookieConfig
 	return c
 }

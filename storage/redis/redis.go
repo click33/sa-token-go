@@ -104,14 +104,14 @@ func (s *Storage) getKey(key string) string {
 }
 
 // Set 设置键值对
-func (s *Storage) Set(key string, value interface{}, expiration time.Duration) error {
+func (s *Storage) Set(key string, value any, expiration time.Duration) error {
 	ctx, cancel := s.withTimeout()
 	defer cancel()
 	return s.client.Set(ctx, s.getKey(key), value, expiration).Err()
 }
 
 // Get 获取值
-func (s *Storage) Get(key string) (interface{}, error) {
+func (s *Storage) Get(key string) (any, error) {
 	ctx, cancel := s.withTimeout()
 	defer cancel()
 	val, err := s.client.Get(ctx, s.getKey(key)).Result()
@@ -125,10 +125,19 @@ func (s *Storage) Get(key string) (interface{}, error) {
 }
 
 // Delete 删除键
-func (s *Storage) Delete(key string) error {
+func (s *Storage) Delete(keys ...string) error {
+	if len(keys) == 0 {
+		return nil
+	}
+
 	ctx, cancel := s.withTimeout()
 	defer cancel()
-	return s.client.Del(ctx, s.getKey(key)).Err()
+
+	fullKeys := make([]string, len(keys))
+	for i, key := range keys {
+		fullKeys[i] = s.getKey(key)
+	}
+	return s.client.Del(ctx, fullKeys...).Err()
 }
 
 // Exists 检查键是否存在
@@ -213,6 +222,13 @@ func (s *Storage) Clear() error {
 		}
 	}
 	return nil
+}
+
+// Ping 检查连接
+func (s *Storage) Ping() error {
+	ctx, cancel := s.withTimeout()
+	defer cancel()
+	return s.client.Ping(ctx).Err()
 }
 
 // Close 关闭连接

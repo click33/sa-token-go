@@ -1,8 +1,15 @@
 package context
 
 import (
+	"strings"
+
 	"github.com/click33/sa-token-go/core/adapter"
 	"github.com/click33/sa-token-go/core/manager"
+)
+
+const (
+	bearerPrefix = "Bearer "
+	authHeader   = "Authorization"
 )
 
 // SaTokenContext Sa-Token context for current request | Sa-Token上下文，用于当前请求
@@ -19,38 +26,49 @@ func NewContext(ctx adapter.RequestContext, mgr *manager.Manager) *SaTokenContex
 	}
 }
 
+// extractBearerToken 从 Authorization 头中提取 Bearer Token
+func extractBearerToken(auth string) string {
+	auth = strings.TrimSpace(auth)
+	if auth == "" {
+		return ""
+	}
+
+	// 支持大小写不敏感的 Bearer 前缀
+	if len(auth) > 7 && strings.EqualFold(auth[:7], bearerPrefix) {
+		return strings.TrimSpace(auth[7:])
+	}
+
+	return auth
+}
+
 // GetTokenValue gets token value from current request | 获取当前请求的Token值
 func (c *SaTokenContext) GetTokenValue() string {
 	cfg := c.manager.GetConfig()
 
 	// 1. 尝试从Header获取
 	if cfg.IsReadHeader {
-		token := c.ctx.GetHeader(cfg.TokenName)
-		if token != "" {
+		// 从自定义 token 名称的 Header 获取
+		if token := strings.TrimSpace(c.ctx.GetHeader(cfg.TokenName)); token != "" {
 			return token
 		}
-		// 也尝试从Authorization头获取
-		auth := c.ctx.GetHeader("Authorization")
-		if auth != "" {
-			// 移除 "Bearer " 前缀
-			if len(auth) > 7 && auth[:7] == "Bearer " {
-				return auth[7:]
+
+		// 从 Authorization 头获取
+		if auth := c.ctx.GetHeader(authHeader); auth != "" {
+			if token := extractBearerToken(auth); token != "" {
+				return token
 			}
-			return auth
 		}
 	}
 
 	// 2. 尝试从Cookie获取
 	if cfg.IsReadCookie {
-		token := c.ctx.GetCookie(cfg.TokenName)
-		if token != "" {
+		if token := strings.TrimSpace(c.ctx.GetCookie(cfg.TokenName)); token != "" {
 			return token
 		}
 	}
 
 	// 3. 尝试从Query参数获取
-	token := c.ctx.GetQuery(cfg.TokenName)
-	if token != "" {
+	if token := strings.TrimSpace(c.ctx.GetQuery(cfg.TokenName)); token != "" {
 		return token
 	}
 

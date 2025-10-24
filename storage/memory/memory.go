@@ -19,7 +19,7 @@ var (
 
 // item 存储项
 type item struct {
-	value      interface{}
+	value      any
 	expiration int64 // 过期时间戳（0表示永不过期）
 }
 
@@ -54,7 +54,7 @@ func NewStorageWithCleanupInterval(interval time.Duration) adapter.Storage {
 }
 
 // Set 设置键值对
-func (s *Storage) Set(key string, value interface{}, expiration time.Duration) error {
+func (s *Storage) Set(key string, value any, expiration time.Duration) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -72,7 +72,7 @@ func (s *Storage) Set(key string, value interface{}, expiration time.Duration) e
 }
 
 // Get 获取值
-func (s *Storage) Get(key string) (interface{}, error) {
+func (s *Storage) Get(key string) (any, error) {
 	now := time.Now().Unix()
 
 	s.mu.RLock()
@@ -93,11 +93,13 @@ func (s *Storage) Get(key string) (interface{}, error) {
 }
 
 // Delete 删除键
-func (s *Storage) Delete(key string) error {
+func (s *Storage) Delete(keys ...string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	delete(s.data, key)
+	for _, key := range keys {
+		delete(s.data, key)
+	}
 	return nil
 }
 
@@ -191,6 +193,17 @@ func (s *Storage) Clear() error {
 	defer s.mu.Unlock()
 
 	s.data = make(map[string]*item)
+	return nil
+}
+
+// Ping 检查存储可用性
+func (s *Storage) Ping() error {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.closed {
+		return errors.New("storage is closed")
+	}
 	return nil
 }
 

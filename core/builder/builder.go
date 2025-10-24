@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/click33/sa-token-go/core/adapter"
@@ -11,39 +12,52 @@ import (
 
 // Builder Sa-Token builder for fluent configuration | Sa-Token构建器，用于流式配置
 type Builder struct {
-	storage       adapter.Storage
-	tokenName     string
-	timeout       int64
-	activeTimeout int64
-	isConcurrent  bool
-	isShare       bool
-	maxLoginCount int
-	tokenStyle    config.TokenStyle
-	autoRenew     bool
-	jwtSecretKey  string
-	isLog         bool
-	isPrintBanner bool
-	isReadBody    bool
-	isReadHeader  bool
-	isReadCookie  bool
+	storage                adapter.Storage
+	tokenName              string
+	timeout                int64
+	activeTimeout          int64
+	isConcurrent           bool
+	isShare                bool
+	maxLoginCount          int
+	tokenStyle             config.TokenStyle
+	autoRenew              bool
+	jwtSecretKey           string
+	isLog                  bool
+	isPrintBanner          bool
+	isReadBody             bool
+	isReadHeader           bool
+	isReadCookie           bool
+	dataRefreshPeriod      int64
+	tokenSessionCheckLogin bool
+	cookieConfig           *config.CookieConfig
 }
 
-// NewBuilder creates a new builder | 创建新的构建器
+// NewBuilder creates a new builder with default configuration | 创建新的构建器（使用默认配置）
 func NewBuilder() *Builder {
 	return &Builder{
-		tokenName:     "satoken",
-		timeout:       2592000, // 30 days | 30天
-		activeTimeout: -1,
-		isConcurrent:  true,
-		isShare:       true,
-		maxLoginCount: 12,
-		tokenStyle:    config.TokenStyleUUID,
-		autoRenew:     true,
-		isLog:         false,
-		isPrintBanner: true,  // Print banner by default | 默认打印 Banner
-		isReadBody:    false, // Don't read from body by default | 默认不从 Body 读取
-		isReadHeader:  true,  // Read from header by default | 默认从 Header 读取
-		isReadCookie:  false, // Don't read from cookie by default | 默认不从 Cookie 读取
+		tokenName:              config.DefaultTokenName,
+		timeout:                config.DefaultTimeout,
+		activeTimeout:          config.NoLimit,
+		isConcurrent:           true,
+		isShare:                true,
+		maxLoginCount:          config.DefaultMaxLoginCount,
+		tokenStyle:             config.TokenStyleUUID,
+		autoRenew:              true,
+		isLog:                  false,
+		isPrintBanner:          true,
+		isReadBody:             false,
+		isReadHeader:           true,
+		isReadCookie:           false,
+		dataRefreshPeriod:      config.NoLimit,
+		tokenSessionCheckLogin: true,
+		cookieConfig: &config.CookieConfig{
+			Domain:   "",
+			Path:     config.DefaultCookiePath,
+			Secure:   false,
+			HttpOnly: true,
+			SameSite: config.SameSiteLax,
+			MaxAge:   0,
+		},
 	}
 }
 
@@ -143,10 +157,122 @@ func (b *Builder) IsReadCookie(isRead bool) *Builder {
 	return b
 }
 
+// DataRefreshPeriod sets data refresh period | 设置数据刷新周期
+func (b *Builder) DataRefreshPeriod(seconds int64) *Builder {
+	b.dataRefreshPeriod = seconds
+	return b
+}
+
+// TokenSessionCheckLogin sets whether to check token session on login | 设置登录时是否检查Token会话
+func (b *Builder) TokenSessionCheckLogin(check bool) *Builder {
+	b.tokenSessionCheckLogin = check
+	return b
+}
+
+// CookieDomain sets cookie domain | 设置Cookie域名
+func (b *Builder) CookieDomain(domain string) *Builder {
+	if b.cookieConfig == nil {
+		b.cookieConfig = &config.CookieConfig{}
+	}
+	b.cookieConfig.Domain = domain
+	return b
+}
+
+// CookiePath sets cookie path | 设置Cookie路径
+func (b *Builder) CookiePath(path string) *Builder {
+	if b.cookieConfig == nil {
+		b.cookieConfig = &config.CookieConfig{}
+	}
+	b.cookieConfig.Path = path
+	return b
+}
+
+// CookieSecure sets cookie secure flag | 设置Cookie的Secure标志
+func (b *Builder) CookieSecure(secure bool) *Builder {
+	if b.cookieConfig == nil {
+		b.cookieConfig = &config.CookieConfig{}
+	}
+	b.cookieConfig.Secure = secure
+	return b
+}
+
+// CookieHttpOnly sets cookie httpOnly flag | 设置Cookie的HttpOnly标志
+func (b *Builder) CookieHttpOnly(httpOnly bool) *Builder {
+	if b.cookieConfig == nil {
+		b.cookieConfig = &config.CookieConfig{}
+	}
+	b.cookieConfig.HttpOnly = httpOnly
+	return b
+}
+
+// CookieSameSite sets cookie sameSite attribute | 设置Cookie的SameSite属性
+func (b *Builder) CookieSameSite(sameSite config.SameSiteMode) *Builder {
+	if b.cookieConfig == nil {
+		b.cookieConfig = &config.CookieConfig{}
+	}
+	b.cookieConfig.SameSite = sameSite
+	return b
+}
+
+// CookieMaxAge sets cookie max age | 设置Cookie的最大年龄
+func (b *Builder) CookieMaxAge(maxAge int) *Builder {
+	if b.cookieConfig == nil {
+		b.cookieConfig = &config.CookieConfig{}
+	}
+	b.cookieConfig.MaxAge = maxAge
+	return b
+}
+
+// CookieConfig sets complete cookie configuration | 设置完整的Cookie配置
+func (b *Builder) CookieConfig(cfg *config.CookieConfig) *Builder {
+	b.cookieConfig = cfg
+	return b
+}
+
+// NeverExpire sets token to never expire | 设置Token永不过期
+func (b *Builder) NeverExpire() *Builder {
+	b.timeout = config.NoLimit
+	return b
+}
+
+// NoActiveTimeout disables active timeout | 禁用活跃超时
+func (b *Builder) NoActiveTimeout() *Builder {
+	b.activeTimeout = config.NoLimit
+	return b
+}
+
+// UnlimitedLogin allows unlimited concurrent logins | 允许无限并发登录
+func (b *Builder) UnlimitedLogin() *Builder {
+	b.maxLoginCount = config.NoLimit
+	return b
+}
+
+// Validate validates the builder configuration | 验证构建器配置
+func (b *Builder) Validate() error {
+	if b.storage == nil {
+		return fmt.Errorf("storage is required, please call Storage() method")
+	}
+
+	if b.tokenName == "" {
+		return fmt.Errorf("tokenName cannot be empty")
+	}
+
+	if b.tokenStyle == config.TokenStyleJWT && b.jwtSecretKey == "" {
+		return fmt.Errorf("jwtSecretKey is required when TokenStyle is JWT")
+	}
+
+	if !b.isReadHeader && !b.isReadCookie && !b.isReadBody {
+		return fmt.Errorf("at least one of IsReadHeader, IsReadCookie, or IsReadBody must be true")
+	}
+
+	return nil
+}
+
 // Build builds Manager and prints startup banner | 构建Manager并打印启动Banner
 func (b *Builder) Build() *manager.Manager {
-	if b.storage == nil {
-		panic("storage is required, please call Storage() method")
+	// Validate configuration | 验证配置
+	if err := b.Validate(); err != nil {
+		panic(fmt.Sprintf("invalid configuration: %v", err))
 	}
 
 	cfg := &config.Config{
@@ -160,20 +286,13 @@ func (b *Builder) Build() *manager.Manager {
 		IsReadHeader:           b.isReadHeader,
 		IsReadCookie:           b.isReadCookie,
 		TokenStyle:             b.tokenStyle,
-		DataRefreshPeriod:      -1,
-		TokenSessionCheckLogin: true,
+		DataRefreshPeriod:      b.dataRefreshPeriod,
+		TokenSessionCheckLogin: b.tokenSessionCheckLogin,
 		AutoRenew:              b.autoRenew,
 		JwtSecretKey:           b.jwtSecretKey,
 		IsLog:                  b.isLog,
 		IsPrintBanner:          b.isPrintBanner,
-		CookieConfig: &config.CookieConfig{
-			Domain:   "",
-			Path:     "/",
-			Secure:   false,
-			HttpOnly: true,
-			SameSite: "Lax",
-			MaxAge:   0,
-		},
+		CookieConfig:           b.cookieConfig,
 	}
 
 	// Print startup banner with full configuration | 打印启动Banner和完整配置
@@ -188,4 +307,9 @@ func (b *Builder) Build() *manager.Manager {
 	// We don't directly call stputil.SetManager here to avoid hard dependencies | 这里不直接调用 stputil.SetManager，避免强依赖
 
 	return mgr
+}
+
+// MustBuild builds Manager and panics if validation fails | 构建Manager，验证失败时panic
+func (b *Builder) MustBuild() *manager.Manager {
+	return b.Build()
 }

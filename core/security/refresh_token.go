@@ -25,6 +25,21 @@ import (
 //   // ... access token expires ...
 //   newInfo, _ := manager.RefreshAccessToken(tokenInfo.RefreshToken)
 
+// Constants for refresh token | 刷新令牌常量
+const (
+	DefaultRefreshTTL  = 30 * 24 * time.Hour // 30 days | 30天
+	DefaultAccessTTL   = 2 * time.Hour       // 2 hours | 2小时
+	RefreshTokenLength = 32                  // Refresh token byte length | 刷新令牌字节长度
+	RefreshKeyPrefix   = "satoken:refresh:"  // Storage key prefix | 存储键前缀
+)
+
+// Error variables | 错误变量
+var (
+	ErrInvalidRefreshToken = fmt.Errorf("invalid refresh token")
+	ErrRefreshTokenExpired = fmt.Errorf("refresh token expired")
+	ErrInvalidRefreshData  = fmt.Errorf("invalid refresh token data")
+)
+
 // RefreshTokenInfo refresh token information | 刷新令牌信息
 type RefreshTokenInfo struct {
 	RefreshToken string // Refresh token (long-lived) | 刷新令牌（长期有效）
@@ -35,7 +50,7 @@ type RefreshTokenInfo struct {
 	ExpireTime   int64  // Expiration timestamp | 过期时间戳
 }
 
-// RefreshTokenManager refresh token manager | 刷新令牌管理器
+// RefreshTokenManager Refresh token manager | 刷新令牌管理器
 type RefreshTokenManager struct {
 	storage    adapter.Storage
 	tokenGen   *token.Generator
@@ -43,34 +58,39 @@ type RefreshTokenManager struct {
 	accessTTL  time.Duration // Access token TTL (configurable) | 访问令牌有效期（可配置）
 }
 
-// NewRefreshTokenManager creates a new refresh token manager | 创建新的刷新令牌管理器
+// NewRefreshTokenManager Creates a new refresh token manager | 创建新的刷新令牌管理器
 // cfg: configuration, uses Timeout for access token TTL | 配置，使用Timeout作为访问令牌有效期
 func NewRefreshTokenManager(storage adapter.Storage, cfg *config.Config) *RefreshTokenManager {
-	refreshTTL := 30 * 24 * time.Hour // 30 days | 30天
 	accessTTL := time.Duration(cfg.Timeout) * time.Second
 
 	if accessTTL == 0 {
-		accessTTL = 2 * time.Hour // Default 2 hours | 默认2小时
+		accessTTL = DefaultAccessTTL
 	}
 
 	return &RefreshTokenManager{
 		storage:    storage,
 		tokenGen:   token.NewGenerator(cfg),
-		refreshTTL: refreshTTL,
+		refreshTTL: DefaultRefreshTTL,
 		accessTTL:  accessTTL,
 	}
 }
 
-// GenerateTokenPair generates access token and refresh token pair | 生成访问令牌和刷新令牌对
+// GenerateTokenPair Generates access token and refresh token pair | 生成访问令牌和刷新令牌对
 func (rtm *RefreshTokenManager) GenerateTokenPair(loginID, device string) (*RefreshTokenInfo, error) {
-	accessToken, err := rtm.tokenGen.Generate(loginID, device)
-	if err != nil {
-		return nil, err
+	if loginID == "" {
+		return nil, fmt.Errorf("loginID cannot be empty")
 	}
 
-	refreshTokenBytes := make([]byte, 32)
+	// Generate access token | 生成访问令牌
+	accessToken, err := rtm.tokenGen.Generate(loginID, device)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate access token: %w", err)
+	}
+
+	// Generate refresh token | 生成刷新令牌
+	refreshTokenBytes := make([]byte, RefreshTokenLength)
 	if _, err := rand.Read(refreshTokenBytes); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 	refreshToken := hex.EncodeToString(refreshTokenBytes)
 
@@ -84,66 +104,95 @@ func (rtm *RefreshTokenManager) GenerateTokenPair(loginID, device string) (*Refr
 		ExpireTime:   now.Add(rtm.refreshTTL).Unix(),
 	}
 
-	key := fmt.Sprintf("satoken:refresh:%s", refreshToken)
+	key := rtm.getRefreshKey(refreshToken)
 	if err := rtm.storage.Set(key, info, rtm.refreshTTL); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to store refresh token: %w", err)
 	}
 
 	return info, nil
 }
 
-// RefreshAccessToken generates new access token using refresh token | 使用刷新令牌生成新的访问令牌
+// RefreshAccessToken Generates new access token using refresh token | 使用刷新令牌生成新的访问令牌
 func (rtm *RefreshTokenManager) RefreshAccessToken(refreshToken string) (*RefreshTokenInfo, error) {
-	key := fmt.Sprintf("satoken:refresh:%s", refreshToken)
+	if refreshToken == "" {
+		return nil, ErrInvalidRefreshToken
+	}
+
+	key := rtm.getRefreshKey(refreshToken)
 
 	data, err := rtm.storage.Get(key)
-	if err != nil {
-		return nil, fmt.Errorf("invalid refresh token")
+	if err != nil || data == nil {
+		return nil, ErrInvalidRefreshToken
 	}
 
 	oldInfo, ok := data.(*RefreshTokenInfo)
 	if !ok {
-		return nil, fmt.Errorf("invalid refresh token data")
+		return nil, ErrInvalidRefreshData
 	}
 
+	// Check expiration | 检查是否过期
 	if time.Now().Unix() > oldInfo.ExpireTime {
 		rtm.storage.Delete(key)
-		return nil, fmt.Errorf("refresh token expired")
+		return nil, ErrRefreshTokenExpired
 	}
 
+	// Generate new access token | 生成新的访问令牌
 	newAccessToken, err := rtm.tokenGen.Generate(oldInfo.LoginID, oldInfo.Device)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to generate new access token: %w", err)
 	}
 
 	oldInfo.AccessToken = newAccessToken
 
+	// Update storage | 更新存储
 	if err := rtm.storage.Set(key, oldInfo, rtm.refreshTTL); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to update refresh token: %w", err)
 	}
 
 	return oldInfo, nil
 }
 
-// RevokeRefreshToken revokes a refresh token | 撤销刷新令牌
+// RevokeRefreshToken Revokes a refresh token | 撤销刷新令牌
 func (rtm *RefreshTokenManager) RevokeRefreshToken(refreshToken string) error {
-	key := fmt.Sprintf("satoken:refresh:%s", refreshToken)
+	if refreshToken == "" {
+		return nil
+	}
+	key := rtm.getRefreshKey(refreshToken)
 	return rtm.storage.Delete(key)
 }
 
-// GetRefreshTokenInfo gets refresh token information | 获取刷新令牌信息
+// GetRefreshTokenInfo Gets refresh token information | 获取刷新令牌信息
 func (rtm *RefreshTokenManager) GetRefreshTokenInfo(refreshToken string) (*RefreshTokenInfo, error) {
-	key := fmt.Sprintf("satoken:refresh:%s", refreshToken)
+	if refreshToken == "" {
+		return nil, ErrInvalidRefreshToken
+	}
+
+	key := rtm.getRefreshKey(refreshToken)
 
 	data, err := rtm.storage.Get(key)
-	if err != nil {
-		return nil, err
+	if err != nil || data == nil {
+		return nil, ErrInvalidRefreshToken
 	}
 
 	info, ok := data.(*RefreshTokenInfo)
 	if !ok {
-		return nil, fmt.Errorf("invalid refresh token data")
+		return nil, ErrInvalidRefreshData
 	}
 
 	return info, nil
+}
+
+// IsValid Checks if refresh token is valid | 检查刷新令牌是否有效
+func (rtm *RefreshTokenManager) IsValid(refreshToken string) bool {
+	info, err := rtm.GetRefreshTokenInfo(refreshToken)
+	if err != nil {
+		return false
+	}
+
+	return time.Now().Unix() <= info.ExpireTime
+}
+
+// getRefreshKey Gets storage key for refresh token | 获取刷新令牌的存储键
+func (rtm *RefreshTokenManager) getRefreshKey(refreshToken string) string {
+	return RefreshKeyPrefix + refreshToken
 }
