@@ -2,6 +2,7 @@ package builder
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/click33/sa-token-go/core/adapter"
@@ -29,6 +30,7 @@ type Builder struct {
 	isReadCookie           bool
 	dataRefreshPeriod      int64
 	tokenSessionCheckLogin bool
+	keyPrefix              string
 	cookieConfig           *config.CookieConfig
 }
 
@@ -50,6 +52,7 @@ func NewBuilder() *Builder {
 		isReadCookie:           false,
 		dataRefreshPeriod:      config.NoLimit,
 		tokenSessionCheckLogin: true,
+		keyPrefix:              "satoken:",
 		cookieConfig: &config.CookieConfig{
 			Domain:   "",
 			Path:     config.DefaultCookiePath,
@@ -229,6 +232,20 @@ func (b *Builder) CookieConfig(cfg *config.CookieConfig) *Builder {
 	return b
 }
 
+// KeyPrefix sets storage key prefix | 设置存储键前缀
+// Automatically adds ":" suffix if not present (except for empty string) | 自动添加 ":" 后缀（空字符串除外）
+// Examples: "satoken" -> "satoken:", "myapp" -> "myapp:", "" -> ""
+// Use empty string "" for Java sa-token compatibility | 使用空字符串 "" 兼容 Java sa-token
+func (b *Builder) KeyPrefix(prefix string) *Builder {
+	// 如果前缀不为空且不以 : 结尾，自动添加 :
+	if prefix != "" && !strings.HasSuffix(prefix, ":") {
+		b.keyPrefix = prefix + ":"
+	} else {
+		b.keyPrefix = prefix
+	}
+	return b
+}
+
 // NeverExpire sets token to never expire | 设置Token永不过期
 func (b *Builder) NeverExpire() *Builder {
 	b.timeout = config.NoLimit
@@ -292,6 +309,7 @@ func (b *Builder) Build() *manager.Manager {
 		JwtSecretKey:           b.jwtSecretKey,
 		IsLog:                  b.isLog,
 		IsPrintBanner:          b.isPrintBanner,
+		KeyPrefix:              b.keyPrefix,
 		CookieConfig:           b.cookieConfig,
 	}
 

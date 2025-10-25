@@ -36,9 +36,9 @@ const (
 	AccessTokenLength  = 32 // Access token byte length | 访问令牌字节长度
 	RefreshTokenLength = 32 // Refresh token byte length | 刷新令牌字节长度
 
-	CodeKeyPrefix    = "satoken:oauth2:code:"    // Code storage key prefix | 授权码存储键前缀
-	TokenKeyPrefix   = "satoken:oauth2:token:"   // Token storage key prefix | 令牌存储键前缀
-	RefreshKeyPrefix = "satoken:oauth2:refresh:" // Refresh storage key prefix | 刷新令牌存储键前缀
+	CodeKeySuffix    = "oauth2:code:"    // Code key suffix after prefix | 授权码键后缀
+	TokenKeySuffix   = "oauth2:token:"   // Token key suffix after prefix | 令牌键后缀
+	RefreshKeySuffix = "oauth2:refresh:" // Refresh key suffix after prefix | 刷新令牌键后缀
 
 	TokenTypeBearer = "Bearer" // Token type | 令牌类型
 )
@@ -102,6 +102,7 @@ type AccessToken struct {
 // OAuth2Server OAuth2 authorization server | OAuth2授权服务器
 type OAuth2Server struct {
 	storage         adapter.Storage
+	keyPrefix       string // Configurable prefix | 可配置的前缀
 	clients         map[string]*Client
 	clientsMu       sync.RWMutex  // Clients map lock | 客户端映射锁
 	codeExpiration  time.Duration // Authorization code expiration (10min) | 授权码过期时间（10分钟）
@@ -109,9 +110,11 @@ type OAuth2Server struct {
 }
 
 // NewOAuth2Server Creates a new OAuth2 server | 创建新的OAuth2服务器
-func NewOAuth2Server(storage adapter.Storage) *OAuth2Server {
+// prefix: key prefix (e.g., "satoken:" or "" for Java compatibility) | 键前缀（如："satoken:" 或 "" 兼容Java）
+func NewOAuth2Server(storage adapter.Storage, prefix string) *OAuth2Server {
 	return &OAuth2Server{
 		storage:         storage,
+		keyPrefix:       prefix,
 		clients:         make(map[string]*Client),
 		codeExpiration:  DefaultCodeExpiration,
 		tokenExpiration: DefaultTokenExpiration,
@@ -374,15 +377,15 @@ func (s *OAuth2Server) RevokeToken(tokenString string) error {
 
 // getCodeKey Gets storage key for authorization code | 获取授权码的存储键
 func (s *OAuth2Server) getCodeKey(code string) string {
-	return CodeKeyPrefix + code
+	return s.keyPrefix + CodeKeySuffix + code
 }
 
 // getTokenKey Gets storage key for access token | 获取访问令牌的存储键
 func (s *OAuth2Server) getTokenKey(token string) string {
-	return TokenKeyPrefix + token
+	return s.keyPrefix + TokenKeySuffix + token
 }
 
 // getRefreshKey Gets storage key for refresh token | 获取刷新令牌的存储键
 func (s *OAuth2Server) getRefreshKey(refreshToken string) string {
-	return RefreshKeyPrefix + refreshToken
+	return s.keyPrefix + RefreshKeySuffix + refreshToken
 }

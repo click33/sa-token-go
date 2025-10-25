@@ -25,9 +25,9 @@ import (
 
 // Constants for nonce | Nonce常量
 const (
-	DefaultNonceTTL = 5 * time.Minute  // Default nonce expiration | 默认nonce过期时间
-	NonceLength     = 32               // Nonce byte length | Nonce字节长度
-	NonceKeyPrefix  = "satoken:nonce:" // Storage key prefix | 存储键前缀
+	DefaultNonceTTL = 5 * time.Minute // Default nonce expiration | 默认nonce过期时间
+	NonceLength     = 32              // Nonce byte length | Nonce字节长度
+	NonceKeySuffix  = "nonce:"        // Key suffix after prefix | 前缀后的键后缀
 )
 
 // Error variables | 错误变量
@@ -37,20 +37,23 @@ var (
 
 // NonceManager Nonce manager for anti-replay attacks | Nonce管理器，用于防重放攻击
 type NonceManager struct {
-	storage adapter.Storage
-	ttl     time.Duration
-	mu      sync.RWMutex
+	storage   adapter.Storage
+	keyPrefix string // Configurable prefix | 可配置的前缀
+	ttl       time.Duration
+	mu        sync.RWMutex
 }
 
 // NewNonceManager Creates a new nonce manager | 创建新的Nonce管理器
+// prefix: key prefix (e.g., "satoken:" or "" for Java compatibility) | 键前缀（如："satoken:" 或 "" 兼容Java）
 // ttl: time to live, default 5 minutes | 过期时间，默认5分钟
-func NewNonceManager(storage adapter.Storage, ttl time.Duration) *NonceManager {
+func NewNonceManager(storage adapter.Storage, prefix string, ttl time.Duration) *NonceManager {
 	if ttl == 0 {
 		ttl = DefaultNonceTTL
 	}
 	return &NonceManager{
-		storage: storage,
-		ttl:     ttl,
+		storage:   storage,
+		keyPrefix: prefix,
+		ttl:       ttl,
 	}
 }
 
@@ -115,5 +118,5 @@ func (nm *NonceManager) IsValid(nonce string) bool {
 
 // getNonceKey Gets storage key for nonce | 获取nonce的存储键
 func (nm *NonceManager) getNonceKey(nonce string) string {
-	return NonceKeyPrefix + nonce
+	return nm.keyPrefix + NonceKeySuffix + nonce
 }

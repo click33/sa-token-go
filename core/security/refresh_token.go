@@ -30,7 +30,7 @@ const (
 	DefaultRefreshTTL  = 30 * 24 * time.Hour // 30 days | 30天
 	DefaultAccessTTL   = 2 * time.Hour       // 2 hours | 2小时
 	RefreshTokenLength = 32                  // Refresh token byte length | 刷新令牌字节长度
-	RefreshKeyPrefix   = "satoken:refresh:"  // Storage key prefix | 存储键前缀
+	RefreshKeySuffix   = "refresh:"          // Key suffix after prefix | 前缀后的键后缀
 )
 
 // Error variables | 错误变量
@@ -53,14 +53,16 @@ type RefreshTokenInfo struct {
 // RefreshTokenManager Refresh token manager | 刷新令牌管理器
 type RefreshTokenManager struct {
 	storage    adapter.Storage
+	keyPrefix  string // Configurable prefix | 可配置的前缀
 	tokenGen   *token.Generator
 	refreshTTL time.Duration // Refresh token TTL (30 days) | 刷新令牌有效期（30天）
 	accessTTL  time.Duration // Access token TTL (configurable) | 访问令牌有效期（可配置）
 }
 
 // NewRefreshTokenManager Creates a new refresh token manager | 创建新的刷新令牌管理器
+// prefix: key prefix (e.g., "satoken:" or "" for Java compatibility) | 键前缀（如："satoken:" 或 "" 兼容Java）
 // cfg: configuration, uses Timeout for access token TTL | 配置，使用Timeout作为访问令牌有效期
-func NewRefreshTokenManager(storage adapter.Storage, cfg *config.Config) *RefreshTokenManager {
+func NewRefreshTokenManager(storage adapter.Storage, prefix string, cfg *config.Config) *RefreshTokenManager {
 	accessTTL := time.Duration(cfg.Timeout) * time.Second
 
 	if accessTTL == 0 {
@@ -69,6 +71,7 @@ func NewRefreshTokenManager(storage adapter.Storage, cfg *config.Config) *Refres
 
 	return &RefreshTokenManager{
 		storage:    storage,
+		keyPrefix:  prefix,
 		tokenGen:   token.NewGenerator(cfg),
 		refreshTTL: DefaultRefreshTTL,
 		accessTTL:  accessTTL,
@@ -194,5 +197,5 @@ func (rtm *RefreshTokenManager) IsValid(refreshToken string) bool {
 
 // getRefreshKey Gets storage key for refresh token | 获取刷新令牌的存储键
 func (rtm *RefreshTokenManager) getRefreshKey(refreshToken string) string {
-	return RefreshKeyPrefix + refreshToken
+	return rtm.keyPrefix + RefreshKeySuffix + refreshToken
 }

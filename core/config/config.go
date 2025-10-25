@@ -40,11 +40,11 @@ const (
 
 // Default configuration constants | 默认配置常量
 const (
-	DefaultTokenName         = "satoken"
-	DefaultTimeout           = 2592000 // 30 days in seconds | 30天（秒）
-	DefaultMaxLoginCount     = 12      // Maximum concurrent logins | 最大并发登录数
-	DefaultCookiePath        = "/"
-	NoLimit                  = -1 // No limit flag | 不限制标志
+	DefaultTokenName     = "satoken"
+	DefaultTimeout       = 2592000 // 30 days in seconds | 30天（秒）
+	DefaultMaxLoginCount = 12      // Maximum concurrent logins | 最大并发登录数
+	DefaultCookiePath    = "/"
+	NoLimit              = -1 // No limit flag | 不限制标志
 )
 
 // IsValid checks if the TokenStyle is valid | 检查TokenStyle是否有效
@@ -109,6 +109,10 @@ type Config struct {
 	// IsPrintBanner Print startup banner (default: true) | 是否打印启动 Banner（默认：true）
 	IsPrintBanner bool
 
+	// KeyPrefix Storage key prefix for Redis isolation (default: "satoken:") | 存储键前缀，用于Redis隔离（默认："satoken:"）
+	// Set to empty "" to be compatible with Java sa-token default behavior | 设置为空""以兼容Java sa-token默认行为
+	KeyPrefix string
+
 	// CookieConfig Cookie configuration | Cookie配置
 	CookieConfig *CookieConfig
 }
@@ -153,6 +157,7 @@ func DefaultConfig() *Config {
 		JwtSecretKey:           "",
 		IsLog:                  false,
 		IsPrintBanner:          true,
+		KeyPrefix:              "satoken:",
 		CookieConfig: &CookieConfig{
 			Domain:   "",
 			Path:     DefaultCookiePath,
@@ -307,6 +312,12 @@ func (c *Config) SetIsLog(isLog bool) *Config {
 // SetIsPrintBanner Set whether to print banner | 设置是否打印Banner
 func (c *Config) SetIsPrintBanner(isPrint bool) *Config {
 	c.IsPrintBanner = isPrint
+	return c
+}
+
+// SetKeyPrefix Set storage key prefix | 设置存储键前缀
+func (c *Config) SetKeyPrefix(prefix string) *Config {
+	c.KeyPrefix = prefix
 	return c
 }
 

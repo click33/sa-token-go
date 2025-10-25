@@ -17,7 +17,7 @@ import (
 // Constants for storage keys and default values | 存储键和默认值常量
 const (
 	DefaultDevice   = "default"
-	DefaultPrefix   = "satoken:"
+	DefaultPrefix   = "satoken"
 	DisableValue    = "1"
 	DefaultNonceTTL = 5 * time.Minute
 
@@ -72,14 +72,20 @@ func NewManager(storage adapter.Storage, cfg *config.Config) *Manager {
 		cfg = config.DefaultConfig()
 	}
 
+	// Use configured prefix, fallback to default | 使用配置的前缀，回退到默认值
+	prefix := cfg.KeyPrefix
+	if prefix == "" {
+		prefix = DefaultPrefix
+	}
+
 	return &Manager{
 		storage:        storage,
 		config:         cfg,
 		generator:      token.NewGenerator(cfg),
-		prefix:         DefaultPrefix,
-		nonceManager:   security.NewNonceManager(storage, DefaultNonceTTL),
-		refreshManager: security.NewRefreshTokenManager(storage, cfg),
-		oauth2Server:   oauth2.NewOAuth2Server(storage),
+		prefix:         prefix,
+		nonceManager:   security.NewNonceManager(storage, prefix, DefaultNonceTTL),
+		refreshManager: security.NewRefreshTokenManager(storage, prefix, cfg),
+		oauth2Server:   oauth2.NewOAuth2Server(storage, prefix),
 	}
 }
 

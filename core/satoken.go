@@ -17,7 +17,7 @@ import (
 )
 
 // Version Sa-Token-Go version | Sa-Token-Go版本
-const Version = "0.1.0"
+const Version = "0.1.1"
 
 // ============ Exported Types | 导出的类型 ============
 // Export main types and functions for external use | 导出主要类型和函数，方便外部使用
@@ -172,20 +172,20 @@ func NewBuilder() *Builder {
 }
 
 // NewNonceManager Creates a new nonce manager | 创建新的Nonce管理器
-func NewNonceManager(storage Storage, ttl ...int64) *NonceManager {
+func NewNonceManager(storage Storage, prefix string, ttl ...int64) *NonceManager {
 	var duration time.Duration
 	if len(ttl) > 0 && ttl[0] > 0 {
 		duration = time.Duration(ttl[0]) * time.Second
 	}
-	return security.NewNonceManager(storage, duration)
+	return security.NewNonceManager(storage, prefix, duration)
 }
 
 // NewRefreshTokenManager Creates a new refresh token manager | 创建新的刷新令牌管理器
-func NewRefreshTokenManager(storage Storage, cfg *Config) *RefreshTokenManager {
-	return security.NewRefreshTokenManager(storage, cfg)
+func NewRefreshTokenManager(storage Storage, prefix string, cfg *Config) *RefreshTokenManager {
+	return security.NewRefreshTokenManager(storage, prefix, cfg)
 }
 
 // NewOAuth2Server Creates a new OAuth2 server | 创建新的OAuth2服务器
-func NewOAuth2Server(storage Storage) *OAuth2Server {
-	return oauth2.NewOAuth2Server(storage)
+func NewOAuth2Server(storage Storage, prefix string) *OAuth2Server {
+	return oauth2.NewOAuth2Server(storage, prefix)
 }
