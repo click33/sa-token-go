@@ -127,6 +127,35 @@ func (p *Plugin) LoginHandler(r *ghttp.Request) {
 	})
 }
 
+// UserInfoHandler user info handler example | 获取用户信息处理器示例
+func (p *Plugin) UserInfoHandler(r *ghttp.Request) {
+	ctx := NewGFContext(r)
+	saCtx := core.NewContext(ctx, p.manager)
+
+	loginID, err := saCtx.GetLoginID()
+	if err != nil {
+		r.Response.WriteStatusExit(http.StatusUnauthorized, g.Map{
+			"code":    401,
+			"message": "未登录",
+		})
+		return
+	}
+
+	// Get user permissions and roles | 获取用户权限和角色
+	permissions, _ := p.manager.GetPermissions(loginID)
+	roles, _ := p.manager.GetRoles(loginID)
+
+	r.Response.WriteStatusExit(http.StatusOK, g.Map{
+		"code":    200,
+		"message": "success",
+		"data": g.Map{
+			"loginId":     loginID,
+			"permissions": permissions,
+			"roles":       roles,
+		},
+	})
+}
+
 // GetSaToken 从GoFrame上下文获取Sa-Token上下文
 func GetSaToken(r *ghttp.Request) (*core.SaTokenContext, bool) {
 	satoken := r.GetCtx().Value("satoken")

@@ -1,17 +1,24 @@
-module github.com/click33/sa-token-go/integrations/gf
+module github.com/click33/sa-token-go/examples/gf-example
 
 go 1.24.1
 
+replace (
+	github.com/click33/sa-token-go/core => ../../core
+	github.com/click33/sa-token-go/integrations/gf => ../../integrations/gf
+	github.com/click33/sa-token-go/storage/memory => ../../storage/memory
+)
+
 require (
-	github.com/click33/sa-token-go/core v0.1.1
-	github.com/click33/sa-token-go/stputil v0.1.1
+	github.com/click33/sa-token-go/integrations/gf v0.0.0-00010101000000-000000000000
+	github.com/click33/sa-token-go/storage/memory v0.0.0-00010101000000-000000000000
 	github.com/gogf/gf/v2 v2.9.4
 )
 
 require (
 	github.com/BurntSushi/toml v1.5.0 // indirect
 	github.com/clbanning/mxj/v2 v2.7.0 // indirect
-	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
+	github.com/click33/sa-token-go/core v0.1.1 // indirect
+	github.com/click33/sa-token-go/stputil v0.1.1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
@@ -28,7 +35,6 @@ require (
 	github.com/olekukonko/errors v1.1.0 // indirect
 	github.com/olekukonko/ll v0.0.9 // indirect
 	github.com/olekukonko/tablewriter v1.1.0 // indirect
-	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/otel v1.38.0 // indirect
