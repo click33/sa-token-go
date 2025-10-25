@@ -1,7 +1,6 @@
 package manager
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -136,18 +135,11 @@ func (m *Manager) Login(loginID string, device ...string) (string, error) {
 	}
 
 	expiration := m.getExpiration()
-	now := time.Now().Unix()
 
-	// Save token info | 保存Token信息
-	tokenInfo := &TokenInfo{
-		LoginID:    loginID,
-		Device:     deviceType,
-		CreateTime: now,
-		ActiveTime: now,
-	}
-
-	if err := m.saveTokenInfo(tokenValue, tokenInfo, expiration); err != nil {
-		return "", err
+	// Save token-loginID mapping (符合 Java sa-token 设计) | 保存 Token-LoginID 映射
+	tokenKey := m.getTokenKey(tokenValue)
+	if err := m.storage.Set(tokenKey, loginID, expiration); err != nil {
+		return "", fmt.Errorf("failed to save token: %w", err)
 	}
 
 	// Save account-token mapping | 保存账号-Token映射
@@ -160,7 +152,7 @@ func (m *Manager) Login(loginID string, device ...string) (string, error) {
 	sess := session.NewSession(loginID, m.storage, m.prefix)
 	sess.Set(SessionKeyLoginID, loginID)
 	sess.Set(SessionKeyDevice, deviceType)
-	sess.Set(SessionKeyLoginTime, now)
+	sess.Set(SessionKeyLoginTime, time.Now().Unix())
 
 	return tokenValue, nil
 }
@@ -169,17 +161,11 @@ func (m *Manager) Login(loginID string, device ...string) (string, error) {
 func (m *Manager) LoginByToken(loginID string, tokenValue string, device ...string) error {
 	deviceType := getDevice(device)
 	expiration := m.getExpiration()
-	now := time.Now().Unix()
 
-	tokenInfo := &TokenInfo{
-		LoginID:    loginID,
-		Device:     deviceType,
-		CreateTime: now,
-		ActiveTime: now,
-	}
-
-	if err := m.saveTokenInfo(tokenValue, tokenInfo, expiration); err != nil {
-		return err
+	// Save token-loginID mapping (符合 Java sa-token 设计) | 保存 Token-LoginID 映射
+	tokenKey := m.getTokenKey(tokenValue)
+	if err := m.storage.Set(tokenKey, loginID, expiration); err != nil {
+		return fmt.Errorf("failed to save token: %w", err)
 	}
 
 	accountKey := m.getAccountKey(loginID, deviceType)
@@ -256,39 +242,20 @@ func (m *Manager) IsLogin(tokenValue string) bool {
 		return false
 	}
 
-	// Check and update active timeout | 更新活跃时间并检查活跃超时
-	if m.config.ActiveTimeout > 0 {
-		info, _ := m.getTokenInfo(tokenValue)
-		if info != nil {
-			elapsed := time.Now().Unix() - info.ActiveTime
-			if elapsed > m.config.ActiveTimeout {
-				m.LogoutByToken(tokenValue)
-				return false
-			}
-		}
-	}
-
 	// Async auto-renew for better performance | 异步自动续期（提高性能）
+	// Note: ActiveTimeout feature removed to comply with Java sa-token design
 	if m.config.AutoRenew && m.config.Timeout > 0 {
-		go m.renewToken(tokenValue, tokenKey)
+		go m.renewToken(tokenKey)
 	}
 
 	return true
 }
 
 // renewToken Renews token expiration asynchronously | 异步续期Token
-func (m *Manager) renewToken(tokenValue, tokenKey string) {
+func (m *Manager) renewToken(tokenKey string) {
 	expiration := m.getExpiration()
-
 	// Extend token storage expiration | 延长Token存储的过期时间
 	m.storage.Expire(tokenKey, expiration)
-
-	// Update active time | 更新活跃时间
-	info, _ := m.getTokenInfo(tokenValue)
-	if info != nil {
-		info.ActiveTime = time.Now().Unix()
-		m.saveTokenInfo(tokenValue, info, expiration)
-	}
 }
 
 // CheckLogin Checks login status (throws error if not logged in) | 检查登录（未登录抛出错误）
@@ -568,24 +535,15 @@ func (m *Manager) HasRolesOr(loginID string, roles []string) bool {
 
 // SetTokenTag Sets token tag | 设置Token标签
 func (m *Manager) SetTokenTag(tokenValue, tag string) error {
-	info, err := m.getTokenInfo(tokenValue)
-	if err != nil {
-		return err
-	}
-
-	info.Tag = tag
-	expiration := m.getExpiration()
-
-	return m.saveTokenInfo(tokenValue, info, expiration)
+	// Tag feature not supported to comply with Java sa-token design
+	// If you need custom metadata, use Session instead
+	return fmt.Errorf("token tag feature not supported (use Session for custom metadata)")
 }
 
 // GetTokenTag Gets token tag | 获取Token标签
 func (m *Manager) GetTokenTag(tokenValue string) (string, error) {
-	info, err := m.getTokenInfo(tokenValue)
-	if err != nil {
-		return "", err
-	}
-	return info.Tag, nil
+	// Tag feature not supported to comply with Java sa-token design
+	return "", fmt.Errorf("token tag feature not supported (use Session for custom metadata)")
 }
 
 // ============ Session Query | 会话查询 ============
@@ -632,36 +590,34 @@ func (m *Manager) getAccountKey(loginID, device string) string {
 	return m.prefix + AccountKeyPrefix + loginID + PermissionSeparator + device
 }
 
-// saveTokenInfo Saves token information | 保存Token信息
-func (m *Manager) saveTokenInfo(tokenValue string, info *TokenInfo, expiration time.Duration) error {
-	data, err := json.Marshal(info)
-	if err != nil {
-		return fmt.Errorf("failed to marshal token info: %w", err)
-	}
-
-	tokenKey := m.getTokenKey(tokenValue)
-	return m.storage.Set(tokenKey, string(data), expiration)
-}
-
-// getTokenInfo Gets token information | 获取Token信息
-func (m *Manager) getTokenInfo(tokenValue string) (*TokenInfo, error) {
+// getLoginIDByToken Gets loginID by token (符合 Java sa-token 设计) | 通过 Token 获取 loginID
+func (m *Manager) getLoginIDByToken(tokenValue string) (string, error) {
 	tokenKey := m.getTokenKey(tokenValue)
 	data, err := m.storage.Get(tokenKey)
 	if err != nil || data == nil {
-		return nil, ErrTokenNotFound
+		return "", ErrTokenNotFound
 	}
 
-	dataStr, ok := assertString(data)
+	loginID, ok := assertString(data)
 	if !ok {
-		return nil, ErrInvalidTokenData
+		return "", ErrInvalidTokenData
 	}
 
-	var info TokenInfo
-	if err := json.Unmarshal([]byte(dataStr), &info); err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrInvalidTokenData, err)
+	return loginID, nil
+}
+
+// getTokenInfo Gets token information (为了向后兼容) | 获取Token信息（向后兼容）
+func (m *Manager) getTokenInfo(tokenValue string) (*TokenInfo, error) {
+	loginID, err := m.getLoginIDByToken(tokenValue)
+	if err != nil {
+		return nil, err
 	}
 
-	return &info, nil
+	// 构造简化的 TokenInfo，只包含必要信息
+	return &TokenInfo{
+		LoginID: loginID,
+		Device:  DefaultDevice, // 从 token 无法获取设备信息
+	}, nil
 }
 
 // toStringSlice Converts any to []string | 将any转换为[]string

@@ -112,7 +112,7 @@ func main() {
 
 	// Logout | 登出
 	fmt.Println("7. Logout | 登出")
-	stputil.Logout(1000)
+	// stputil.Logout(1000)
 	fmt.Println("✅ User logged out")
 
 	if !stputil.IsLogin(token) {
