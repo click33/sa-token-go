@@ -51,7 +51,7 @@ func main() {
 			TokenName("Authorization").
 			TokenStyle(core.TokenStyleRandom64).
 			Timeout(3600).        // 1 hour | 1小时
-			KeyPrefix("satoken"). // ✅ 自动添加冒号，实际为 "satoken:"（符合 Java 设计）
+			KeyPrefix("satoken"). // 设计开头标识
 			IsPrintBanner(true).
 			Build(),
 	)
