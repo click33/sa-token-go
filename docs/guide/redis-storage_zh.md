@@ -16,62 +16,137 @@ go get github.com/click33/sa-token-go/storage/redis
 go get github.com/redis/go-redis/v9
 ```
 
+## 支持的配置方式
+
+Sa-Token-Go 的 Redis 存储支持以下几种配置方式：
+
+| 方式 | 函数 | 适用场景 | 灵活性 | 支持集群/哨兵 |
+|-----|------|---------|-------|-------------|
+| **URL** | `redis.NewStorage(url)` | 简单配置，开发环境 | ⭐ | ❌ |
+| **Builder** | `redis.NewBuilder().Build()` | 链式配置，推荐 | ⭐⭐⭐ | ❌ |
+| **Config** | `redis.NewStorageFromConfig(cfg)` | 结构化配置 | ⭐⭐⭐ | ❌ |
+| **Client** | `redis.NewStorageFromClient(rdb)` | 自定义客户端 | ⭐⭐⭐⭐⭐ | ✅ |
+
+**推荐：**
+
+- 开发/测试：使用 **URL** 或 **Builder** 方式
+- 生产环境（单机）：使用 **Builder** 或 **Config** 方式
+- 生产环境（集群/哨兵）：使用 **Client** 方式 + `goredis.NewClusterClient` 或 `goredis.NewFailoverClient`
+
 ## 基本使用
 
-### 1. 简单配置
+### 1. 使用 Redis URL（最简单）
 
 ```go
 package main
 
 import (
+    "fmt"
     "github.com/click33/sa-token-go/core"
     "github.com/click33/sa-token-go/stputil"
     "github.com/click33/sa-token-go/storage/redis"
-    goredis "github.com/redis/go-redis/v9"
 )
 
 func main() {
-    // 创建 Redis 客户端
-    rdb := goredis.NewClient(&goredis.Options{
-        Addr:     "localhost:6379",
-        Password: "", // 无密码
-        DB:       0,  // 默认 DB
-    })
+    // 使用 Redis URL
+    redisStorage, err := redis.NewStorage("redis://localhost:6379/0")
+    if err != nil {
+        panic(err)
+    }
 
     // 使用 Redis 存储初始化 Sa-Token
     stputil.SetManager(
         core.NewBuilder().
-            Storage(redis.NewStorage(rdb)).
+            Storage(redisStorage).
             TokenName("Authorization").
-            Timeout(86400). // 24小时
+            Timeout(86400).        // 24小时
+            KeyPrefix("satoken").  // 键前缀（自动添加冒号）
             Build(),
     )
 
     // 现在可以使用 Sa-Token 了
-    token, _ := stputil.Login(1000)
-    println("登录成功，Token:", token)
+    token, _ := stputil.Login("1000")
+    fmt.Println("登录成功，Token:", token)
 }
 ```
 
 ### 2. 带密码认证
 
 ```go
-rdb := goredis.NewClient(&goredis.Options{
-    Addr:     "localhost:6379",
-    Password: "your-redis-password", // 设置密码
-    DB:       0,
-})
+// 使用 Redis URL（推荐）
+redisStorage, err := redis.NewStorage("redis://:your-redis-password@localhost:6379/0")
+if err != nil {
+    panic(err)
+}
 
 stputil.SetManager(
     core.NewBuilder().
-        Storage(redis.NewStorage(rdb)).
+        Storage(redisStorage).
+        KeyPrefix("satoken").  // 键前缀
         Build(),
 )
 ```
 
-### 3. 使用 Redis 集群
+### 3. 使用 Redis Builder（推荐）
 
 ```go
+// 使用 Builder 模式配置
+redisStorage, err := redis.NewBuilder().
+    Host("localhost").
+    Port(6379).
+    Password("your-password").
+    Database(0).
+    PoolSize(10).
+    Build()
+if err != nil {
+    panic(err)
+}
+
+stputil.SetManager(
+    core.NewBuilder().
+        Storage(redisStorage).
+        KeyPrefix("satoken").
+        Build(),
+)
+```
+
+### 4. 使用自定义 Redis 客户端（✅ 完全支持）
+
+**适用场景：** 需要自定义连接池、超时、重试等高级配置，或使用 Redis 集群/哨兵模式
+
+#### 4.1 标准 Redis 单机
+
+```go
+import (
+    goredis "github.com/redis/go-redis/v9"
+    "github.com/click33/sa-token-go/storage/redis"
+    "github.com/click33/sa-token-go/core"
+    "github.com/click33/sa-token-go/stputil"
+)
+
+// 创建自定义 Redis 客户端
+rdb := goredis.NewClient(&goredis.Options{
+    Addr:     "localhost:6379",
+    Password: "your-password",
+    DB:       0,
+    PoolSize: 10,
+})
+
+// 从已有客户端创建存储（✅ 核心方法）
+redisStorage := redis.NewStorageFromClient(rdb)
+
+stputil.SetManager(
+    core.NewBuilder().
+        Storage(redisStorage).
+        KeyPrefix("satoken").
+        Build(),
+)
+```
+
+#### 4.2 Redis 集群模式
+
+```go
+// 创建 Redis 集群客户端
 rdb := goredis.NewClusterClient(&goredis.ClusterOptions{
     Addrs: []string{
         "localhost:7000",
@@ -79,18 +154,24 @@ rdb := goredis.NewClusterClient(&goredis.ClusterOptions{
         "localhost:7002",
     },
     Password: "your-password",
+    PoolSize: 20,
 })
+
+// 从集群客户端创建存储（✅ 支持集群）
+redisStorage := redis.NewStorageFromClient(rdb)
 
 stputil.SetManager(
     core.NewBuilder().
-        Storage(redis.NewStorage(rdb)).
+        Storage(redisStorage).
+        KeyPrefix("satoken").
         Build(),
 )
 ```
 
-### 4. 使用 Redis 哨兵
+#### 4.3 Redis 哨兵模式
 
 ```go
+// 创建 Redis 哨兵客户端
 rdb := goredis.NewFailoverClient(&goredis.FailoverOptions{
     MasterName:    "mymaster",
     SentinelAddrs: []string{
@@ -102,9 +183,13 @@ rdb := goredis.NewFailoverClient(&goredis.FailoverOptions{
     DB:       0,
 })
 
+// 从哨兵客户端创建存储（✅ 支持哨兵）
+redisStorage := redis.NewStorageFromClient(rdb)
+
 stputil.SetManager(
     core.NewBuilder().
-        Storage(redis.NewStorage(rdb)).
+        Storage(redisStorage).
+        KeyPrefix("satoken").
         Build(),
 )
 ```
@@ -140,26 +225,32 @@ func main() {
         PoolTimeout:  4 * time.Second,
     })
 
-    // 使用 Redis 初始化 Sa-Token
+    // 从自定义客户端创建存储
+    redisStorage := redis.NewStorageFromClient(rdb)
+
+    // 使用 Redis 初始化 Sa-Token（完整参数）
     stputil.SetManager(
         core.NewBuilder().
-            Storage(redis.NewStorage(rdb)).
-            TokenName("Authorization").
-            TokenStyle(core.TokenStyleJWT).
-            JwtSecretKey("your-secret-key").
-            Timeout(7200).              // 2小时
-            ActiveTimeout(1800).        // 30分钟
-            IsConcurrent(true).
-            IsShare(false).             // 每次登录获得唯一Token
-            MaxLoginCount(5).           // 最多5个并发登录
-            AutoRenew(true).
-            IsReadHeader(true).
-            IsPrintBanner(true).
+            Storage(redisStorage).
+            TokenName("Authorization").      // Token 名称
+            TokenStyle(core.TokenStyleJWT).  // Token 风格
+            JwtSecretKey("your-secret-key"). // JWT 密钥
+            Timeout(7200).                   // Token 超时时间（秒）
+            IsConcurrent(true).              // 是否允许并发登录
+            IsShare(false).                  // 是否共享 Token（false=每次登录新Token）
+            MaxLoginCount(5).                // 最多并发登录数
+            AutoRenew(true).                 // 是否自动续期
+            IsReadHeader(true).              // 是否从 Header 读取 Token
+            IsReadCookie(false).             // 是否从 Cookie 读取 Token
+            IsReadBody(false).               // 是否从 Body 读取 Token
+            KeyPrefix("satoken").            // Redis 键前缀（自动添加:）
+            IsPrintBanner(true).             // 是否打印启动横幅
+            IsLog(false).                    // 是否启用日志
             Build(),
     )
 
     // 使用 Sa-Token
-    token, _ := stputil.Login(1000)
+    token, _ := stputil.Login("1000")
     println("Token:", token)
 }
 ```
@@ -192,6 +283,53 @@ rdb := goredis.NewClient(&goredis.Options{
 
 ### 使用环境变量
 
+#### 方式1: 使用 Redis URL（推荐）
+
+```go
+package main
+
+import (
+    "fmt"
+    "os"
+    
+    "github.com/click33/sa-token-go/core"
+    "github.com/click33/sa-token-go/stputil"
+    "github.com/click33/sa-token-go/storage/redis"
+)
+
+func main() {
+    // 从环境变量构建 Redis URL
+    redisAddr := os.Getenv("REDIS_ADDR")
+    if redisAddr == "" {
+        redisAddr = "localhost:6379"
+    }
+    
+    redisPassword := os.Getenv("REDIS_PASSWORD")
+    redisDB := os.Getenv("REDIS_DB")
+    if redisDB == "" {
+        redisDB = "0"
+    }
+    
+    // 构建 Redis URL
+    redisURL := fmt.Sprintf("redis://:%s@%s/%s", redisPassword, redisAddr, redisDB)
+    
+    redisStorage, err := redis.NewStorage(redisURL)
+    if err != nil {
+        panic(err)
+    }
+
+    stputil.SetManager(
+        core.NewBuilder().
+            Storage(redisStorage).
+            JwtSecretKey(os.Getenv("JWT_SECRET_KEY")).
+            KeyPrefix("satoken").
+            Build(),
+    )
+}
+```
+
+#### 方式2: 使用自定义客户端
+
 ```go
 package main
 
@@ -213,7 +351,6 @@ func main() {
     }
     
     redisPassword := os.Getenv("REDIS_PASSWORD")
-    
     redisDB, _ := strconv.Atoi(os.Getenv("REDIS_DB"))
     
     rdb := goredis.NewClient(&goredis.Options{
@@ -224,8 +361,9 @@ func main() {
 
     stputil.SetManager(
         core.NewBuilder().
-            Storage(redis.NewStorage(rdb)).
+            Storage(redis.NewStorageFromClient(rdb)).  // ← 使用 NewStorageFromClient
             JwtSecretKey(os.Getenv("JWT_SECRET_KEY")).
+            KeyPrefix("satoken").
             Build(),
     )
 }
@@ -246,38 +384,84 @@ TOKEN_TIMEOUT=7200
 
 ## Redis 键结构
 
-Sa-Token-Go 在 Redis 中使用以下键模式：
+Sa-Token-Go 在 Redis 中使用以下键模式（**完全兼容 Java sa-token**）：
 
 ```
-satoken:login:token:{tokenValue}        # Token -> LoginID 映射
-satoken:login:session:{loginID}:token   # LoginID -> Token 列表
-satoken:session:{loginID}               # 用户 Session 数据
-satoken:permission:{loginID}            # 用户权限
-satoken:role:{loginID}                  # 用户角色
-satoken:disable:{loginID}               # 账号禁用状态
+# 认证相关
+satoken:token:{tokenValue}           # Token -> LoginID 映射（只存 loginID 字符串）
+satoken:account:{loginID}:{device}   # Account -> Token 映射
+
+# Session 和权限
+satoken:session:{loginID}            # 用户 Session 数据（存储完整的用户对象）
+satoken:login:permission:{loginID}   # 用户权限列表
+satoken:login:role:{loginID}         # 用户角色列表
+
+# 账号管理
+satoken:disable:{loginID}            # 账号禁用状态
+```
+
+### 键值存储示例
+
+```bash
+# Token 键（轻量级，只存 loginID）
+Key:   satoken:token:6R9twUC-OL_uL6JQFKfncyoVuK3NlDL2...
+Value: 1000                          # 只是简单的字符串（4 bytes）
+
+# Account 键（loginID -> Token）
+Key:   satoken:account:1000:default
+Value: 6R9twUC-OL_uL6JQFKfncyoVuK3NlDL2...
+
+# Session 键（存储完整用户对象和自定义数据）
+Key:   satoken:session:1000
+Value: {
+  "id": "1000",
+  "createTime": 1698123456,
+  "data": {
+    "user": {...完整的 User 对象...},
+    "loginTime": 1698123456,
+    "loginIP": "192.168.1.100"
+  }
+}
 ```
 
 ### 在 Redis CLI 中查看键
 
 ```bash
 # 连接到 Redis
-redis-cli
+redis-cli -h localhost -p 6379
 
 # 列出所有 Sa-Token 键
 KEYS satoken:*
 
-# 查看 Token 信息
-GET satoken:login:token:your-token-value
+# 查看 Token 映射（返回 loginID）
+GET satoken:token:6R9twUC-OL_uL6JQFKfncyoVuK3NlDL2...
+# 输出: "1000"
 
-# 查看用户 Session
+# 查看 Account 映射（返回 Token）
+GET satoken:account:1000:default
+# 输出: "6R9twUC-OL_uL6JQFKfncyoVuK3NlDL2..."
+
+# 查看用户 Session（包含完整用户数据）
 GET satoken:session:1000
+# 输出: JSON 格式的 Session 数据
 
 # 查看用户权限
-SMEMBERS satoken:permission:1000
+GET satoken:login:permission:1000
 
 # 查看用户角色
-SMEMBERS satoken:role:1000
+GET satoken:login:role:1000
+
+# 查看 TTL（剩余生存时间）
+TTL satoken:token:6R9twUC-OL_uL6JQFKfncyoVuK3NlDL2...
+# 输出: 3600 (秒)
 ```
+
+### 设计原则（兼容 Java sa-token）
+
+1. **Token 键轻量级**：只存储 `loginID` 字符串，不存储复杂对象
+2. **Session 存储完整数据**：用户对象、权限、角色等存在 Session 中
+3. **键前缀统一**：Manager 层统一管理 `satoken:` 前缀
+4. **过期时间自动设置**：根据 `Timeout` 配置自动设置 TTL
 
 ## 生产环境最佳实践
 
@@ -687,4 +871,3 @@ func adminHandler(c *gin.Context) {
 - [Redis 官方网站](https://redis.io/)
 - [go-redis 文档](https://redis.uptrace.dev/)
 - [Redis 命令](https://redis.io/commands/)
-

@@ -13,7 +13,6 @@ import (
 type Storage struct {
 	client    *redis.Client
 	ctx       context.Context
-	keyPrefix string
 	opTimeout time.Duration
 }
 
@@ -34,7 +33,7 @@ type Config struct {
 }
 
 // NewStorage 通过Redis URL创建存储
-func NewStorage(url string, keyPrefix string) (adapter.Storage, error) {
+func NewStorage(url string) (adapter.Storage, error) {
 	opts, err := redis.ParseURL(url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse redis url: %w", err)
@@ -51,13 +50,12 @@ func NewStorage(url string, keyPrefix string) (adapter.Storage, error) {
 	return &Storage{
 		client:    client,
 		ctx:       ctx,
-		keyPrefix: keyPrefix,
 		opTimeout: 3 * time.Second,
 	}, nil
 }
 
 // NewStorageFromConfig 通过配置创建存储
-func NewStorageFromConfig(cfg *Config, keyPrefix string) (adapter.Storage, error) {
+func NewStorageFromConfig(cfg *Config) (adapter.Storage, error) {
 	client := redis.NewClient(&redis.Options{
 		Addr:         fmt.Sprintf("%s:%d", cfg.Host, cfg.Port),
 		Password:     cfg.Password,
@@ -83,35 +81,33 @@ func NewStorageFromConfig(cfg *Config, keyPrefix string) (adapter.Storage, error
 	return &Storage{
 		client:    client,
 		ctx:       ctx,
-		keyPrefix: keyPrefix,
 		opTimeout: opTimeout,
 	}, nil
 }
 
 // NewStorageFromClient 从已有的Redis客户端创建存储
-func NewStorageFromClient(client *redis.Client, keyPrefix string) adapter.Storage {
+func NewStorageFromClient(client *redis.Client) adapter.Storage {
 	return &Storage{
 		client:    client,
 		ctx:       context.Background(),
-		keyPrefix: keyPrefix,
 		opTimeout: 3 * time.Second,
 	}
 }
 
-// getKey 获取完整的键名
+// getKey 获取完整的键名（Storage 层不处理前缀，前缀由 Manager 层统一管理）
 func (s *Storage) getKey(key string) string {
-	return s.keyPrefix + key
+	return key
 }
 
 // Set 设置键值对
-func (s *Storage) Set(key string, value interface{}, expiration time.Duration) error {
+func (s *Storage) Set(key string, value any, expiration time.Duration) error {
 	ctx, cancel := s.withTimeout()
 	defer cancel()
 	return s.client.Set(ctx, s.getKey(key), value, expiration).Err()
 }
 
 // Get 获取值
-func (s *Storage) Get(key string) (interface{}, error) {
+func (s *Storage) Get(key string) (any, error) {
 	ctx, cancel := s.withTimeout()
 	defer cancel()
 	val, err := s.client.Get(ctx, s.getKey(key)).Result()
@@ -125,10 +121,19 @@ func (s *Storage) Get(key string) (interface{}, error) {
 }
 
 // Delete 删除键
-func (s *Storage) Delete(key string) error {
+func (s *Storage) Delete(keys ...string) error {
+	if len(keys) == 0 {
+		return nil
+	}
+
 	ctx, cancel := s.withTimeout()
 	defer cancel()
-	return s.client.Del(ctx, s.getKey(key)).Err()
+
+	fullKeys := make([]string, len(keys))
+	for i, key := range keys {
+		fullKeys[i] = s.getKey(key)
+	}
+	return s.client.Del(ctx, fullKeys...).Err()
 }
 
 // Exists 检查键是否存在
@@ -148,25 +153,17 @@ func (s *Storage) Keys(pattern string) ([]string, error) {
 	defer cancel()
 
 	var (
-		cursor      uint64
-		result      []string
-		prefixLen   = len(s.keyPrefix)
-		fullPattern = s.getKey(pattern)
+		cursor uint64
+		result []string
 	)
 
 	for {
-		keys, next, err := s.client.Scan(ctx, cursor, fullPattern, 1000).Result()
+		keys, next, err := s.client.Scan(ctx, cursor, pattern, 1000).Result()
 		if err != nil {
 			return nil, err
 		}
 		if len(keys) > 0 {
-			for _, k := range keys {
-				if len(k) > prefixLen {
-					result = append(result, k[prefixLen:])
-				} else {
-					result = append(result, k)
-				}
-			}
+			result = append(result, keys...)
 		}
 		cursor = next
 		if cursor == 0 {
@@ -190,14 +187,14 @@ func (s *Storage) TTL(key string) (time.Duration, error) {
 	return s.client.TTL(ctx, s.getKey(key)).Result()
 }
 
-// Clear 清空所有数据（使用前缀匹配删除）
+// Clear 清空所有数据（⚠️ 警告：会清空整个 Redis，谨慎使用！应由 Manager 层控制）
 func (s *Storage) Clear() error {
 	ctx, cancel := s.withTimeout()
 	defer cancel()
 
 	var cursor uint64
 	for {
-		keys, next, err := s.client.Scan(ctx, cursor, s.keyPrefix+"*", 1000).Result()
+		keys, next, err := s.client.Scan(ctx, cursor, "*", 1000).Result()
 		if err != nil {
 			return err
 		}
@@ -213,6 +210,13 @@ func (s *Storage) Clear() error {
 		}
 	}
 	return nil
+}
+
+// Ping 检查连接
+func (s *Storage) Ping() error {
+	ctx, cancel := s.withTimeout()
+	defer cancel()
+	return s.client.Ping(ctx).Err()
 }
 
 // Close 关闭连接
@@ -240,7 +244,6 @@ type Builder struct {
 	password string
 	database int
 	poolSize int
-	prefix   string
 }
 
 // NewBuilder 创建构建器
@@ -251,7 +254,6 @@ func NewBuilder() *Builder {
 		password: "",
 		database: 0,
 		poolSize: 10,
-		prefix:   "satoken:",
 	}
 }
 
@@ -285,12 +287,6 @@ func (b *Builder) PoolSize(poolSize int) *Builder {
 	return b
 }
 
-// KeyPrefix 设置键前缀
-func (b *Builder) KeyPrefix(prefix string) *Builder {
-	b.prefix = prefix
-	return b
-}
-
 // Build 构建存储
 func (b *Builder) Build() (adapter.Storage, error) {
 	return NewStorageFromConfig(&Config{
@@ -299,5 +295,5 @@ func (b *Builder) Build() (adapter.Storage, error) {
 		Password: b.password,
 		Database: b.database,
 		PoolSize: b.poolSize,
-	}, b.prefix)
+	})
 }

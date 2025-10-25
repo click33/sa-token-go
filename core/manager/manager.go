@@ -1,7 +1,6 @@
 package manager
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -14,16 +13,48 @@ import (
 	"github.com/click33/sa-token-go/core/token"
 )
 
-// TokenInfo Token信息
+// Constants for storage keys and default values | 存储键和默认值常量
+const (
+	DefaultDevice   = "default"
+	DefaultPrefix   = "satoken"
+	DisableValue    = "1"
+	DefaultNonceTTL = 5 * time.Minute
+
+	// Key prefixes | 键前缀
+	TokenKeyPrefix   = "token:"
+	AccountKeyPrefix = "account:"
+	DisableKeyPrefix = "disable:"
+
+	// Session keys | Session键
+	SessionKeyLoginID     = "loginId"
+	SessionKeyDevice      = "device"
+	SessionKeyLoginTime   = "loginTime"
+	SessionKeyPermissions = "permissions"
+	SessionKeyRoles       = "roles"
+
+	// Wildcard for permissions | 权限通配符
+	PermissionWildcard  = "*"
+	PermissionSeparator = ":"
+)
+
+// Error variables | 错误变量
+var (
+	ErrAccountDisabled  = fmt.Errorf("account is disabled")
+	ErrNotLogin         = fmt.Errorf("not login")
+	ErrTokenNotFound    = fmt.Errorf("token not found")
+	ErrInvalidTokenData = fmt.Errorf("invalid token data")
+)
+
+// TokenInfo Token information | Token信息
 type TokenInfo struct {
 	LoginID    string `json:"loginId"`
 	Device     string `json:"device"`
 	CreateTime int64  `json:"createTime"`
-	ActiveTime int64  `json:"activeTime"` // 最后活跃时间
+	ActiveTime int64  `json:"activeTime"` // Last active time | 最后活跃时间
 	Tag        string `json:"tag,omitempty"`
 }
 
-// Manager 认证管理器
+// Manager Authentication manager | 认证管理器
 type Manager struct {
 	storage        adapter.Storage
 	config         *config.Config
@@ -34,141 +65,148 @@ type Manager struct {
 	oauth2Server   *oauth2.OAuth2Server
 }
 
-// NewManager 创建管理器
+// NewManager Creates a new manager | 创建管理器
 func NewManager(storage adapter.Storage, cfg *config.Config) *Manager {
 	if cfg == nil {
 		cfg = config.DefaultConfig()
+	}
+
+	// Use configured prefix, fallback to default | 使用配置的前缀，回退到默认值
+	prefix := cfg.KeyPrefix
+	if prefix == "" {
+		prefix = DefaultPrefix
 	}
 
 	return &Manager{
 		storage:        storage,
 		config:         cfg,
 		generator:      token.NewGenerator(cfg),
-		prefix:         "satoken:",
-		nonceManager:   security.NewNonceManager(storage, 5*time.Minute),
-		refreshManager: security.NewRefreshTokenManager(storage, cfg),
-		oauth2Server:   oauth2.NewOAuth2Server(storage),
+		prefix:         prefix,
+		nonceManager:   security.NewNonceManager(storage, prefix, DefaultNonceTTL),
+		refreshManager: security.NewRefreshTokenManager(storage, prefix, cfg),
+		oauth2Server:   oauth2.NewOAuth2Server(storage, prefix),
 	}
 }
 
-// ============ 登录认证 ============
+// ============ Helper Methods | 辅助方法 ============
 
-// Login 登录，返回Token
+// getDevice extracts device type from optional parameter | 从可选参数中提取设备类型
+func getDevice(device []string) string {
+	if len(device) > 0 && device[0] != "" {
+		return device[0]
+	}
+	return DefaultDevice
+}
+
+// getExpiration calculates expiration duration from config | 从配置计算过期时间
+func (m *Manager) getExpiration() time.Duration {
+	if m.config.Timeout > 0 {
+		return time.Duration(m.config.Timeout) * time.Second
+	}
+	return 0
+}
+
+// assertString safely converts interface to string | 安全地将interface转换为string
+func assertString(v any) (string, bool) {
+	s, ok := v.(string)
+	return s, ok
+}
+
+// ============ Login Authentication | 登录认证 ============
+
+// Login Performs user login and returns token | 登录，返回Token
 func (m *Manager) Login(loginID string, device ...string) (string, error) {
-	deviceType := "default"
-	if len(device) > 0 {
-		deviceType = device[0]
-	}
+	deviceType := getDevice(device)
 
-	// 检查是否被封禁
+	// Check if account is disabled | 检查是否被封禁
 	if m.IsDisable(loginID) {
-		return "", fmt.Errorf("account is disabled")
+		return "", ErrAccountDisabled
 	}
 
-	// 如果不允许并发登录，先踢掉旧的
+	// Kick out old session if concurrent login is not allowed | 如果不允许并发登录，先踢掉旧的
 	if !m.config.IsConcurrent {
 		m.kickout(loginID, deviceType)
 	}
 
-	// 生成Token
+	// Generate token | 生成Token
 	tokenValue, err := m.generator.Generate(loginID, deviceType)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate token: %w", err)
 	}
 
-	// 计算过期时间
-	var expiration time.Duration
-	if m.config.Timeout > 0 {
-		expiration = time.Duration(m.config.Timeout) * time.Second
+	expiration := m.getExpiration()
+
+	// Save token-loginID mapping (符合 Java sa-token 设计) | 保存 Token-LoginID 映射
+	tokenKey := m.getTokenKey(tokenValue)
+	if err := m.storage.Set(tokenKey, loginID, expiration); err != nil {
+		return "", fmt.Errorf("failed to save token: %w", err)
 	}
 
-	now := time.Now().Unix()
-	// 保存Token信息
-	tokenInfo := &TokenInfo{
-		LoginID:    loginID,
-		Device:     deviceType,
-		CreateTime: now,
-		ActiveTime: now,
-	}
-
-	if err := m.saveTokenInfo(tokenValue, tokenInfo, expiration); err != nil {
-		return "", err
-	}
-
-	// 保存账号-Token映射
+	// Save account-token mapping | 保存账号-Token映射
 	accountKey := m.getAccountKey(loginID, deviceType)
 	if err := m.storage.Set(accountKey, tokenValue, expiration); err != nil {
 		return "", fmt.Errorf("failed to save account mapping: %w", err)
 	}
 
-	// 创建Session
+	// Create session | 创建Session
 	sess := session.NewSession(loginID, m.storage, m.prefix)
-	sess.Set("loginId", loginID)
-	sess.Set("device", deviceType)
-	sess.Set("loginTime", now)
+	sess.Set(SessionKeyLoginID, loginID)
+	sess.Set(SessionKeyDevice, deviceType)
+	sess.Set(SessionKeyLoginTime, time.Now().Unix())
 
 	return tokenValue, nil
 }
 
-// LoginByToken 使用指定Token登录（用于token无感刷新）
+// LoginByToken Login with specified token (for seamless token refresh) | 使用指定Token登录（用于token无感刷新）
 func (m *Manager) LoginByToken(loginID string, tokenValue string, device ...string) error {
-	deviceType := "default"
-	if len(device) > 0 {
-		deviceType = device[0]
-	}
+	deviceType := getDevice(device)
+	expiration := m.getExpiration()
 
-	var expiration time.Duration
-	if m.config.Timeout > 0 {
-		expiration = time.Duration(m.config.Timeout) * time.Second
-	}
-
-	now := time.Now().Unix()
-	tokenInfo := &TokenInfo{
-		LoginID:    loginID,
-		Device:     deviceType,
-		CreateTime: now,
-		ActiveTime: now,
-	}
-
-	if err := m.saveTokenInfo(tokenValue, tokenInfo, expiration); err != nil {
-		return err
+	// Save token-loginID mapping (符合 Java sa-token 设计) | 保存 Token-LoginID 映射
+	tokenKey := m.getTokenKey(tokenValue)
+	if err := m.storage.Set(tokenKey, loginID, expiration); err != nil {
+		return fmt.Errorf("failed to save token: %w", err)
 	}
 
 	accountKey := m.getAccountKey(loginID, deviceType)
 	return m.storage.Set(accountKey, tokenValue, expiration)
 }
 
-// Logout 登出
+// Logout Performs user logout | 登出
 func (m *Manager) Logout(loginID string, device ...string) error {
-	deviceType := "default"
-	if len(device) > 0 {
-		deviceType = device[0]
-	}
-
+	deviceType := getDevice(device)
 	accountKey := m.getAccountKey(loginID, deviceType)
+
 	tokenValue, err := m.storage.Get(accountKey)
 	if err != nil || tokenValue == nil {
-		return nil // 已经登出
+		return nil // Already logged out | 已经登出
 	}
 
-	// 删除Token
-	tokenKey := m.getTokenKey(tokenValue.(string))
+	// Delete token | 删除Token
+	tokenStr, ok := assertString(tokenValue)
+	if !ok {
+		return nil
+	}
+
+	tokenKey := m.getTokenKey(tokenStr)
 	m.storage.Delete(tokenKey)
 
-	// 删除账号映射
+	// Delete account mapping | 删除账号映射
 	m.storage.Delete(accountKey)
 
 	return nil
 }
 
-// LogoutByToken 根据Token登出
+// LogoutByToken Logout by token | 根据Token登出
 func (m *Manager) LogoutByToken(tokenValue string) error {
+	if tokenValue == "" {
+		return nil
+	}
 	tokenKey := m.getTokenKey(tokenValue)
-	m.storage.Delete(tokenKey)
-	return nil
+	return m.storage.Delete(tokenKey)
 }
 
-// kickout 踢人下线
+// kickout Kick user offline (private) | 踢人下线（私有）
 func (m *Manager) kickout(loginID string, device string) error {
 	accountKey := m.getAccountKey(loginID, device)
 	tokenValue, err := m.storage.Get(accountKey)
@@ -176,77 +214,62 @@ func (m *Manager) kickout(loginID string, device string) error {
 		return nil
 	}
 
-	tokenKey := m.getTokenKey(tokenValue.(string))
+	tokenStr, ok := assertString(tokenValue)
+	if !ok {
+		return nil
+	}
+
+	tokenKey := m.getTokenKey(tokenStr)
 	return m.storage.Delete(tokenKey)
 }
 
-// Kickout 踢人下线（公开方法）
+// Kickout Kick user offline (public method) | 踢人下线（公开方法）
 func (m *Manager) Kickout(loginID string, device ...string) error {
-	deviceType := "default"
-	if len(device) > 0 {
-		deviceType = device[0]
-	}
+	deviceType := getDevice(device)
 	return m.kickout(loginID, deviceType)
 }
 
-// ============ Token验证 ============
+// ============ Token Validation | Token验证 ============
 
-// IsLogin 检查是否登录
+// IsLogin Checks if user is logged in | 检查是否登录
 func (m *Manager) IsLogin(tokenValue string) bool {
 	if tokenValue == "" {
 		return false
 	}
 
 	tokenKey := m.getTokenKey(tokenValue)
-	exists := m.storage.Exists(tokenKey)
-	if !exists {
+	if !m.storage.Exists(tokenKey) {
 		return false
 	}
 
-	// 更新活跃时间并检查活跃超时
-	if m.config.ActiveTimeout > 0 {
-		info, _ := m.getTokenInfo(tokenValue)
-		if info != nil {
-			elapsed := time.Now().Unix() - info.ActiveTime
-			if elapsed > m.config.ActiveTimeout {
-				m.LogoutByToken(tokenValue)
-				return false
-			}
-		}
-	}
-
-	// ✨ 异步自动续期（提高性能）
+	// Async auto-renew for better performance | 异步自动续期（提高性能）
+	// Note: ActiveTimeout feature removed to comply with Java sa-token design
 	if m.config.AutoRenew && m.config.Timeout > 0 {
-		go func() {
-			expiration := time.Duration(m.config.Timeout) * time.Second
-
-			// 延长Token存储的过期时间
-			m.storage.Expire(tokenKey, expiration)
-
-			// 更新活跃时间
-			info, _ := m.getTokenInfo(tokenValue)
-			if info != nil {
-				info.ActiveTime = time.Now().Unix()
-				m.saveTokenInfo(tokenValue, info, expiration)
-			}
-		}()
+		go m.renewToken(tokenKey)
 	}
 
 	return true
 }
 
-// CheckLogin 检查登录（未登录抛出错误）
+// renewToken Renews token expiration asynchronously | 异步续期Token
+func (m *Manager) renewToken(tokenKey string) {
+	expiration := m.getExpiration()
+	// Extend token storage expiration | 延长Token存储的过期时间
+	m.storage.Expire(tokenKey, expiration)
+}
+
+// CheckLogin Checks login status (throws error if not logged in) | 检查登录（未登录抛出错误）
 func (m *Manager) CheckLogin(tokenValue string) error {
 	if !m.IsLogin(tokenValue) {
-		return fmt.Errorf("not login")
+		return ErrNotLogin
 	}
 	return nil
 }
 
-// GetLoginID 根据Token获取登录ID
+// GetLoginID Gets login ID from token | 根据Token获取登录ID
 func (m *Manager) GetLoginID(tokenValue string) (string, error) {
 	if !m.IsLogin(tokenValue) {
-		return "", fmt.Errorf("not login")
+		return "", ErrNotLogin
 	}
 
 	info, err := m.getTokenInfo(tokenValue)
@@ -257,7 +280,7 @@ func (m *Manager) GetLoginID(tokenValue string) (string, error) {
 	return info.LoginID, nil
 }
 
-// GetLoginIDNotCheck 获取登录ID（不检查Token是否有效）
+// GetLoginIDNotCheck Gets login ID without checking token validity | 获取登录ID（不检查Token是否有效）
 func (m *Manager) GetLoginIDNotCheck(tokenValue string) (string, error) {
 	info, err := m.getTokenInfo(tokenValue)
 	if err != nil {
@@ -266,50 +289,52 @@ func (m *Manager) GetLoginIDNotCheck(tokenValue string) (string, error) {
 	return info.LoginID, nil
 }
 
-// GetTokenValue 根据登录ID获取Token
+// GetTokenValue Gets token by login ID | 根据登录ID获取Token
 func (m *Manager) GetTokenValue(loginID string, device ...string) (string, error) {
-	deviceType := "default"
-	if len(device) > 0 {
-		deviceType = device[0]
-	}
-
+	deviceType := getDevice(device)
 	accountKey := m.getAccountKey(loginID, deviceType)
+
 	tokenValue, err := m.storage.Get(accountKey)
 	if err != nil || tokenValue == nil {
 		return "", fmt.Errorf("token not found for login id: %s", loginID)
 	}
 
-	return tokenValue.(string), nil
+	tokenStr, ok := assertString(tokenValue)
+	if !ok {
+		return "", fmt.Errorf("invalid token value type")
+	}
+
+	return tokenStr, nil
 }
 
-// GetTokenInfo 获取Token信息
+// GetTokenInfo Gets token information | 获取Token信息
 func (m *Manager) GetTokenInfo(tokenValue string) (*TokenInfo, error) {
 	return m.getTokenInfo(tokenValue)
 }
 
-// ============ 账号封禁 ============
+// ============ Account Disable | 账号封禁 ============
 
-// Disable 封禁账号
+// Disable Disables an account | 封禁账号
 func (m *Manager) Disable(loginID string, duration time.Duration) error {
-	key := m.prefix + "disable:" + loginID
-	return m.storage.Set(key, "1", duration)
+	key := m.getDisableKey(loginID)
+	return m.storage.Set(key, DisableValue, duration)
 }
 
-// Untie 解封账号
+// Untie Re-enables a disabled account | 解封账号
 func (m *Manager) Untie(loginID string) error {
-	key := m.prefix + "disable:" + loginID
+	key := m.getDisableKey(loginID)
 	return m.storage.Delete(key)
 }
 
-// IsDisable 检查账号是否被封禁
+// IsDisable Checks if account is disabled | 检查账号是否被封禁
 func (m *Manager) IsDisable(loginID string) bool {
-	key := m.prefix + "disable:" + loginID
+	key := m.getDisableKey(loginID)
 	return m.storage.Exists(key)
 }
 
-// GetDisableTime 获取账号剩余封禁时间（秒）
+// GetDisableTime Gets remaining disable time in seconds | 获取账号剩余封禁时间（秒）
 func (m *Manager) GetDisableTime(loginID string) (int64, error) {
-	key := m.prefix + "disable:" + loginID
+	key := m.getDisableKey(loginID)
 	ttl, err := m.storage.TTL(key)
 	if err != nil {
 		return -2, err
@@ -317,9 +342,14 @@ func (m *Manager) GetDisableTime(loginID string) (int64, error) {
 	return int64(ttl.Seconds()), nil
 }
 
-// ============ Session管理 ============
+// getDisableKey Gets disable storage key | 获取禁用存储键
+func (m *Manager) getDisableKey(loginID string) string {
+	return m.prefix + DisableKeyPrefix + loginID
+}
 
-// GetSession 获取Session
+// ============ Session Management | Session管理 ============
+
+// GetSession Gets session by login ID | 获取Session
 func (m *Manager) GetSession(loginID string) (*session.Session, error) {
 	sess, err := session.Load(loginID, m.storage, m.prefix)
 	if err != nil {
@@ -328,7 +358,7 @@ func (m *Manager) GetSession(loginID string) (*session.Session, error) {
 	return sess, nil
 }
 
-// GetSessionByToken 根据Token获取Session
+// GetSessionByToken Gets session by token | 根据Token获取Session
 func (m *Manager) GetSessionByToken(tokenValue string) (*session.Session, error) {
 	loginID, err := m.GetLoginID(tokenValue)
 	if err != nil {
@@ -337,7 +367,7 @@ func (m *Manager) GetSessionByToken(tokenValue string) (*session.Session, error)
 	return m.GetSession(loginID)
 }
 
-// DeleteSession 删除Session
+// DeleteSession Deletes session | 删除Session
 func (m *Manager) DeleteSession(loginID string) error {
 	sess, err := m.GetSession(loginID)
 	if err != nil {
@@ -346,25 +376,25 @@ func (m *Manager) DeleteSession(loginID string) error {
 	return sess.Destroy()
 }
 
-// ============ 权限验证 ============
+// ============ Permission Validation | 权限验证 ============
 
-// SetPermissions 设置权限
+// SetPermissions Sets permissions for user | 设置权限
 func (m *Manager) SetPermissions(loginID string, permissions []string) error {
 	sess, err := m.GetSession(loginID)
 	if err != nil {
 		return err
 	}
-	return sess.Set("permissions", permissions)
+	return sess.Set(SessionKeyPermissions, permissions)
 }
 
-// GetPermissions 获取权限列表
+// GetPermissions Gets permission list | 获取权限列表
 func (m *Manager) GetPermissions(loginID string) ([]string, error) {
 	sess, err := m.GetSession(loginID)
 	if err != nil {
 		return nil, err
 	}
 
-	perms, exists := sess.Get("permissions")
+	perms, exists := sess.Get(SessionKeyPermissions)
 	if !exists {
 		return []string{}, nil
 	}
@@ -408,27 +438,29 @@ func (m *Manager) HasPermissionsOr(loginID string, permissions []string) bool {
 	return false
 }
 
-// matchPermission 权限匹配（支持通配符）
+// matchPermission Matches permission with wildcards support | 权限匹配（支持通配符）
 func (m *Manager) matchPermission(pattern, permission string) bool {
-	if pattern == "*" || pattern == permission {
+	// Exact match or wildcard | 精确匹配或通配符
+	if pattern == PermissionWildcard || pattern == permission {
 		return true
 	}
 
-	// 支持通配符，例如 user:* 匹配 user:add, user:delete等
-	if strings.HasSuffix(pattern, ":*") {
-		prefix := strings.TrimSuffix(pattern, "*")
+	// Pattern like "user:*" matches "user:add", "user:delete", etc. | 支持通配符，例如 user:* 匹配 user:add, user:delete等
+	wildcardSuffix := PermissionSeparator + PermissionWildcard
+	if strings.HasSuffix(pattern, wildcardSuffix) {
+		prefix := strings.TrimSuffix(pattern, PermissionWildcard)
 		return strings.HasPrefix(permission, prefix)
 	}
 
-	// 支持 user:*:view 这样的模式
-	if strings.Contains(pattern, "*") {
-		parts := strings.Split(pattern, ":")
-		permParts := strings.Split(permission, ":")
+	// Pattern like "user:*:view" | 支持 user:*:view 这样的模式
+	if strings.Contains(pattern, PermissionWildcard) {
+		parts := strings.Split(pattern, PermissionSeparator)
+		permParts := strings.Split(permission, PermissionSeparator)
 		if len(parts) != len(permParts) {
 			return false
 		}
 		for i, part := range parts {
-			if part != "*" && part != permParts[i] {
+			if part != PermissionWildcard && part != permParts[i] {
 				return false
 			}
 		}
@@ -438,25 +470,25 @@ func (m *Manager) matchPermission(pattern, permission string) bool {
 	return false
 }
 
-// ============ 角色验证 ============
+// ============ Role Validation | 角色验证 ============
 
-// SetRoles 设置角色
+// SetRoles Sets roles for user | 设置角色
 func (m *Manager) SetRoles(loginID string, roles []string) error {
 	sess, err := m.GetSession(loginID)
 	if err != nil {
 		return err
 	}
-	return sess.Set("roles", roles)
+	return sess.Set(SessionKeyRoles, roles)
 }
 
-// GetRoles 获取角色列表
+// GetRoles Gets role list | 获取角色列表
 func (m *Manager) GetRoles(loginID string) ([]string, error) {
 	sess, err := m.GetSession(loginID)
 	if err != nil {
 		return nil, err
 	}
 
-	roles, exists := sess.Get("roles")
+	roles, exists := sess.Get(SessionKeyRoles)
 	if !exists {
 		return []string{}, nil
 	}
@@ -499,56 +531,45 @@ func (m *Manager) HasRolesOr(loginID string, roles []string) bool {
 	return false
 }
 
-// ============ Token标签 ============
+// ============ Token Tags | Token标签 ============
 
-// SetTokenTag 设置Token标签
+// SetTokenTag Sets token tag | 设置Token标签
 func (m *Manager) SetTokenTag(tokenValue, tag string) error {
-	info, err := m.getTokenInfo(tokenValue)
-	if err != nil {
-		return err
-	}
-
-	info.Tag = tag
-
-	var expiration time.Duration
-	if m.config.Timeout > 0 {
-		expiration = time.Duration(m.config.Timeout) * time.Second
-	}
-
-	return m.saveTokenInfo(tokenValue, info, expiration)
+	// Tag feature not supported to comply with Java sa-token design
+	// If you need custom metadata, use Session instead
+	return fmt.Errorf("token tag feature not supported (use Session for custom metadata)")
 }
 
-// GetTokenTag 获取Token标签
+// GetTokenTag Gets token tag | 获取Token标签
 func (m *Manager) GetTokenTag(tokenValue string) (string, error) {
-	info, err := m.getTokenInfo(tokenValue)
-	if err != nil {
-		return "", err
-	}
-	return info.Tag, nil
+	// Tag feature not supported to comply with Java sa-token design
+	return "", fmt.Errorf("token tag feature not supported (use Session for custom metadata)")
 }
 
-// ============ 会话查询 ============
+// ============ Session Query | 会话查询 ============
 
-// GetTokenValueListByLoginID 获取指定账号的所有Token
+// GetTokenValueListByLoginID Gets all tokens for specified account | 获取指定账号的所有Token
 func (m *Manager) GetTokenValueListByLoginID(loginID string) ([]string, error) {
-	pattern := m.prefix + "account:" + loginID + ":*"
+	pattern := m.prefix + AccountKeyPrefix + loginID + ":*"
 	keys, err := m.storage.Keys(pattern)
 	if err != nil {
 		return nil, err
 	}
 
-	tokens := make([]string, 0)
+	tokens := make([]string, 0, len(keys))
 	for _, key := range keys {
 		value, err := m.storage.Get(key)
 		if err == nil && value != nil {
-			tokens = append(tokens, value.(string))
+			if tokenStr, ok := assertString(value); ok {
+				tokens = append(tokens, tokenStr)
+			}
 		}
 	}
 
 	return tokens, nil
 }
 
-// GetSessionCountByLoginID 获取指定账号的Session数量
+// GetSessionCountByLoginID Gets session count for specified account | 获取指定账号的Session数量
 func (m *Manager) GetSessionCountByLoginID(loginID string) (int, error) {
 	tokens, err := m.GetTokenValueListByLoginID(loginID)
 	if err != nil {
@@ -557,51 +578,54 @@ func (m *Manager) GetSessionCountByLoginID(loginID string) (int, error) {
 	return len(tokens), nil
 }
 
-// ============ 辅助方法 ============
+// ============ Internal Helper Methods | 内部辅助方法 ============
 
-// getTokenKey 获取Token存储键
+// getTokenKey Gets token storage key | 获取Token存储键
 func (m *Manager) getTokenKey(tokenValue string) string {
-	return m.prefix + "token:" + tokenValue
+	return m.prefix + TokenKeyPrefix + tokenValue
 }
 
-// getAccountKey 获取账号存储键
+// getAccountKey Gets account storage key | 获取账号存储键
 func (m *Manager) getAccountKey(loginID, device string) string {
-	return m.prefix + "account:" + loginID + ":" + device
+	return m.prefix + AccountKeyPrefix + loginID + PermissionSeparator + device
 }
 
-// saveTokenInfo 保存Token信息
-func (m *Manager) saveTokenInfo(tokenValue string, info *TokenInfo, expiration time.Duration) error {
-	data, err := json.Marshal(info)
-	if err != nil {
-		return fmt.Errorf("failed to marshal token info: %w", err)
-	}
-
-	tokenKey := m.getTokenKey(tokenValue)
-	return m.storage.Set(tokenKey, string(data), expiration)
-}
-
-// getTokenInfo 获取Token信息
-func (m *Manager) getTokenInfo(tokenValue string) (*TokenInfo, error) {
+// getLoginIDByToken Gets loginID by token (符合 Java sa-token 设计) | 通过 Token 获取 loginID
+func (m *Manager) getLoginIDByToken(tokenValue string) (string, error) {
 	tokenKey := m.getTokenKey(tokenValue)
 	data, err := m.storage.Get(tokenKey)
 	if err != nil || data == nil {
-		return nil, fmt.Errorf("token not found")
+		return "", ErrTokenNotFound
 	}
 
-	var info TokenInfo
-	if err := json.Unmarshal([]byte(data.(string)), &info); err != nil {
-		return nil, fmt.Errorf("invalid token data: %w", err)
+	loginID, ok := assertString(data)
+	if !ok {
+		return "", ErrInvalidTokenData
 	}
 
-	return &info, nil
+	return loginID, nil
 }
 
-// toStringSlice 将interface{}转换为[]string
-func (m *Manager) toStringSlice(v interface{}) []string {
+// getTokenInfo Gets token information (为了向后兼容) | 获取Token信息（向后兼容）
+func (m *Manager) getTokenInfo(tokenValue string) (*TokenInfo, error) {
+	loginID, err := m.getLoginIDByToken(tokenValue)
+	if err != nil {
+		return nil, err
+	}
+
+	// 构造简化的 TokenInfo，只包含必要信息
+	return &TokenInfo{
+		LoginID: loginID,
+		Device:  DefaultDevice, // 从 token 无法获取设备信息
+	}, nil
+}
+
+// toStringSlice Converts any to []string | 将any转换为[]string
+func (m *Manager) toStringSlice(v any) []string {
 	switch val := v.(type) {
 	case []string:
 		return val
-	case []interface{}:
+	case []any:
 		result := make([]string, 0, len(val))
 		for _, item := range val {
 			if str, ok := item.(string); ok {
@@ -614,36 +638,46 @@ func (m *Manager) toStringSlice(v interface{}) []string {
 	}
 }
 
-// GetConfig 获取配置
+// ============ Public Getters | 公共获取器 ============
+
+// GetConfig Gets configuration | 获取配置
 func (m *Manager) GetConfig() *config.Config {
 	return m.config
 }
 
-// GetStorage 获取存储
+// GetStorage Gets storage | 获取存储
 func (m *Manager) GetStorage() adapter.Storage {
 	return m.storage
 }
 
+// ============ Security Features | 安全特性 ============
+
+// GenerateNonce Generates a one-time nonce | 生成一次性随机数
 func (m *Manager) GenerateNonce() (string, error) {
 	return m.nonceManager.Generate()
 }
 
+// VerifyNonce Verifies a nonce | 验证随机数
 func (m *Manager) VerifyNonce(nonce string) bool {
 	return m.nonceManager.Verify(nonce)
 }
 
+// LoginWithRefreshToken Logs in with refresh token | 使用刷新令牌登录
 func (m *Manager) LoginWithRefreshToken(loginID, device string) (*security.RefreshTokenInfo, error) {
 	return m.refreshManager.GenerateTokenPair(loginID, device)
 }
 
+// RefreshAccessToken Refreshes access token | 刷新访问令牌
 func (m *Manager) RefreshAccessToken(refreshToken string) (*security.RefreshTokenInfo, error) {
 	return m.refreshManager.RefreshAccessToken(refreshToken)
 }
 
+// RevokeRefreshToken Revokes refresh token | 撤销刷新令牌
 func (m *Manager) RevokeRefreshToken(refreshToken string) error {
 	return m.refreshManager.RevokeRefreshToken(refreshToken)
 }
 
+// GetOAuth2Server Gets OAuth2 server instance | 获取OAuth2服务器实例
 func (m *Manager) GetOAuth2Server() *oauth2.OAuth2Server {
 	return m.oauth2Server
 }
