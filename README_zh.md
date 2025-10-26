@@ -41,6 +41,8 @@ go get github.com/click33/sa-token-go/integrations/echo@v0.1.2   # Echo框架
 go get github.com/click33/sa-token-go/integrations/fiber@v0.1.2  # Fiber框架
 # 或
 go get github.com/click33/sa-token-go/integrations/chi@v0.1.2    # Chi框架
+# 或
+go get github.com/click33/sa-token-go/integrations/gf@v0.1.2     # GoFrame框架
 
 # 存储模块（选一个）
 go get github.com/click33/sa-token-go/storage/memory@v0.1.2  # 内存存储（开发）
@@ -63,6 +65,7 @@ go get github.com/click33/sa-token-go/integrations/gin@v0.1.2    # Gin框架
 go get github.com/click33/sa-token-go/integrations/echo@v0.1.2   # Echo框架
 go get github.com/click33/sa-token-go/integrations/fiber@v0.1.2  # Fiber框架
 go get github.com/click33/sa-token-go/integrations/chi@v0.1.2    # Chi框架
+go get github.com/click33/sa-token-go/integrations/gf@v0.1.2     # GoFrame框架
 ```
 
 ### ⚡ 超简洁使用（一行初始化）
@@ -311,6 +314,46 @@ func main() {
 }
 ```
 
+### 🌟 GoFrame 集成（单一导入）
+
+**GoFrame 框架集成，支持完整功能！**
+
+```go
+import (
+    "github.com/gogf/gf/v2/frame/g"
+    "github.com/gogf/gf/v2/net/ghttp"
+    sagf "github.com/click33/sa-token-go/integrations/gf"  // 只需这一个导入！
+    "github.com/click33/sa-token-go/storage/memory"
+)
+
+func main() {
+    // 初始化（sagf 包包含所有功能）
+    storage := memory.NewStorage()
+    config := sagf.DefaultConfig()
+    manager := sagf.NewManager(storage, config)
+    sagf.SetManager(manager)
+    
+    s := g.Server()
+    
+    // 登录接口
+    s.BindHandler("POST:/login", func(r *ghttp.Request) {
+        userID := r.Get("user_id").String()
+        token, _ := sagf.Login(userID)
+        r.Response.WriteJson(g.Map{"token": token})
+    })
+    
+    // 使用注解式装饰器（类似 Java）
+    s.BindHandler("GET:/public", sagf.Ignore(), publicHandler)                  // 公开访问
+    s.BindHandler("GET:/user", sagf.CheckLogin(), userHandler)                  // 需要登录
+    s.BindHandler("GET:/admin", sagf.CheckPermission("admin:*"), adminHandler)  // 需要权限
+    s.BindHandler("GET:/manager", sagf.CheckRole("manager"), managerHandler)    // 需要角色
+    s.BindHandler("GET:/sensitive", sagf.CheckDisable(), sensitiveHandler)      // 检查是否禁用
+    
+    s.SetPort(8080)
+    s.Run()
+}
+```
+
 ### 🔌 其他框架集成
 
 **Echo / Fiber / Chi** 同样支持注解装饰器：
@@ -491,7 +534,8 @@ sa-token-go/
 │   ├── gin/                # Gin集成（含注解）
 │   ├── echo/               # Echo集成
 │   ├── fiber/              # Fiber集成
-│   └── chi/                # Chi集成
+│   ├── chi/                # Chi集成
+│   └── gf/                 # GoFrame集成
 │
 ├── examples/               # 示例项目
 │   ├── quick-start/        # 快速开始
@@ -552,6 +596,7 @@ sa-token-go/
 | 🌐 Echo集成 | Echo框架集成 | [examples/echo/](examples/echo/) |
 | 🌐 Fiber集成 | Fiber框架集成 | [examples/fiber/](examples/fiber/) |
 | 🌐 Chi集成 | Chi框架集成 | [examples/chi/](examples/chi/) |
+| 🌐 GoFrame集成 | GoFrame框架集成 | [examples/gf/](examples/gf/) |
 
 ### 💾 存储方案
 

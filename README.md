@@ -41,6 +41,8 @@ go get github.com/click33/sa-token-go/integrations/echo@v0.1.2   # Echo framewor
 go get github.com/click33/sa-token-go/integrations/fiber@v0.1.2  # Fiber framework
 # or
 go get github.com/click33/sa-token-go/integrations/chi@v0.1.2    # Chi framework
+# or
+go get github.com/click33/sa-token-go/integrations/gf@v0.1.2     # GoFrame framework
 
 # Storage module (choose one)
 go get github.com/click33/sa-token-go/storage/memory@v0.1.2  # Memory storage (dev)
@@ -311,6 +313,46 @@ func main() {
 }
 ```
 
+### 🌟 GoFrame Integration (Single Import)
+
+**GoFrame framework integration with full feature support!**
+
+```go
+import (
+    "github.com/gogf/gf/v2/frame/g"
+    "github.com/gogf/gf/v2/net/ghttp"
+    sagf "github.com/click33/sa-token-go/integrations/gf"  // Only this import needed!
+    "github.com/click33/sa-token-go/storage/memory"
+)
+
+func main() {
+    // Initialize (all features in sagf package)
+    storage := memory.NewStorage()
+    config := sagf.DefaultConfig()
+    manager := sagf.NewManager(storage, config)
+    sagf.SetManager(manager)
+    
+    s := g.Server()
+    
+    // Login endpoint
+    s.BindHandler("POST:/login", func(r *ghttp.Request) {
+        userID := r.Get("user_id").String()
+        token, _ := sagf.Login(userID)
+        r.Response.WriteJson(g.Map{"token": token})
+    })
+    
+    // Use annotation-style decorators (like Java)
+    s.BindHandler("GET:/public", sagf.Ignore(), publicHandler)                  // Public access
+    s.BindHandler("GET:/user", sagf.CheckLogin(), userHandler)                  // Login required
+    s.BindHandler("GET:/admin", sagf.CheckPermission("admin:*"), adminHandler)  // Permission required
+    s.BindHandler("GET:/manager", sagf.CheckRole("manager"), managerHandler)    // Role required
+    s.BindHandler("GET:/sensitive", sagf.CheckDisable(), sensitiveHandler)      // Check if disabled
+    
+    s.SetPort(8080)
+    s.Run()
+}
+```
+
 ### 🔌 Other Framework Integrations
 
 **Echo / Fiber / Chi** also support annotation decorators:
@@ -552,6 +594,7 @@ sa-token-go/
 | 🌐 Echo Integration | Echo framework integration | [examples/echo/](examples/echo/) |
 | 🌐 Fiber Integration | Fiber framework integration | [examples/fiber/](examples/fiber/) |
 | 🌐 Chi Integration | Chi framework integration | [examples/chi/](examples/chi/) |
+| 🌐 GoFrame Integration | GoFrame framework integration | [examples/gf/](examples/gf/) |
 
 ### 💾 Storage Options
 
