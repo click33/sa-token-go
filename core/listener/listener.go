@@ -46,12 +46,12 @@ const (
 
 // EventData contains information about a triggered event | 事件数据，包含触发事件的相关信息
 type EventData struct {
-	Event     Event                  // Event type | 事件类型
-	LoginID   string                 // User login ID | 用户登录ID
-	Device    string                 // Device identifier | 设备标识
-	Token     string                 // Authentication token | 认证Token
-	Extra     map[string]interface{} // Additional custom data | 额外的自定义数据
-	Timestamp int64                  // Unix timestamp when event was triggered | 事件触发的Unix时间戳
+	Event     Event          // Event type | 事件类型
+	LoginID   string         // User login ID | 用户登录ID
+	Device    string         // Device identifier | 设备标识
+	Token     string         // Authentication token | 认证Token
+	Extra     map[string]any // Additional custom data | 额外的自定义数据
+	Timestamp int64          // Unix timestamp when event was triggered | 事件触发的Unix时间戳
 }
 
 // String returns a string representation of the event data | 返回事件数据的字符串表示
@@ -87,33 +87,104 @@ type listenerEntry struct {
 	config   ListenerConfig
 }
 
+// EventFilter is a function that decides whether an event should be processed | 事件过滤器，决定事件是否应该被处理
+type EventFilter func(data *EventData) bool
+
+// EventStats contains statistics about event processing | 事件统计信息
+type EventStats struct {
+	TotalTriggered int64               // Total number of events triggered | 触发的事件总数
+	EventCounts    map[Event]int64     // Count per event type | 各类型事件的计数
+	LastTriggered  map[Event]time.Time // Last trigger time per event | 各类型事件的最后触发时间
+}
+
 // Manager manages event listeners and dispatches events | 事件管理器，管理监听器并分发事件
 type Manager struct {
 	mu              sync.RWMutex
 	listeners       map[Event][]listenerEntry
-	panicHandler    func(event Event, data *EventData, recovered interface{})
+	panicHandler    func(event Event, data *EventData, recovered any)
 	listenerCounter int
 	enabledEvents   map[Event]bool // If nil, all events are enabled | 如果为nil，所有事件都启用
 	asyncWaitGroup  sync.WaitGroup // For waiting on async listeners during shutdown | 用于等待异步监听器完成
+	filters         []EventFilter  // Global event filters | 全局事件过滤器
+	stats           *EventStats    // Event statistics | 事件统计
+	enableStats     bool           // Whether to collect statistics | 是否收集统计信息
 }
 
 // NewManager creates a new event manager | 创建新的事件管理器
 func NewManager() *Manager {
 	return &Manager{
 		listeners: make(map[Event][]listenerEntry),
-		panicHandler: func(event Event, data *EventData, recovered interface{}) {
+		panicHandler: func(event Event, data *EventData, recovered any) {
 			// Default panic handler: log but don't crash | 默认panic处理器：记录日志但不崩溃
 			fmt.Printf("sa-token: listener panic recovered: event=%s, panic=%v\n", event, recovered)
 		},
 		enabledEvents: nil, // All events enabled by default | 默认启用所有事件
+		filters:       make([]EventFilter, 0),
+		stats: &EventStats{
+			EventCounts:   make(map[Event]int64),
+			LastTriggered: make(map[Event]time.Time),
+		},
+		enableStats: false, // Stats disabled by default | 默认不启用统计
 	}
 }
 
 // SetPanicHandler sets a custom panic handler for listener errors | 设置自定义的panic处理器
-func (m *Manager) SetPanicHandler(handler func(event Event, data *EventData, recovered interface{})) {
+func (m *Manager) SetPanicHandler(handler func(event Event, data *EventData, recovered any)) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.panicHandler = handler
+}
+
+// AddFilter adds a global event filter | 添加全局事件过滤器
+func (m *Manager) AddFilter(filter EventFilter) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.filters = append(m.filters, filter)
+}
+
+// ClearFilters removes all event filters | 清除所有事件过滤器
+func (m *Manager) ClearFilters() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.filters = make([]EventFilter, 0)
+}
+
+// EnableStats enables event statistics collection | 启用事件统计
+func (m *Manager) EnableStats(enable bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.enableStats = enable
+}
+
+// GetStats returns a copy of event statistics | 获取事件统计信息副本
+func (m *Manager) GetStats() EventStats {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	stats := EventStats{
+		TotalTriggered: m.stats.TotalTriggered,
+		EventCounts:    make(map[Event]int64),
+		LastTriggered:  make(map[Event]time.Time),
+	}
+
+	for event, count := range m.stats.EventCounts {
+		stats.EventCounts[event] = count
+	}
+	for event, t := range m.stats.LastTriggered {
+		stats.LastTriggered[event] = t
+	}
+
+	return stats
+}
+
+// ResetStats resets event statistics | 重置事件统计
+func (m *Manager) ResetStats() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.stats = &EventStats{
+		EventCounts:   make(map[Event]int64),
+		LastTriggered: make(map[Event]time.Time),
+	}
 }
 
 // EnableEvent enables specific events (disables all others) | 启用特定事件（禁用其他所有事件）
@@ -230,13 +301,15 @@ func (m *Manager) Unregister(listenerID string) bool {
 // sortListeners sorts listeners by priority (descending)
 func (m *Manager) sortListeners(event Event) {
 	entries := m.listeners[event]
-	// Simple bubble sort (listeners count is usually small)
-	for i := 0; i < len(entries)-1; i++ {
-		for j := 0; j < len(entries)-i-1; j++ {
-			if entries[j].config.Priority < entries[j+1].config.Priority {
-				entries[j], entries[j+1] = entries[j+1], entries[j]
-			}
+	// Use insertion sort (efficient for small lists and maintains stability)
+	for i := 1; i < len(entries); i++ {
+		key := entries[i]
+		j := i - 1
+		for j >= 0 && entries[j].config.Priority < key.config.Priority {
+			entries[j+1] = entries[j]
+			j--
 		}
+		entries[j+1] = key
 	}
 }
 
@@ -253,6 +326,21 @@ func (m *Manager) Trigger(data *EventData) {
 	// Set timestamp if not already set
 	if data.Timestamp == 0 {
 		data.Timestamp = time.Now().Unix()
+	}
+
+	// Apply filters
+	for _, filter := range m.filters {
+		if !filter(data) {
+			m.mu.RUnlock()
+			return // Event filtered out
+		}
+	}
+
+	// Update statistics
+	if m.enableStats {
+		m.stats.TotalTriggered++
+		m.stats.EventCounts[data.Event]++
+		m.stats.LastTriggered[data.Event] = time.Now()
 	}
 
 	// Collect listeners to call
@@ -279,6 +367,17 @@ func (m *Manager) Trigger(data *EventData) {
 			m.safeCall(entry.listener, data, nil)
 		}
 	}
+}
+
+// TriggerAsync triggers an event asynchronously and returns immediately | 异步触发事件并立即返回
+func (m *Manager) TriggerAsync(data *EventData) {
+	go m.Trigger(data)
+}
+
+// TriggerSync triggers an event synchronously and waits for all listeners | 同步触发事件并等待所有监听器完成
+func (m *Manager) TriggerSync(data *EventData) {
+	m.Trigger(data)
+	m.Wait()
 }
 
 // safeCall executes a listener with panic recovery
@@ -338,4 +437,36 @@ func (m *Manager) CountForEvent(event Event) int {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return len(m.listeners[event])
+}
+
+// GetListenerIDs returns all listener IDs for a specific event | 获取指定事件的所有监听器ID
+func (m *Manager) GetListenerIDs(event Event) []string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	entries := m.listeners[event]
+	ids := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		ids = append(ids, entry.config.ID)
+	}
+	return ids
+}
+
+// GetAllEvents returns all events that have registered listeners | 获取所有已注册监听器的事件
+func (m *Manager) GetAllEvents() []Event {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	events := make([]Event, 0, len(m.listeners))
+	for event := range m.listeners {
+		events = append(events, event)
+	}
+	return events
+}
+
+// HasListeners checks if there are any listeners for a specific event | 检查指定事件是否有监听器
+func (m *Manager) HasListeners(event Event) bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return len(m.listeners[event]) > 0
 }

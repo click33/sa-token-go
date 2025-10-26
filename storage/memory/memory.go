@@ -1,7 +1,8 @@
 package memory
 
 import (
-	"fmt"
+	"context"
+	"errors"
 	"strings"
 	"sync"
 	"time"
@@ -9,38 +10,51 @@ import (
 	"github.com/click33/sa-token-go/core/adapter"
 )
 
+var (
+	// ErrKeyNotFound 键不存在错误
+	ErrKeyNotFound = errors.New("key not found")
+	// ErrKeyExpired 键已过期错误
+	ErrKeyExpired = errors.New("key expired")
+)
+
 // item 存储项
 type item struct {
-	value      interface{}
+	value      any
 	expiration int64 // 过期时间戳（0表示永不过期）
 }
 
-// isExpired 检查是否过期
-func (i *item) isExpired() bool {
-	if i.expiration == 0 {
-		return false
-	}
-	return time.Now().Unix() > i.expiration
+// isExpired 检查是否过期（使用传入的时间戳避免重复调用）
+func (i *item) isExpired(now int64) bool {
+	return i.expiration > 0 && now > i.expiration
 }
 
 // Storage 内存存储实现
 type Storage struct {
-	data map[string]*item
-	mu   sync.RWMutex
+	data       map[string]*item
+	mu         sync.RWMutex
+	cancelFunc context.CancelFunc // 用于停止清理协程
+	closed     bool
 }
 
 // NewStorage 创建内存存储
 func NewStorage() adapter.Storage {
+	return NewStorageWithCleanupInterval(time.Minute)
+}
+
+// NewStorageWithCleanupInterval 创建内存存储
+func NewStorageWithCleanupInterval(interval time.Duration) adapter.Storage {
+	ctx, cancel := context.WithCancel(context.Background())
 	s := &Storage{
-		data: make(map[string]*item),
+		data:       make(map[string]*item),
+		cancelFunc: cancel,
 	}
 	// 启动清理协程
-	go s.cleanup()
+	go s.cleanup(ctx, interval)
 	return s
 }
 
 // Set 设置键值对
-func (s *Storage) Set(key string, value interface{}, expiration time.Duration) error {
+func (s *Storage) Set(key string, value any, expiration time.Duration) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -58,42 +72,52 @@ func (s *Storage) Set(key string, value interface{}, expiration time.Duration) e
 }
 
 // Get 获取值
-func (s *Storage) Get(key string) (interface{}, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+func (s *Storage) Get(key string) (any, error) {
+	now := time.Now().Unix()
 
+	s.mu.RLock()
 	item, exists := s.data[key]
+	s.mu.RUnlock()
+
 	if !exists {
-		return nil, fmt.Errorf("key not found: %s", key)
+		return nil, ErrKeyNotFound
 	}
 
-	if item.isExpired() {
-		return nil, fmt.Errorf("key expired: %s", key)
+	if item.isExpired(now) {
+		// 异步删除过期项
+		go s.Delete(key)
+		return nil, ErrKeyExpired
 	}
 
 	return item.value, nil
 }
 
 // Delete 删除键
-func (s *Storage) Delete(key string) error {
+func (s *Storage) Delete(keys ...string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	delete(s.data, key)
+	for _, key := range keys {
+		delete(s.data, key)
+	}
 	return nil
 }
 
 // Exists 检查键是否存在
 func (s *Storage) Exists(key string) bool {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	now := time.Now().Unix()
 
+	s.mu.RLock()
 	item, exists := s.data[key]
+	s.mu.RUnlock()
+
 	if !exists {
 		return false
 	}
 
-	if item.isExpired() {
+	if item.isExpired(now) {
+		// 异步删除过期项
+		go s.Delete(key)
 		return false
 	}
 
@@ -102,12 +126,14 @@ func (s *Storage) Exists(key string) bool {
 
 // Keys 获取匹配模式的所有键
 func (s *Storage) Keys(pattern string) ([]string, error) {
+	now := time.Now().Unix()
+
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	var keys []string
+	keys := make([]string, 0, 16) // 预分配容量
 	for key, item := range s.data {
-		if item.isExpired() {
+		if item.isExpired(now) {
 			continue
 		}
 		if matchPattern(key, pattern) {
@@ -125,13 +151,13 @@ func (s *Storage) Expire(key string, expiration time.Duration) error {
 
 	item, exists := s.data[key]
 	if !exists {
-		return fmt.Errorf("key not found: %s", key)
+		return ErrKeyNotFound
 	}
 
 	if expiration > 0 {
 		item.expiration = time.Now().Add(expiration).Unix()
 	} else {
-		item.expiration = 0
+		item.expiration = 0 // 永不过期
 	}
 
 	return nil
@@ -139,19 +165,21 @@ func (s *Storage) Expire(key string, expiration time.Duration) error {
 
 // TTL 获取键的剩余生存时间
 func (s *Storage) TTL(key string) (time.Duration, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	now := time.Now().Unix()
 
+	s.mu.RLock()
 	item, exists := s.data[key]
+	s.mu.RUnlock()
+
 	if !exists {
-		return -2 * time.Second, fmt.Errorf("key not found: %s", key)
+		return -2 * time.Second, ErrKeyNotFound
 	}
 
 	if item.expiration == 0 {
 		return -1 * time.Second, nil // 永不过期
 	}
 
-	ttl := item.expiration - time.Now().Unix()
+	ttl := item.expiration - now
 	if ttl < 0 {
 		return -2 * time.Second, nil // 已过期
 	}
@@ -168,51 +196,143 @@ func (s *Storage) Clear() error {
 	return nil
 }
 
+// Ping 检查存储可用性
+func (s *Storage) Ping() error {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.closed {
+		return errors.New("storage is closed")
+	}
+	return nil
+}
+
+// Close 关闭存储，停止清理协程
+func (s *Storage) Close() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.closed {
+		return nil
+	}
+
+	s.closed = true
+	if s.cancelFunc != nil {
+		s.cancelFunc()
+	}
+	return nil
+}
+
 // cleanup 定期清理过期数据
-func (s *Storage) cleanup() {
-	ticker := time.NewTicker(1 * time.Minute)
+func (s *Storage) cleanup(ctx context.Context, interval time.Duration) {
+	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		s.mu.Lock()
-		for key, item := range s.data {
-			if item.isExpired() {
-				delete(s.data, key)
-			}
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			s.removeExpiredItems()
 		}
-		s.mu.Unlock()
 	}
 }
 
-// matchPattern 简单的模式匹配（支持 * 通配符）
+// removeExpiredItems 批量删除过期项
+func (s *Storage) removeExpiredItems() {
+	now := time.Now().Unix()
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// 批量收集过期键
+	expiredKeys := make([]string, 0, 8)
+	for key, item := range s.data {
+		if item.isExpired(now) {
+			expiredKeys = append(expiredKeys, key)
+		}
+	}
+
+	// 批量删除
+	for _, key := range expiredKeys {
+		delete(s.data, key)
+	}
+}
+
+// matchPattern 简单的模式匹配
 func matchPattern(key, pattern string) bool {
+	// 空模式或通配符匹配所有
 	if pattern == "" || pattern == "*" {
 		return true
 	}
 
-	// 移除模式前缀的 **/
+	// 移除前缀 **/（支持 Redis 风格）
 	pattern = strings.TrimPrefix(pattern, "**/")
 
-	// 支持前缀匹配
-	if strings.HasSuffix(pattern, "*") {
-		prefix := strings.TrimSuffix(pattern, "*")
-		return strings.HasPrefix(key, prefix)
+	// 没有通配符，精确匹配
+	if !strings.Contains(pattern, "*") {
+		return key == pattern
 	}
 
-	// 支持后缀匹配
-	if strings.HasPrefix(pattern, "*") {
-		suffix := strings.TrimPrefix(pattern, "*")
-		return strings.HasSuffix(key, suffix)
+	// 前缀匹配：prefix*
+	if strings.HasSuffix(pattern, "*") && strings.Count(pattern, "*") == 1 {
+		return strings.HasPrefix(key, pattern[:len(pattern)-1])
 	}
 
-	// 支持包含匹配
-	if strings.Contains(pattern, "*") {
-		parts := strings.Split(pattern, "*")
-		if len(parts) == 2 {
-			return strings.HasPrefix(key, parts[0]) && strings.HasSuffix(key, parts[1])
+	// 后缀匹配：*suffix
+	if strings.HasPrefix(pattern, "*") && strings.Count(pattern, "*") == 1 {
+		return strings.HasSuffix(key, pattern[1:])
+	}
+
+	// 包含匹配：prefix*suffix
+	if strings.Count(pattern, "*") == 1 {
+		parts := strings.SplitN(pattern, "*", 2)
+		return strings.HasPrefix(key, parts[0]) && strings.HasSuffix(key, parts[1])
+	}
+
+	// 复杂模式：递归匹配
+	return simpleWildcardMatch(key, pattern)
+}
+
+// simpleWildcardMatch 简单通配符匹配
+func simpleWildcardMatch(s, pattern string) bool {
+	if pattern == "" {
+		return s == ""
+	}
+	if pattern == "*" {
+		return true
+	}
+
+	parts := strings.Split(pattern, "*")
+	if len(parts) == 1 {
+		return s == pattern
+	}
+
+	// 检查第一部分
+	if parts[0] != "" && !strings.HasPrefix(s, parts[0]) {
+		return false
+	}
+	s = s[len(parts[0]):]
+
+	// 检查最后一部分
+	if parts[len(parts)-1] != "" {
+		if !strings.HasSuffix(s, parts[len(parts)-1]) {
+			return false
 		}
+		s = s[:len(s)-len(parts[len(parts)-1])]
 	}
 
-	// 精确匹配
-	return key == pattern
+	// 检查中间部分
+	for i := 1; i < len(parts)-1; i++ {
+		if parts[i] == "" {
+			continue
+		}
+		idx := strings.Index(s, parts[i])
+		if idx == -1 {
+			return false
+		}
+		s = s[idx+len(parts[i]):]
+	}
+
+	return true
 }

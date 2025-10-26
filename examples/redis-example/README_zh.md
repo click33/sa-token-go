@@ -12,18 +12,21 @@
 ## 安装 Redis
 
 ### macOS
+
 ```bash
 brew install redis
 brew services start redis
 ```
 
 ### Linux (Ubuntu/Debian)
+
 ```bash
 sudo apt-get install redis-server
 sudo systemctl start redis
 ```
 
 ### Docker
+
 ```bash
 docker run -d -p 6379:6379 redis:7-alpine
 ```
@@ -83,6 +86,7 @@ SMEMBERS satoken:role:1000
 ## 生产环境部署
 
 查看 [Redis 存储指南](../../docs/guide/redis-storage_zh.md) 了解：
+
 - 连接池配置
 - 高可用（哨兵模式）
 - 集群模式
@@ -94,4 +98,3 @@ SMEMBERS satoken:role:1000
 - [Redis 存储指南](../../docs/guide/redis-storage_zh.md)
 - [快速开始](../../docs/tutorial/quick-start.md)
 - [认证指南](../../docs/guide/authentication.md)
-

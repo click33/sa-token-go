@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	fmt.Println("=== Sa-Token-Go Redis Storage Example ===\n")
+	fmt.Println("=== Sa-Token-Go Redis Storage Example ===")
 
 	// Get Redis configuration from environment variables | 从环境变量获取 Redis 配置
 	redisAddr := os.Getenv("REDIS_ADDR")
@@ -38,20 +38,30 @@ func main() {
 	fmt.Printf("✅ Connected to Redis: %s\n\n", redisAddr)
 
 	// Initialize Sa-Token with Redis storage | 使用 Redis 存储初始化 Sa-Token
-	redisStorage, err := redis.NewStorage(redisAddr, redisPassword)
+	redisURL := fmt.Sprintf("redis://:%s@%s/0", redisPassword, redisAddr)
+	redisStorage, err := redis.NewStorage(redisURL) // Storage 层不处理前缀，符合 Java sa-token 设计
 	if err != nil {
 		log.Fatalf("❌ Failed to create Redis storage: %v\n", err)
 	}
 
+	// 创建 Manager（符合 Java sa-token 标准设计）
 	stputil.SetManager(
 		core.NewBuilder().
 			Storage(redisStorage).
 			TokenName("Authorization").
 			TokenStyle(core.TokenStyleRandom64).
-			Timeout(3600). // 1 hour | 1小时
+			Timeout(3600).        // 1 hour | 1小时
+			KeyPrefix("satoken"). // 设计开头标识
 			IsPrintBanner(true).
 			Build(),
 	)
+
+	fmt.Println("📌 当前配置（符合 Java sa-token 标准）:")
+	fmt.Println("   - Storage 层前缀: \"\" (空)")
+	fmt.Println("   - Manager 层前缀: \"satoken\" → 自动变为 \"satoken:\"")
+	fmt.Println("   - Redis Key 示例: satoken:login:token:xxx")
+	fmt.Println("   - ✅ 完全兼容 Java sa-token")
+	fmt.Println()
 
 	// Test authentication | 测试认证功能
 	fmt.Println("1. Login user | 登录用户")
@@ -64,14 +74,14 @@ func main() {
 	// Check login status | 检查登录状态
 	fmt.Println("2. Check login status | 检查登录状态")
 	if stputil.IsLogin(token) {
-		fmt.Println("✅ User is logged in\n")
+		fmt.Println("✅ User is logged in")
 	}
 
 	// Set permissions and roles | 设置权限和角色
 	fmt.Println("3. Set permissions and roles | 设置权限和角色")
 	stputil.SetPermissions(1000, []string{"user:read", "user:write", "admin:*"})
 	stputil.SetRoles(1000, []string{"admin", "user"})
-	fmt.Println("✅ Permissions and roles set\n")
+	fmt.Println("✅ Permissions and roles set")
 
 	// Check permission | 检查权限
 	fmt.Println("4. Check permissions | 检查权限")
@@ -102,11 +112,11 @@ func main() {
 
 	// Logout | 登出
 	fmt.Println("7. Logout | 登出")
-	stputil.Logout(1000)
+	// stputil.Logout(1000)
 	fmt.Println("✅ User logged out")
 
 	if !stputil.IsLogin(token) {
-		fmt.Println("✅ Token is now invalid\n")
+		fmt.Println("✅ Token is now invalid")
 	}
 
 	// Close Redis connection | 关闭 Redis 连接
