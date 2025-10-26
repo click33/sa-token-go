@@ -3,14 +3,13 @@ module github.com/click33/sa-token-go/examples/oauth2-example
 go 1.21
 
 require (
-	github.com/click33/sa-token-go/core v0.1.1
-	github.com/click33/sa-token-go/storage/memory v0.1.1
+	github.com/click33/sa-token-go/core v0.1.2
+	github.com/click33/sa-token-go/storage/memory v0.1.2
 	github.com/gin-gonic/gin v1.10.0
 )
 
 require (
 	github.com/bytedance/sonic v1.11.6 // indirect
-	github.com/bytedance/sonic/loader v0.1.1 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
 	github.com/cloudwego/iasm v0.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect

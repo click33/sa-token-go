@@ -9,7 +9,8 @@ import (
 
 // GinContext Gin request context adapter | Gin请求上下文适配器
 type GinContext struct {
-	c *gin.Context
+	c       *gin.Context
+	aborted bool
 }
 
 // NewGinContext creates a Gin context adapter | 创建Gin上下文适配器
@@ -67,4 +68,91 @@ func (g *GinContext) Set(key string, value interface{}) {
 // Get gets context value | 获取上下文值
 func (g *GinContext) Get(key string) (interface{}, bool) {
 	return g.c.Get(key)
+}
+
+// ============ Additional Required Methods | 额外必需的方法 ============
+
+// GetHeaders implements adapter.RequestContext.
+func (g *GinContext) GetHeaders() map[string][]string {
+	return g.c.Request.Header
+}
+
+// GetQueryAll implements adapter.RequestContext.
+func (g *GinContext) GetQueryAll() map[string][]string {
+	return g.c.Request.URL.Query()
+}
+
+// GetPostForm implements adapter.RequestContext.
+func (g *GinContext) GetPostForm(key string) string {
+	return g.c.PostForm(key)
+}
+
+// GetBody implements adapter.RequestContext.
+func (g *GinContext) GetBody() ([]byte, error) {
+	return g.c.GetRawData()
+}
+
+// GetURL implements adapter.RequestContext.
+func (g *GinContext) GetURL() string {
+	return g.c.Request.URL.String()
+}
+
+// GetUserAgent implements adapter.RequestContext.
+func (g *GinContext) GetUserAgent() string {
+	return g.c.GetHeader("User-Agent")
+}
+
+// SetCookieWithOptions implements adapter.RequestContext.
+func (g *GinContext) SetCookieWithOptions(options *adapter.CookieOptions) {
+	g.c.SetCookie(
+		options.Name,
+		options.Value,
+		options.MaxAge,
+		options.Path,
+		options.Domain,
+		options.Secure,
+		options.HttpOnly,
+	)
+	
+	// Set SameSite attribute
+	switch options.SameSite {
+	case "Strict":
+		g.c.SetSameSite(http.SameSiteStrictMode)
+	case "Lax":
+		g.c.SetSameSite(http.SameSiteLaxMode)
+	case "None":
+		g.c.SetSameSite(http.SameSiteNoneMode)
+	}
+}
+
+// GetString implements adapter.RequestContext.
+func (g *GinContext) GetString(key string) string {
+	value, exists := g.c.Get(key)
+	if !exists {
+		return ""
+	}
+	if str, ok := value.(string); ok {
+		return str
+	}
+	return ""
+}
+
+// MustGet implements adapter.RequestContext.
+func (g *GinContext) MustGet(key string) any {
+	value, exists := g.c.Get(key)
+	if !exists {
+		panic("key not found: " + key)
+	}
+	return value
+}
+
+// Abort implements adapter.RequestContext.
+func (g *GinContext) Abort() {
+	g.aborted = true
+	g.c.Abort()
+}
+
+// IsAborted implements adapter.RequestContext.
+func (g *GinContext) IsAborted() bool {
+	return g.aborted
 }

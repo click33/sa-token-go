@@ -1,14 +1,17 @@
 package echo
 
 import (
+	"io"
+	"net/http"
+
 	"github.com/click33/sa-token-go/core/adapter"
 	"github.com/labstack/echo/v4"
-	"net/http"
 )
 
 // EchoContext Echo request context adapter | Echo请求上下文适配器
 type EchoContext struct {
-	c echo.Context
+	c       echo.Context
+	aborted bool
 }
 
 // NewEchoContext creates an Echo context adapter | 创建Echo上下文适配器
@@ -78,4 +81,107 @@ func (e *EchoContext) Set(key string, value interface{}) {
 func (e *EchoContext) Get(key string) (interface{}, bool) {
 	value := e.c.Get(key)
 	return value, value != nil
+}
+
+// ============ Additional Required Methods | 额外必需的方法 ============
+
+// GetHeaders implements adapter.RequestContext.
+func (e *EchoContext) GetHeaders() map[string][]string {
+	headers := make(map[string][]string)
+	for key, values := range e.c.Request().Header {
+		headers[key] = values
+	}
+	return headers
+}
+
+// GetQueryAll implements adapter.RequestContext.
+func (e *EchoContext) GetQueryAll() map[string][]string {
+	query := e.c.Request().URL.Query()
+	params := make(map[string][]string)
+	for key, values := range query {
+		params[key] = values
+	}
+	return params
+}
+
+// GetPostForm implements adapter.RequestContext.
+func (e *EchoContext) GetPostForm(key string) string {
+	return e.c.FormValue(key)
+}
+
+// GetBody implements adapter.RequestContext.
+func (e *EchoContext) GetBody() ([]byte, error) {
+	body := e.c.Request().Body
+	if body == nil {
+		return nil, nil
+	}
+	defer body.Close()
+	return io.ReadAll(body)
+}
+
+// GetURL implements adapter.RequestContext.
+func (e *EchoContext) GetURL() string {
+	return e.c.Request().URL.String()
+}
+
+// GetUserAgent implements adapter.RequestContext.
+func (e *EchoContext) GetUserAgent() string {
+	return e.c.Request().UserAgent()
+}
+
+// SetCookieWithOptions implements adapter.RequestContext.
+func (e *EchoContext) SetCookieWithOptions(options *adapter.CookieOptions) {
+	cookie := &http.Cookie{
+		Name:     options.Name,
+		Value:    options.Value,
+		Path:     options.Path,
+		Domain:   options.Domain,
+		MaxAge:   options.MaxAge,
+		Secure:   options.Secure,
+		HttpOnly: options.HttpOnly,
+		SameSite: http.SameSiteLaxMode, // Default to Lax
+	}
+	
+	// Set SameSite attribute
+	switch options.SameSite {
+	case "Strict":
+		cookie.SameSite = http.SameSiteStrictMode
+	case "Lax":
+		cookie.SameSite = http.SameSiteLaxMode
+	case "None":
+		cookie.SameSite = http.SameSiteNoneMode
+	}
+	
+	e.c.SetCookie(cookie)
+}
+
+// GetString implements adapter.RequestContext.
+func (e *EchoContext) GetString(key string) string {
+	value := e.c.Get(key)
+	if value == nil {
+		return ""
+	}
+	if str, ok := value.(string); ok {
+		return str
+	}
+	return ""
+}
+
+// MustGet implements adapter.RequestContext.
+func (e *EchoContext) MustGet(key string) any {
+	value := e.c.Get(key)
+	if value == nil {
+		panic("key not found: " + key)
+	}
+	return value
+}
+
+// Abort implements adapter.RequestContext.
+func (e *EchoContext) Abort() {
+	e.aborted = true
+}
+
+// IsAborted implements adapter.RequestContext.
+func (e *EchoContext) IsAborted() bool {
+	return e.aborted
 }

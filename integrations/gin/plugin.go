@@ -1,6 +1,7 @@
 package gin
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/click33/sa-token-go/core"
@@ -27,10 +28,7 @@ func (p *Plugin) AuthMiddleware() gin.HandlerFunc {
 
 		// Check login | 检查登录
 		if err := saCtx.CheckLogin(); err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"code":    401,
-				"message": "未登录",
-			})
+			writeErrorResponse(c, err)
 			c.Abort()
 			return
 		}
@@ -49,20 +47,14 @@ func (p *Plugin) PermissionRequired(permission string) gin.HandlerFunc {
 
 		// Check login | 检查登录
 		if err := saCtx.CheckLogin(); err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"code":    401,
-				"message": "未登录",
-			})
+			writeErrorResponse(c, err)
 			c.Abort()
 			return
 		}
 
 		// Check permission | 检查权限
 		if !saCtx.HasPermission(permission) {
-			c.JSON(http.StatusForbidden, gin.H{
-				"code":    403,
-				"message": "权限不足",
-			})
+			writeErrorResponse(c, core.NewPermissionDeniedError(permission))
 			c.Abort()
 			return
 		}
@@ -80,20 +72,14 @@ func (p *Plugin) RoleRequired(role string) gin.HandlerFunc {
 
 		// Check login | 检查登录
 		if err := saCtx.CheckLogin(); err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"code":    401,
-				"message": "未登录",
-			})
+			writeErrorResponse(c, err)
 			c.Abort()
 			return
 		}
 
 		// Check role | 检查角色
 		if !saCtx.HasRole(role) {
-			c.JSON(http.StatusForbidden, gin.H{
-				"code":    403,
-				"message": "权限不足",
-			})
+			writeErrorResponse(c, core.NewRoleDeniedError(role))
 			c.Abort()
 			return
 		}
@@ -112,10 +98,7 @@ func (p *Plugin) LoginHandler(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code":    400,
-			"message": "参数错误",
-		})
+		writeErrorResponse(c, core.NewError(core.CodeBadRequest, "invalid request parameters", err))
 		return
 	}
 
@@ -130,10 +113,7 @@ func (p *Plugin) LoginHandler(c *gin.Context) {
 
 	token, err := p.manager.Login(req.Username, device)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    500,
-			"message": "登录失败",
-		})
+		writeErrorResponse(c, core.NewError(core.CodeServerError, "login failed", err))
 		return
 	}
 
@@ -155,12 +135,8 @@ func (p *Plugin) LoginHandler(c *gin.Context) {
 		)
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"code":    200,
-		"message": "登录成功",
-		"data": gin.H{
-			"token": token,
-		},
+	writeSuccessResponse(c, gin.H{
+		"token": token,
 	})
 }
 
@@ -171,24 +147,17 @@ func (p *Plugin) LogoutHandler(c *gin.Context) {
 
 	loginID, err := saCtx.GetLoginID()
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"code":    401,
-			"message": "未登录",
-		})
+		writeErrorResponse(c, err)
 		return
 	}
 
 	if err := p.manager.Logout(loginID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    500,
-			"message": "登出失败",
-		})
+		writeErrorResponse(c, core.NewError(core.CodeServerError, "logout failed", err))
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"code":    200,
-		"message": "登出成功",
+	writeSuccessResponse(c, gin.H{
+		"message": "logout successful",
 	})
 }
 
@@ -199,10 +168,7 @@ func (p *Plugin) UserInfoHandler(c *gin.Context) {
 
 	loginID, err := saCtx.GetLoginID()
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"code":    401,
-			"message": "未登录",
-		})
+		writeErrorResponse(c, err)
 		return
 	}
 
@@ -210,14 +176,10 @@ func (p *Plugin) UserInfoHandler(c *gin.Context) {
 	permissions, _ := p.manager.GetPermissions(loginID)
 	roles, _ := p.manager.GetRoles(loginID)
 
-	c.JSON(http.StatusOK, gin.H{
-		"code":    200,
-		"message": "success",
-		"data": gin.H{
-			"loginId":     loginID,
-			"permissions": permissions,
-			"roles":       roles,
-		},
+	writeSuccessResponse(c, gin.H{
+		"loginId":     loginID,
+		"permissions": permissions,
+		"roles":       roles,
 	})
 }
 
@@ -229,4 +191,59 @@ func GetSaToken(c *gin.Context) (*core.SaTokenContext, bool) {
 	}
 	ctx, ok := satoken.(*core.SaTokenContext)
 	return ctx, ok
+}
+
+// ============ Error Handling Helpers | 错误处理辅助函数 ============
+
+// writeErrorResponse writes a standardized error response | 写入标准化的错误响应
+func writeErrorResponse(c *gin.Context, err error) {
+	var saErr *core.SaTokenError
+	var code int
+	var message string
+	var httpStatus int
+
+	// Check if it's a SaTokenError | 检查是否为SaTokenError
+	if errors.As(err, &saErr) {
+		code = saErr.Code
+		message = saErr.Message
+		httpStatus = getHTTPStatusFromCode(code)
+	} else {
+		// Handle standard errors | 处理标准错误
+		code = core.CodeServerError
+		message = err.Error()
+		httpStatus = http.StatusInternalServerError
+	}
+
+	c.JSON(httpStatus, gin.H{
+		"code":    code,
+		"message": message,
+		"error":   err.Error(),
+	})
+}
+
+// writeSuccessResponse writes a standardized success response | 写入标准化的成功响应
+func writeSuccessResponse(c *gin.Context, data interface{}) {
+	c.JSON(http.StatusOK, gin.H{
+		"code":    core.CodeSuccess,
+		"message": "success",
+		"data":    data,
+	})
+}
+
+// getHTTPStatusFromCode converts Sa-Token error code to HTTP status | 将Sa-Token错误码转换为HTTP状态码
+func getHTTPStatusFromCode(code int) int {
+	switch code {
+	case core.CodeNotLogin:
+		return http.StatusUnauthorized
+	case core.CodePermissionDenied:
+		return http.StatusForbidden
+	case core.CodeBadRequest:
+		return http.StatusBadRequest
+	case core.CodeNotFound:
+		return http.StatusNotFound
+	case core.CodeServerError:
+		return http.StatusInternalServerError
+	default:
+		return http.StatusInternalServerError
+	}
 }

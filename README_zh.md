@@ -34,35 +34,35 @@
 
 ```bash
 # 只导入框架集成包（自动包含 core + stputil）
-go get github.com/click33/sa-token-go/integrations/gin@v0.1.1    # Gin框架
+go get github.com/click33/sa-token-go/integrations/gin@v0.1.2    # Gin框架
 # 或
-go get github.com/click33/sa-token-go/integrations/echo@v0.1.1   # Echo框架
+go get github.com/click33/sa-token-go/integrations/echo@v0.1.2   # Echo框架
 # 或
-go get github.com/click33/sa-token-go/integrations/fiber@v0.1.1  # Fiber框架
+go get github.com/click33/sa-token-go/integrations/fiber@v0.1.2  # Fiber框架
 # 或
-go get github.com/click33/sa-token-go/integrations/chi@v0.1.1    # Chi框架
+go get github.com/click33/sa-token-go/integrations/chi@v0.1.2    # Chi框架
 
 # 存储模块（选一个）
-go get github.com/click33/sa-token-go/storage/memory@v0.1.1  # 内存存储（开发）
-go get github.com/click33/sa-token-go/storage/redis@v0.1.1   # Redis存储（生产）
+go get github.com/click33/sa-token-go/storage/memory@v0.1.2  # 内存存储（开发）
+go get github.com/click33/sa-token-go/storage/redis@v0.1.2   # Redis存储（生产）
 ```
 
 #### 方式二：分开导入
 
 ```bash
 # 核心模块
-go get github.com/click33/sa-token-go/core@v0.1.1
-go get github.com/click33/sa-token-go/stputil@v0.1.1
+go get github.com/click33/sa-token-go/core@v0.1.2
+go get github.com/click33/sa-token-go/stputil@v0.1.2
 
 # 存储模块（选一个）
-go get github.com/click33/sa-token-go/storage/memory@v0.1.1  # 内存存储（开发）
-go get github.com/click33/sa-token-go/storage/redis@v0.1.1   # Redis存储（生产）
+go get github.com/click33/sa-token-go/storage/memory@v0.1.2  # 内存存储（开发）
+go get github.com/click33/sa-token-go/storage/redis@v0.1.2   # Redis存储（生产）
 
 # 框架集成（可选）
-go get github.com/click33/sa-token-go/integrations/gin@v0.1.1    # Gin框架
-go get github.com/click33/sa-token-go/integrations/echo@v0.1.1   # Echo框架
-go get github.com/click33/sa-token-go/integrations/fiber@v0.1.1  # Fiber框架
-go get github.com/click33/sa-token-go/integrations/chi@v0.1.1    # Chi框架
+go get github.com/click33/sa-token-go/integrations/gin@v0.1.2    # Gin框架
+go get github.com/click33/sa-token-go/integrations/echo@v0.1.2   # Echo框架
+go get github.com/click33/sa-token-go/integrations/fiber@v0.1.2  # Fiber框架
+go get github.com/click33/sa-token-go/integrations/chi@v0.1.2    # Chi框架
 ```
 
 ### ⚡ 超简洁使用（一行初始化）
@@ -99,7 +99,7 @@ func init() {
  ___/ / /_/ /   / / / /_/ / ,< /  __/ / / /_____/ /_/ / /_/ /
 /____/\__,_/   /_/  \____/_/|_|\___/_/ /_/      \____/\____/ 
                                                              
-:: Sa-Token-Go ::                                    (v0.1.1)
+:: Sa-Token-Go ::                                    (v0.1.2)
 :: Go Version ::                                     go1.21.0
 :: GOOS/GOARCH ::                                    linux/amd64
 

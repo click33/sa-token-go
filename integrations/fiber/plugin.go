@@ -1,6 +1,8 @@
 package fiber
 
 import (
+	"errors"
+
 	"github.com/click33/sa-token-go/core"
 	"github.com/gofiber/fiber/v2"
 )
@@ -24,10 +26,7 @@ func (p *Plugin) AuthMiddleware() fiber.Handler {
 		saCtx := core.NewContext(ctx, p.manager)
 
 		if err := saCtx.CheckLogin(); err != nil {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"code":    401,
-				"message": "未登录",
-			})
+			return writeErrorResponse(c, err)
 		}
 
 		c.Locals("satoken", saCtx)
@@ -42,17 +41,11 @@ func (p *Plugin) PermissionRequired(permission string) fiber.Handler {
 		saCtx := core.NewContext(ctx, p.manager)
 
 		if err := saCtx.CheckLogin(); err != nil {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"code":    401,
-				"message": "未登录",
-			})
+			return writeErrorResponse(c, err)
 		}
 
 		if !saCtx.HasPermission(permission) {
-			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-				"code":    403,
-				"message": "权限不足",
-			})
+			return writeErrorResponse(c, core.NewPermissionDeniedError(permission))
 		}
 
 		c.Locals("satoken", saCtx)
@@ -67,17 +60,11 @@ func (p *Plugin) RoleRequired(role string) fiber.Handler {
 		saCtx := core.NewContext(ctx, p.manager)
 
 		if err := saCtx.CheckLogin(); err != nil {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"code":    401,
-				"message": "未登录",
-			})
+			return writeErrorResponse(c, err)
 		}
 
 		if !saCtx.HasRole(role) {
-			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-				"code":    403,
-				"message": "权限不足",
-			})
+			return writeErrorResponse(c, core.NewRoleDeniedError(role))
 		}
 
 		c.Locals("satoken", saCtx)
@@ -94,10 +81,7 @@ func (p *Plugin) LoginHandler(c *fiber.Ctx) error {
 	}
 
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"code":    400,
-			"message": "参数错误",
-		})
+		return writeErrorResponse(c, core.NewError(core.CodeBadRequest, "invalid request parameters", err))
 	}
 
 	device := req.Device
@@ -107,18 +91,11 @@ func (p *Plugin) LoginHandler(c *fiber.Ctx) error {
 
 	token, err := p.manager.Login(req.Username, device)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"code":    500,
-			"message": "登录失败",
-		})
+		return writeErrorResponse(c, core.NewError(core.CodeServerError, "login failed", err))
 	}
 
-	return c.JSON(fiber.Map{
-		"code":    200,
-		"message": "登录成功",
-		"data": fiber.Map{
-			"token": token,
-		},
+	return writeSuccessResponse(c, fiber.Map{
+		"token": token,
 	})
 }
 
@@ -130,4 +107,59 @@ func GetSaToken(c *fiber.Ctx) (*core.SaTokenContext, bool) {
 	}
 	ctx, ok := satoken.(*core.SaTokenContext)
 	return ctx, ok
+}
+
+// ============ Error Handling Helpers | 错误处理辅助函数 ============
+
+// writeErrorResponse writes a standardized error response | 写入标准化的错误响应
+func writeErrorResponse(c *fiber.Ctx, err error) error {
+	var saErr *core.SaTokenError
+	var code int
+	var message string
+	var httpStatus int
+
+	// Check if it's a SaTokenError | 检查是否为SaTokenError
+	if errors.As(err, &saErr) {
+		code = saErr.Code
+		message = saErr.Message
+		httpStatus = getHTTPStatusFromCode(code)
+	} else {
+		// Handle standard errors | 处理标准错误
+		code = core.CodeServerError
+		message = err.Error()
+		httpStatus = fiber.StatusInternalServerError
+	}
+
+	return c.Status(httpStatus).JSON(fiber.Map{
+		"code":    code,
+		"message": message,
+		"error":   err.Error(),
+	})
+}
+
+// writeSuccessResponse writes a standardized success response | 写入标准化的成功响应
+func writeSuccessResponse(c *fiber.Ctx, data interface{}) error {
+	return c.JSON(fiber.Map{
+		"code":    core.CodeSuccess,
+		"message": "success",
+		"data":    data,
+	})
+}
+
+// getHTTPStatusFromCode converts Sa-Token error code to HTTP status | 将Sa-Token错误码转换为HTTP状态码
+func getHTTPStatusFromCode(code int) int {
+	switch code {
+	case core.CodeNotLogin:
+		return fiber.StatusUnauthorized
+	case core.CodePermissionDenied:
+		return fiber.StatusForbidden
+	case core.CodeBadRequest:
+		return fiber.StatusBadRequest
+	case core.CodeNotFound:
+		return fiber.StatusNotFound
+	case core.CodeServerError:
+		return fiber.StatusInternalServerError
+	default:
+		return fiber.StatusInternalServerError
+	}
 }

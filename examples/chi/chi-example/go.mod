@@ -3,9 +3,9 @@ module github.com/click33/sa-token-go/examples/chi-example
 go 1.21
 
 require (
-	github.com/click33/sa-token-go/core v0.1.1
-	github.com/click33/sa-token-go/integrations/chi v0.1.1
-	github.com/click33/sa-token-go/storage/memory v0.1.1
+	github.com/click33/sa-token-go/core v0.1.2
+	github.com/click33/sa-token-go/integrations/chi v0.1.2
+	github.com/click33/sa-token-go/storage/memory v0.1.2
 	github.com/go-chi/chi/v5 v5.0.11
 )
 

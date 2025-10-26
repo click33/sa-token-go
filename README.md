@@ -34,35 +34,35 @@ A lightweight, high-performance Go authentication and authorization framework, i
 
 ```bash
 # Import only the framework integration (includes core + stputil automatically)
-go get github.com/click33/sa-token-go/integrations/gin@v0.1.1    # Gin framework
+go get github.com/click33/sa-token-go/integrations/gin@v0.1.2    # Gin framework
 # or
-go get github.com/click33/sa-token-go/integrations/echo@v0.1.1   # Echo framework
+go get github.com/click33/sa-token-go/integrations/echo@v0.1.2   # Echo framework
 # or
-go get github.com/click33/sa-token-go/integrations/fiber@v0.1.1  # Fiber framework
+go get github.com/click33/sa-token-go/integrations/fiber@v0.1.2  # Fiber framework
 # or
-go get github.com/click33/sa-token-go/integrations/chi@v0.1.1    # Chi framework
+go get github.com/click33/sa-token-go/integrations/chi@v0.1.2    # Chi framework
 
 # Storage module (choose one)
-go get github.com/click33/sa-token-go/storage/memory@v0.1.1  # Memory storage (dev)
-go get github.com/click33/sa-token-go/storage/redis@v0.1.1   # Redis storage (prod)
+go get github.com/click33/sa-token-go/storage/memory@v0.1.2  # Memory storage (dev)
+go get github.com/click33/sa-token-go/storage/redis@v0.1.2   # Redis storage (prod)
 ```
 
 #### Option 2: Separate Import
 
 ```bash
 # Core modules
-go get github.com/click33/sa-token-go/core@v0.1.1
-go get github.com/click33/sa-token-go/stputil@v0.1.1
+go get github.com/click33/sa-token-go/core@v0.1.2
+go get github.com/click33/sa-token-go/stputil@v0.1.2
 
 # Storage module (choose one)
-go get github.com/click33/sa-token-go/storage/memory@v0.1.1  # Memory storage (dev)
-go get github.com/click33/sa-token-go/storage/redis@v0.1.1   # Redis storage (prod)
+go get github.com/click33/sa-token-go/storage/memory@v0.1.2  # Memory storage (dev)
+go get github.com/click33/sa-token-go/storage/redis@v0.1.2   # Redis storage (prod)
 
 # Framework integration (optional)
-go get github.com/click33/sa-token-go/integrations/gin@v0.1.1    # Gin framework
-go get github.com/click33/sa-token-go/integrations/echo@v0.1.1   # Echo framework
-go get github.com/click33/sa-token-go/integrations/fiber@v0.1.1  # Fiber framework
-go get github.com/click33/sa-token-go/integrations/chi@v0.1.1    # Chi framework
+go get github.com/click33/sa-token-go/integrations/gin@v0.1.2    # Gin framework
+go get github.com/click33/sa-token-go/integrations/echo@v0.1.2   # Echo framework
+go get github.com/click33/sa-token-go/integrations/fiber@v0.1.2  # Fiber framework
+go get github.com/click33/sa-token-go/integrations/chi@v0.1.2    # Chi framework
 ```
 
 ### ⚡ Minimal Usage (One-line Initialization)
@@ -99,7 +99,7 @@ func init() {
  ___/ / /_/ /   / / / /_/ / ,< /  __/ / / /_____/ /_/ / /_/ /
 /____/\__,_/   /_/  \____/_/|_|\___/_/ /_/      \____/\____/ 
                                                              
-:: Sa-Token-Go ::                                    (v0.1.1)
+:: Sa-Token-Go ::                                    (v0.1.2)
 :: Go Version ::                                     go1.21.0
 :: GOOS/GOARCH ::                                    linux/amd64
 

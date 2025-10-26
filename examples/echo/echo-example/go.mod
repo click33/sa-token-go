@@ -5,9 +5,9 @@ go 1.23.0
 toolchain go1.24.1
 
 require (
-	github.com/click33/sa-token-go/core v0.1.1
-	github.com/click33/sa-token-go/integrations/echo v0.1.1
-	github.com/click33/sa-token-go/storage/memory v0.1.1
+	github.com/click33/sa-token-go/core v0.1.2
+	github.com/click33/sa-token-go/integrations/echo v0.1.2
+	github.com/click33/sa-token-go/storage/memory v0.1.2
 	github.com/labstack/echo/v4 v4.11.4
 )
 
@@ -17,7 +17,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/labstack/gommon v0.4.2 // indirect
-	github.com/mattn/go-colorable v0.1.14 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect

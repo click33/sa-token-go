@@ -1,6 +1,7 @@
 package gf
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/click33/sa-token-go/core"
@@ -27,10 +28,7 @@ func (p *Plugin) AuthMiddleware() ghttp.HandlerFunc {
 		saCtx := core.NewContext(ctx, p.manager)
 		// Check login | 检查登录
 		if err := saCtx.CheckLogin(); err != nil {
-			r.Response.WriteStatusExit(http.StatusUnauthorized, g.Map{
-				"code":    401,
-				"message": "未登录",
-			})
+			writeErrorResponse(r, err)
 			return
 		}
 		// Store Sa-Token context in GoFrame context | 将Sa-Token上下文存储到GoFrame上下文
@@ -48,16 +46,12 @@ func (p *Plugin) PermissionRequired(permission string) ghttp.HandlerFunc {
 		saCtx := core.NewContext(ctx, p.manager)
 
 		if err := saCtx.CheckLogin(); err != nil {
-			r.Response.WriteStatusExit(http.StatusUnauthorized, g.Map{
-				"code":    401,
-				"message": "未登录",
-			})
+			writeErrorResponse(r, err)
+			return
 		}
 		if !saCtx.HasPermission(permission) {
-			r.Response.WriteStatusExit(http.StatusForbidden, g.Map{
-				"code":    403,
-				"message": "权限不足",
-			})
+			writeErrorResponse(r, core.NewPermissionDeniedError(permission))
+			return
 		}
 		r.SetCtxVar("satoken", saCtx)
 		r.Middleware.Next()
@@ -72,17 +66,13 @@ func (p *Plugin) RoleRequired(role string) ghttp.HandlerFunc {
 		saCtx := core.NewContext(ctx, p.manager)
 
 		if err := saCtx.CheckLogin(); err != nil {
-			r.Response.WriteStatusExit(http.StatusUnauthorized, g.Map{
-				"code":    401,
-				"message": "未登录",
-			})
+			writeErrorResponse(r, err)
+			return
 		}
 
 		if !saCtx.HasRole(role) {
-			r.Response.WriteStatusExit(http.StatusForbidden, g.Map{
-				"code":    403,
-				"message": "权限不足",
-			})
+			writeErrorResponse(r, core.NewRoleDeniedError(role))
+			return
 		}
 
 		r.SetCtxVar("satoken", saCtx)
@@ -99,10 +89,8 @@ func (p *Plugin) LoginHandler(r *ghttp.Request) {
 	}
 
 	if err := r.Parse(&req); err != nil {
-		r.Response.WriteStatusExit(http.StatusBadRequest, g.Map{
-			"code":    400,
-			"message": "参数错误",
-		})
+		writeErrorResponse(r, core.NewError(core.CodeBadRequest, "invalid request parameters", err))
+		return
 	}
 
 	device := req.Device
@@ -112,18 +100,12 @@ func (p *Plugin) LoginHandler(r *ghttp.Request) {
 
 	token, err := p.manager.Login(req.Username, device)
 	if err != nil {
-		r.Response.WriteStatusExit(http.StatusInternalServerError, g.Map{
-			"code":    500,
-			"message": "登录失败",
-		})
+		writeErrorResponse(r, core.NewError(core.CodeServerError, "login failed", err))
+		return
 	}
 
-	r.Response.WriteStatusExit(http.StatusOK, g.Map{
-		"code":    200,
-		"message": "登录成功",
-		"data": g.Map{
-			"token": token,
-		},
+	writeSuccessResponse(r, g.Map{
+		"token": token,
 	})
 }
 
@@ -134,10 +116,7 @@ func (p *Plugin) UserInfoHandler(r *ghttp.Request) {
 
 	loginID, err := saCtx.GetLoginID()
 	if err != nil {
-		r.Response.WriteStatusExit(http.StatusUnauthorized, g.Map{
-			"code":    401,
-			"message": "未登录",
-		})
+		writeErrorResponse(r, err)
 		return
 	}
 
@@ -145,14 +124,10 @@ func (p *Plugin) UserInfoHandler(r *ghttp.Request) {
 	permissions, _ := p.manager.GetPermissions(loginID)
 	roles, _ := p.manager.GetRoles(loginID)
 
-	r.Response.WriteStatusExit(http.StatusOK, g.Map{
-		"code":    200,
-		"message": "success",
-		"data": g.Map{
-			"loginId":     loginID,
-			"permissions": permissions,
-			"roles":       roles,
-		},
+	writeSuccessResponse(r, g.Map{
+		"loginId":     loginID,
+		"permissions": permissions,
+		"roles":       roles,
 	})
 }
 
@@ -164,4 +139,59 @@ func GetSaToken(r *ghttp.Request) (*core.SaTokenContext, bool) {
 	}
 	ctx, ok := satoken.(*core.SaTokenContext)
 	return ctx, ok
+}
+
+// ============ Error Handling Helpers | 错误处理辅助函数 ============
+
+// writeErrorResponse writes a standardized error response | 写入标准化的错误响应
+func writeErrorResponse(r *ghttp.Request, err error) {
+	var saErr *core.SaTokenError
+	var code int
+	var message string
+	var httpStatus int
+
+	// Check if it's a SaTokenError | 检查是否为SaTokenError
+	if errors.As(err, &saErr) {
+		code = saErr.Code
+		message = saErr.Message
+		httpStatus = getHTTPStatusFromCode(code)
+	} else {
+		// Handle standard errors | 处理标准错误
+		code = core.CodeServerError
+		message = err.Error()
+		httpStatus = http.StatusInternalServerError
+	}
+
+	r.Response.WriteStatusExit(httpStatus, g.Map{
+		"code":    code,
+		"message": message,
+		"error":   err.Error(),
+	})
+}
+
+// writeSuccessResponse writes a standardized success response | 写入标准化的成功响应
+func writeSuccessResponse(r *ghttp.Request, data interface{}) {
+	r.Response.WriteStatusExit(http.StatusOK, g.Map{
+		"code":    core.CodeSuccess,
+		"message": "success",
+		"data":    data,
+	})
+}
+
+// getHTTPStatusFromCode converts Sa-Token error code to HTTP status | 将Sa-Token错误码转换为HTTP状态码
+func getHTTPStatusFromCode(code int) int {
+	switch code {
+	case core.CodeNotLogin:
+		return http.StatusUnauthorized
+	case core.CodePermissionDenied:
+		return http.StatusForbidden
+	case core.CodeBadRequest:
+		return http.StatusBadRequest
+	case core.CodeNotFound:
+		return http.StatusNotFound
+	case core.CodeServerError:
+		return http.StatusInternalServerError
+	default:
+		return http.StatusInternalServerError
+	}
 }

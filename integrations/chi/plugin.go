@@ -2,6 +2,7 @@ package chi
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/click33/sa-token-go/core"
@@ -27,12 +28,7 @@ func (p *Plugin) AuthMiddleware() func(http.Handler) http.Handler {
 			saCtx := core.NewContext(ctx, p.manager)
 
 			if err := saCtx.CheckLogin(); err != nil {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusUnauthorized)
-				json.NewEncoder(w).Encode(map[string]interface{}{
-					"code":    401,
-					"message": "未登录",
-				})
+				writeErrorResponse(w, err)
 				return
 			}
 
@@ -51,22 +47,12 @@ func (p *Plugin) PermissionRequired(permission string) func(http.Handler) http.H
 			saCtx := core.NewContext(ctx, p.manager)
 
 			if err := saCtx.CheckLogin(); err != nil {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusUnauthorized)
-				json.NewEncoder(w).Encode(map[string]interface{}{
-					"code":    401,
-					"message": "未登录",
-				})
+				writeErrorResponse(w, err)
 				return
 			}
 
 			if !saCtx.HasPermission(permission) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusForbidden)
-				json.NewEncoder(w).Encode(map[string]interface{}{
-					"code":    403,
-					"message": "权限不足",
-				})
+				writeErrorResponse(w, core.NewPermissionDeniedError(permission))
 				return
 			}
 
@@ -84,22 +70,12 @@ func (p *Plugin) RoleRequired(role string) func(http.Handler) http.Handler {
 			saCtx := core.NewContext(ctx, p.manager)
 
 			if err := saCtx.CheckLogin(); err != nil {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusUnauthorized)
-				json.NewEncoder(w).Encode(map[string]interface{}{
-					"code":    401,
-					"message": "未登录",
-				})
+				writeErrorResponse(w, err)
 				return
 			}
 
 			if !saCtx.HasRole(role) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusForbidden)
-				json.NewEncoder(w).Encode(map[string]interface{}{
-					"code":    403,
-					"message": "权限不足",
-				})
+				writeErrorResponse(w, core.NewRoleDeniedError(role))
 				return
 			}
 
@@ -118,12 +94,7 @@ func (p *Plugin) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"code":    400,
-			"message": "参数错误",
-		})
+		writeErrorResponse(w, core.NewError(core.CodeBadRequest, "invalid request parameters", err))
 		return
 	}
 
@@ -134,22 +105,12 @@ func (p *Plugin) LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	token, err := p.manager.Login(req.Username, device)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"code":    500,
-			"message": "登录失败",
-		})
+		writeErrorResponse(w, core.NewError(core.CodeServerError, "login failed", err))
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"code":    200,
-		"message": "登录成功",
-		"data": map[string]interface{}{
-			"token": token,
-		},
+	writeSuccessResponse(w, map[string]interface{}{
+		"token": token,
 	})
 }
 
@@ -161,4 +122,62 @@ func GetSaToken(r *http.Request) (*core.SaTokenContext, bool) {
 	}
 	ctx, ok := satoken.(*core.SaTokenContext)
 	return ctx, ok
+}
+
+// ============ Error Handling Helpers | 错误处理辅助函数 ============
+
+// writeErrorResponse writes a standardized error response | 写入标准化的错误响应
+func writeErrorResponse(w http.ResponseWriter, err error) {
+	var saErr *core.SaTokenError
+	var code int
+	var message string
+	var httpStatus int
+
+	// Check if it's a SaTokenError | 检查是否为SaTokenError
+	if errors.As(err, &saErr) {
+		code = saErr.Code
+		message = saErr.Message
+		httpStatus = getHTTPStatusFromCode(code)
+	} else {
+		// Handle standard errors | 处理标准错误
+		code = core.CodeServerError
+		message = err.Error()
+		httpStatus = http.StatusInternalServerError
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(httpStatus)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"code":    code,
+		"message": message,
+		"error":   err.Error(),
+	})
+}
+
+// writeSuccessResponse writes a standardized success response | 写入标准化的成功响应
+func writeSuccessResponse(w http.ResponseWriter, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"code":    core.CodeSuccess,
+		"message": "success",
+		"data":    data,
+	})
+}
+
+// getHTTPStatusFromCode converts Sa-Token error code to HTTP status | 将Sa-Token错误码转换为HTTP状态码
+func getHTTPStatusFromCode(code int) int {
+	switch code {
+	case core.CodeNotLogin:
+		return http.StatusUnauthorized
+	case core.CodePermissionDenied:
+		return http.StatusForbidden
+	case core.CodeBadRequest:
+		return http.StatusBadRequest
+	case core.CodeNotFound:
+		return http.StatusNotFound
+	case core.CodeServerError:
+		return http.StatusInternalServerError
+	default:
+		return http.StatusInternalServerError
+	}
 }

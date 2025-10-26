@@ -8,7 +8,8 @@ import (
 
 // FiberContext Fiber request context adapter | Fiber请求上下文适配器
 type FiberContext struct {
-	c *fiber.Ctx
+	c       *fiber.Ctx
+	aborted bool
 }
 
 // NewFiberContext creates a Fiber context adapter | 创建Fiber上下文适配器
@@ -78,4 +79,106 @@ func (f *FiberContext) Set(key string, value interface{}) {
 func (f *FiberContext) Get(key string) (interface{}, bool) {
 	value := f.c.Locals(key)
 	return value, value != nil
+}
+
+// ============ Additional Required Methods | 额外必需的方法 ============
+
+// GetHeaders implements adapter.RequestContext.
+func (f *FiberContext) GetHeaders() map[string][]string {
+	headers := make(map[string][]string)
+	f.c.Request().Header.VisitAll(func(key, value []byte) {
+		headers[string(key)] = []string{string(value)}
+	})
+	return headers
+}
+
+// GetQueryAll implements adapter.RequestContext.
+func (f *FiberContext) GetQueryAll() map[string][]string {
+	query := f.c.Request().URI().QueryArgs()
+	params := make(map[string][]string)
+	query.VisitAll(func(key, value []byte) {
+		params[string(key)] = []string{string(value)}
+	})
+	return params
+}
+
+// GetPostForm implements adapter.RequestContext.
+func (f *FiberContext) GetPostForm(key string) string {
+	return f.c.FormValue(key)
+}
+
+// GetBody implements adapter.RequestContext.
+func (f *FiberContext) GetBody() ([]byte, error) {
+	return f.c.Body(), nil
+}
+
+// GetURL implements adapter.RequestContext.
+func (f *FiberContext) GetURL() string {
+	return string(f.c.Request().URI().FullURI())
+}
+
+// GetUserAgent implements adapter.RequestContext.
+func (f *FiberContext) GetUserAgent() string {
+	return f.c.Get("User-Agent")
+}
+
+// SetCookieWithOptions implements adapter.RequestContext.
+func (f *FiberContext) SetCookieWithOptions(options *adapter.CookieOptions) {
+	cookie := &fiber.Cookie{
+		Name:     options.Name,
+		Value:    options.Value,
+		Path:     options.Path,
+		Domain:   options.Domain,
+		MaxAge:   options.MaxAge,
+		Secure:   options.Secure,
+		HTTPOnly: options.HttpOnly,
+		SameSite: "Lax", // Default to Lax
+	}
+	
+	// Set SameSite attribute
+	switch options.SameSite {
+	case "Strict":
+		cookie.SameSite = "Strict"
+	case "Lax":
+		cookie.SameSite = "Lax"
+	case "None":
+		cookie.SameSite = "None"
+	}
+	
+	if options.MaxAge > 0 {
+		cookie.Expires = time.Now().Add(time.Duration(options.MaxAge) * time.Second)
+	}
+	
+	f.c.Cookie(cookie)
+}
+
+// GetString implements adapter.RequestContext.
+func (f *FiberContext) GetString(key string) string {
+	value := f.c.Locals(key)
+	if value == nil {
+		return ""
+	}
+	if str, ok := value.(string); ok {
+		return str
+	}
+	return ""
+}
+
+// MustGet implements adapter.RequestContext.
+func (f *FiberContext) MustGet(key string) any {
+	value := f.c.Locals(key)
+	if value == nil {
+		panic("key not found: " + key)
+	}
+	return value
+}
+
+// Abort implements adapter.RequestContext.
+func (f *FiberContext) Abort() {
+	f.aborted = true
+}
+
+// IsAborted implements adapter.RequestContext.
+func (f *FiberContext) IsAborted() bool {
+	return f.aborted
 }

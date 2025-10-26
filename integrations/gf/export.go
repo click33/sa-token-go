@@ -141,18 +141,18 @@ func NewBuilder() *Builder {
 }
 
 // NewNonceManager creates a new nonce manager | 创建新的Nonce管理器
-func NewNonceManager(storage Storage, ttl ...int64) *NonceManager {
-	return core.NewNonceManager(storage, ttl...)
+func NewNonceManager(storage Storage, prefix string, ttl ...int64) *NonceManager {
+	return core.NewNonceManager(storage, prefix, ttl...)
 }
 
 // NewRefreshTokenManager creates a new refresh token manager | 创建新的刷新令牌管理器
-func NewRefreshTokenManager(storage Storage, cfg *Config) *RefreshTokenManager {
-	return core.NewRefreshTokenManager(storage, cfg)
+func NewRefreshTokenManager(storage Storage, prefix string, cfg *Config) *RefreshTokenManager {
+	return core.NewRefreshTokenManager(storage, prefix, cfg)
 }
 
 // NewOAuth2Server creates a new OAuth2 server | 创建新的OAuth2服务器
-func NewOAuth2Server(storage Storage) *OAuth2Server {
-	return core.NewOAuth2Server(storage)
+func NewOAuth2Server(storage Storage, prefix string) *OAuth2Server {
+	return core.NewOAuth2Server(storage, prefix)
 }
 
 // ============ Global StpUtil functions | 全局StpUtil函数 ============

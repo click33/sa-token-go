@@ -3,9 +3,9 @@ module github.com/click33/sa-token-go/examples/fiber-example
 go 1.21
 
 require (
-	github.com/click33/sa-token-go/core v0.1.1
-	github.com/click33/sa-token-go/integrations/fiber v0.1.1
-	github.com/click33/sa-token-go/storage/memory v0.1.1
+	github.com/click33/sa-token-go/core v0.1.2
+	github.com/click33/sa-token-go/integrations/fiber v0.1.2
+	github.com/click33/sa-token-go/storage/memory v0.1.2
 	github.com/gofiber/fiber/v2 v2.52.0
 )
 
