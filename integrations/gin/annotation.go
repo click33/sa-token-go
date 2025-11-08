@@ -92,7 +92,11 @@ func GetHandler(handler interface{}, annotations ...*Annotation) ginfw.HandlerFu
 	return func(c *ginfw.Context) {
 		// Check if authentication should be ignored | 检查是否忽略认证
 		if len(annotations) > 0 && annotations[0].Ignore {
-			handler.(func(*ginfw.Context))(c)
+			if handler != nil {
+				handler.(func(*ginfw.Context))(c)
+			} else {
+				c.Next()
+			}
 			return
 		}
 
@@ -175,8 +179,12 @@ func GetHandler(handler interface{}, annotations ...*Annotation) ginfw.HandlerFu
 			}
 		}
 
-		// All checks passed, execute original handler | 所有检查通过，执行原函数
-		handler.(func(*ginfw.Context))(c)
+		// All checks passed, execute original handler or continue | 所有检查通过，执行原函数或继续
+		if handler != nil {
+			handler.(func(*ginfw.Context))(c)
+		} else {
+			c.Next()
+		}
 	}
 }
 
