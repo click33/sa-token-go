@@ -17,7 +17,7 @@ import (
 )
 
 // Version Sa-Token-Go version | Sa-Token-Go版本
-const Version = "0.1.1"
+const Version = "0.1.3"
 
 // ============ Exported Types | 导出的类型 ============
 // Export main types and functions for external use | 导出主要类型和函数，方便外部使用

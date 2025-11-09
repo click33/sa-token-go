@@ -5,15 +5,15 @@ go 1.23.0
 toolchain go1.24.1
 
 require (
-	github.com/click33/sa-token-go/integrations/gin v0.1.2
-	github.com/click33/sa-token-go/storage/memory v0.1.2
+	github.com/click33/sa-token-go/integrations/gin v0.1.3
+	github.com/click33/sa-token-go/storage/memory v0.1.3
 	github.com/gin-gonic/gin v1.10.0
 )
 
 require (
 	github.com/bytedance/sonic v1.11.6 // indirect
-	github.com/click33/sa-token-go/core v0.1.2 // indirect
-	github.com/click33/sa-token-go/stputil v0.1.2 // indirect
+	github.com/click33/sa-token-go/core v0.1.3 // indirect
+	github.com/click33/sa-token-go/stputil v0.1.3 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
 	github.com/cloudwego/iasm v0.2.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
