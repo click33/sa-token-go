@@ -289,7 +289,7 @@ if REFRESH_TOKEN_ROTATION {
 
 ```go
 // Log refresh events
-eventMgr.RegisterFunc(core.EventRefresh, func(data *core.EventData) {
+manager.RegisterFunc(core.EventRefresh, func(data *core.EventData) {
     // Detect abnormal refresh patterns
     if isAbnormalRefreshPattern(data.LoginID) {
         alert("Possible token leak")

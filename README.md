@@ -465,22 +465,24 @@ accessToken, _ := oauth2Server.ExchangeCodeForToken(
 Listen to authentication and authorization events for audit logging, security monitoring, etc:
 
 ```go
-// Create event manager
-eventMgr := core.NewEventManager()
+storage := memory.NewStorage()
+
+manager := core.NewBuilder().
+    Storage(storage).
+    Build()
 
 // Listen to login events
-eventMgr.RegisterFunc(core.EventLogin, func(data *core.EventData) {
+manager.RegisterFunc(core.EventLogin, func(data *core.EventData) {
     fmt.Printf("[LOGIN] User: %s, Token: %s\n", data.LoginID, data.Token)
-    // Log audit, send notifications, etc.
 })
 
 // Listen to logout events
-eventMgr.RegisterFunc(core.EventLogout, func(data *core.EventData) {
+manager.RegisterFunc(core.EventLogout, func(data *core.EventData) {
     fmt.Printf("[LOGOUT] User: %s\n", data.LoginID)
 })
 
 // Advanced: priority and sync execution
-eventMgr.RegisterWithConfig(core.EventLogin,
+manager.RegisterWithConfig(core.EventLogin,
     core.ListenerFunc(auditLogger),
     core.ListenerConfig{
         Priority: 100,   // High priority
@@ -489,9 +491,15 @@ eventMgr.RegisterWithConfig(core.EventLogin,
 )
 
 // Listen to all events (wildcard)
-eventMgr.RegisterFunc(core.EventAll, func(data *core.EventData) {
+manager.RegisterFunc(core.EventAll, func(data *core.EventData) {
     log.Printf("[%s] %s", data.Event, data.LoginID)
 })
+
+// Access advanced controls via the underlying EventManager
+manager.GetEventManager().SetPanicHandler(customPanicHandler)
+
+// Use the manager globally
+stputil.SetManager(manager)
 ```
 
 **Available events:**

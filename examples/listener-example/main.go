@@ -12,26 +12,29 @@ import (
 func main() {
 	fmt.Println("=== Sa-Token-Go Event Listener Example ===\n")
 
-	// Create event manager
-	eventMgr := core.NewEventManager()
-
 	// 1. Simple function listener
-	eventMgr.RegisterFunc(core.EventLogin, func(data *core.EventData) {
+	manager := core.NewBuilder().
+		Storage(memory.NewStorage()).
+		TokenName("Authorization").
+		Timeout(7200).
+		Build()
+
+	manager.RegisterFunc(core.EventLogin, func(data *core.EventData) {
 		fmt.Printf("[LOGIN] User %s logged in with token %s\n", data.LoginID, data.Token[:20]+"...")
 	})
 
 	// 2. Logout listener
-	eventMgr.RegisterFunc(core.EventLogout, func(data *core.EventData) {
+	manager.RegisterFunc(core.EventLogout, func(data *core.EventData) {
 		fmt.Printf("[LOGOUT] User %s logged out\n", data.LoginID)
 	})
 
 	// 3. Kickout listener
-	eventMgr.RegisterFunc(core.EventKickout, func(data *core.EventData) {
+	manager.RegisterFunc(core.EventKickout, func(data *core.EventData) {
 		fmt.Printf("[KICKOUT] User %s was forcibly logged out\n", data.LoginID)
 	})
 
 	// 4. High-priority synchronous listener
-	eventMgr.RegisterWithConfig(core.EventLogin,
+	auditListenerID := manager.RegisterWithConfig(core.EventLogin,
 		core.ListenerFunc(func(data *core.EventData) {
 			fmt.Printf("[AUDIT] Login audit - User: %s, Time: %d\n",
 				data.LoginID, data.Timestamp)
@@ -44,9 +47,11 @@ func main() {
 	)
 
 	// 5. Wildcard listener (all events)
-	eventMgr.RegisterFunc(core.EventAll, func(data *core.EventData) {
+	manager.RegisterFunc(core.EventAll, func(data *core.EventData) {
 		fmt.Printf("[ALL EVENTS] %s\n", data.String())
 	})
+
+	eventMgr := manager.GetEventManager()
 
 	// 6. Custom panic handler
 	eventMgr.SetPanicHandler(func(event core.Event, data *core.EventData, recovered interface{}) {
@@ -54,13 +59,7 @@ func main() {
 	})
 
 	// Initialize Sa-Token
-	stputil.SetManager(
-		core.NewBuilder().
-			Storage(memory.NewStorage()).
-			TokenName("Authorization").
-			Timeout(7200).
-			Build(),
-	)
+	stputil.SetManager(manager)
 
 	fmt.Println("\n--- Triggering Events ---\n")
 
@@ -80,7 +79,7 @@ func main() {
 	time.Sleep(100 * time.Millisecond)
 
 	// Wait for all async listeners to complete
-	eventMgr.Wait()
+	manager.WaitEvents()
 
 	fmt.Println("\n--- Listener Statistics ---")
 	fmt.Printf("Total listeners: %d\n", eventMgr.Count())
@@ -89,7 +88,7 @@ func main() {
 
 	// Unregister a listener
 	fmt.Println("\n--- Unregistering audit logger ---")
-	if eventMgr.Unregister("audit-logger") {
+	if manager.Unregister(auditListenerID) {
 		fmt.Println("Audit logger unregistered successfully")
 	}
 

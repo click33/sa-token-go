@@ -7,6 +7,7 @@ import (
 
 	"github.com/click33/sa-token-go/core/adapter"
 	"github.com/click33/sa-token-go/core/config"
+	"github.com/click33/sa-token-go/core/listener"
 	"github.com/click33/sa-token-go/core/oauth2"
 	"github.com/click33/sa-token-go/core/security"
 	"github.com/click33/sa-token-go/core/session"
@@ -63,6 +64,7 @@ type Manager struct {
 	nonceManager   *security.NonceManager
 	refreshManager *security.RefreshTokenManager
 	oauth2Server   *oauth2.OAuth2Server
+	eventManager   *listener.Manager
 }
 
 // NewManager Creates a new manager | 创建管理器
@@ -85,6 +87,7 @@ func NewManager(storage adapter.Storage, cfg *config.Config) *Manager {
 		nonceManager:   security.NewNonceManager(storage, prefix, DefaultNonceTTL),
 		refreshManager: security.NewRefreshTokenManager(storage, prefix, cfg),
 		oauth2Server:   oauth2.NewOAuth2Server(storage, prefix),
+		eventManager:   listener.NewManager(),
 	}
 }
 
@@ -154,6 +157,16 @@ func (m *Manager) Login(loginID string, device ...string) (string, error) {
 	sess.Set(SessionKeyDevice, deviceType)
 	sess.Set(SessionKeyLoginTime, time.Now().Unix())
 
+	// Trigger login event | 触发登录事件
+	if m.eventManager != nil {
+		m.eventManager.Trigger(&listener.EventData{
+			Event:   listener.EventLogin,
+			LoginID: loginID,
+			Token:   tokenValue,
+			Device:  deviceType,
+		})
+	}
+
 	return tokenValue, nil
 }
 
@@ -194,6 +207,15 @@ func (m *Manager) Logout(loginID string, device ...string) error {
 	// Delete account mapping | 删除账号映射
 	m.storage.Delete(accountKey)
 
+	// Trigger logout event | 触发登出事件
+	if m.eventManager != nil {
+		m.eventManager.Trigger(&listener.EventData{
+			Event:   listener.EventLogout,
+			LoginID: loginID,
+			Device:  deviceType,
+		})
+	}
+
 	return nil
 }
 
@@ -202,8 +224,23 @@ func (m *Manager) LogoutByToken(tokenValue string) error {
 	if tokenValue == "" {
 		return nil
 	}
+
+	// Get loginID before deletion for event | 删除前获取loginID用于事件
+	loginID, _ := m.getLoginIDByToken(tokenValue)
+
 	tokenKey := m.getTokenKey(tokenValue)
-	return m.storage.Delete(tokenKey)
+	err := m.storage.Delete(tokenKey)
+
+	// Trigger logout event | 触发登出事件
+	if m.eventManager != nil && loginID != "" {
+		m.eventManager.Trigger(&listener.EventData{
+			Event:   listener.EventLogout,
+			LoginID: loginID,
+			Token:   tokenValue,
+		})
+	}
+
+	return err
 }
 
 // kickout Kick user offline (private) | 踢人下线（私有）
@@ -220,6 +257,17 @@ func (m *Manager) kickout(loginID string, device string) error {
 	}
 
 	tokenKey := m.getTokenKey(tokenStr)
+
+	// Trigger kickout event | 触发踢出事件
+	if m.eventManager != nil {
+		m.eventManager.Trigger(&listener.EventData{
+			Event:   listener.EventKickout,
+			LoginID: loginID,
+			Token:   tokenStr,
+			Device:  device,
+		})
+	}
+
 	return m.storage.Delete(tokenKey)
 }
 
@@ -636,6 +684,58 @@ func (m *Manager) toStringSlice(v any) []string {
 	default:
 		return []string{}
 	}
+}
+
+// ============ Event Management | 事件管理 ============
+
+// RegisterFunc registers a function as an event listener | 注册函数作为事件监听器
+func (m *Manager) RegisterFunc(event listener.Event, fn func(*listener.EventData)) {
+	if m.eventManager != nil {
+		m.eventManager.RegisterFunc(event, fn)
+	}
+}
+
+// Register registers an event listener | 注册事件监听器
+func (m *Manager) Register(event listener.Event, listener listener.Listener) string {
+	if m.eventManager != nil {
+		return m.eventManager.Register(event, listener)
+	}
+	return ""
+}
+
+// RegisterWithConfig registers an event listener with config | 注册带配置的事件监听器
+func (m *Manager) RegisterWithConfig(event listener.Event, listener listener.Listener, config listener.ListenerConfig) string {
+	if m.eventManager != nil {
+		return m.eventManager.RegisterWithConfig(event, listener, config)
+	}
+	return ""
+}
+
+// Unregister removes an event listener by ID | 根据ID移除事件监听器
+func (m *Manager) Unregister(id string) bool {
+	if m.eventManager != nil {
+		return m.eventManager.Unregister(id)
+	}
+	return false
+}
+
+// TriggerEvent manually triggers an event | 手动触发事件
+func (m *Manager) TriggerEvent(data *listener.EventData) {
+	if m.eventManager != nil {
+		m.eventManager.Trigger(data)
+	}
+}
+
+// WaitEvents waits for all async event listeners to complete | 等待所有异步事件监听器完成
+func (m *Manager) WaitEvents() {
+	if m.eventManager != nil {
+		m.eventManager.Wait()
+	}
+}
+
+// GetEventManager gets the event manager | 获取事件管理器
+func (m *Manager) GetEventManager() *listener.Manager {
+	return m.eventManager
 }
 
 // ============ Public Getters | 公共获取器 ============

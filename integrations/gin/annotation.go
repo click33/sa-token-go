@@ -1,10 +1,10 @@
 package gin
 
 import (
-	"net/http"
 	"reflect"
 	"strings"
 
+	"github.com/click33/sa-token-go/core"
 	"github.com/click33/sa-token-go/stputil"
 	ginfw "github.com/gin-gonic/gin"
 )
@@ -92,53 +92,43 @@ func GetHandler(handler interface{}, annotations ...*Annotation) ginfw.HandlerFu
 	return func(c *ginfw.Context) {
 		// Check if authentication should be ignored | 检查是否忽略认证
 		if len(annotations) > 0 && annotations[0].Ignore {
-			if handler != nil {
-				handler.(func(*ginfw.Context))(c)
-			} else {
-				c.Next()
+			if callHandler(handler, c) {
+				return
 			}
+			c.Next()
 			return
 		}
 
-		// Get token | 获取Token
-		token := c.GetHeader("Authorization")
+		// Get token from context using configured TokenName | 从上下文获取Token（使用配置的TokenName）
+		ctx := NewGinContext(c)
+		saCtx := core.NewContext(ctx, stputil.GetManager())
+		token := saCtx.GetTokenValue()
 		if token == "" {
-			token = c.GetHeader("satoken")
-		}
-		if token == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, ginfw.H{
-				"code":    401,
-				"message": "未登录",
-			})
+			writeErrorResponse(c, core.NewNotLoginError())
+			c.Abort()
 			return
 		}
 
 		// Check login | 检查登录
 		if !stputil.IsLogin(token) {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, ginfw.H{
-				"code":    401,
-				"message": "未登录",
-			})
+			writeErrorResponse(c, core.NewNotLoginError())
+			c.Abort()
 			return
 		}
 
 		// Get login ID | 获取登录ID
 		loginID, err := stputil.GetLoginID(token)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, ginfw.H{
-				"code":    401,
-				"message": "登录状态无效",
-			})
+			writeErrorResponse(c, err)
+			c.Abort()
 			return
 		}
 
 		// Check if account is disabled | 检查是否被封禁
 		if len(annotations) > 0 && annotations[0].CheckDisable {
 			if stputil.IsDisable(loginID) {
-				c.AbortWithStatusJSON(http.StatusForbidden, ginfw.H{
-					"code":    403,
-					"message": "账号已被封禁",
-				})
+				writeErrorResponse(c, core.NewAccountDisabledError(loginID))
+				c.Abort()
 				return
 			}
 		}
@@ -153,10 +143,8 @@ func GetHandler(handler interface{}, annotations ...*Annotation) ginfw.HandlerFu
 				}
 			}
 			if !hasPermission {
-				c.AbortWithStatusJSON(http.StatusForbidden, ginfw.H{
-					"code":    403,
-					"message": "权限不足",
-				})
+				writeErrorResponse(c, core.NewPermissionDeniedError(strings.Join(annotations[0].CheckPermission, ",")))
+				c.Abort()
 				return
 			}
 		}
@@ -171,21 +159,52 @@ func GetHandler(handler interface{}, annotations ...*Annotation) ginfw.HandlerFu
 				}
 			}
 			if !hasRole {
-				c.AbortWithStatusJSON(http.StatusForbidden, ginfw.H{
-					"code":    403,
-					"message": "角色不足",
-				})
+				writeErrorResponse(c, core.NewRoleDeniedError(strings.Join(annotations[0].CheckRole, ",")))
+				c.Abort()
 				return
 			}
 		}
 
 		// All checks passed, execute original handler or continue | 所有检查通过，执行原函数或继续
-		if handler != nil {
-			handler.(func(*ginfw.Context))(c)
-		} else {
-			c.Next()
+		if callHandler(handler, c) {
+			return
 		}
+		c.Next()
 	}
+}
+
+func callHandler(handler interface{}, c *ginfw.Context) bool {
+	if handler == nil {
+		return false
+	}
+
+	switch h := handler.(type) {
+	case func(*ginfw.Context):
+		if h == nil {
+			return false
+		}
+		h(c)
+		return true
+	case ginfw.HandlerFunc:
+		if h == nil {
+			return false
+		}
+		h(c)
+		return true
+	}
+
+	hv := reflect.ValueOf(handler)
+	if hv.Kind() != reflect.Func || hv.IsNil() || hv.Type().NumIn() != 1 {
+		return false
+	}
+
+	argType := hv.Type().In(0)
+	if !argType.AssignableTo(reflect.TypeOf(c)) {
+		return false
+	}
+
+	hv.Call([]reflect.Value{reflect.ValueOf(c)})
+	return true
 }
 
 // Decorator functions | 装饰器函数
@@ -277,45 +296,36 @@ func Middleware(annotations ...*Annotation) ginfw.HandlerFunc {
 			return
 		}
 
-		// 获取Token
-		token := c.GetHeader("Authorization")
+		// 获取Token（使用配置的TokenName）
+		ctx := NewGinContext(c)
+		saCtx := core.NewContext(ctx, stputil.GetManager())
+		token := saCtx.GetTokenValue()
 		if token == "" {
-			token = c.GetHeader("satoken")
-		}
-		if token == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, ginfw.H{
-				"code":    401,
-				"message": "未登录",
-			})
+			writeErrorResponse(c, core.NewNotLoginError())
+			c.Abort()
 			return
 		}
 
 		// 检查登录
 		if !stputil.IsLogin(token) {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, ginfw.H{
-				"code":    401,
-				"message": "未登录",
-			})
+			writeErrorResponse(c, core.NewNotLoginError())
+			c.Abort()
 			return
 		}
 
 		// 获取登录ID
 		loginID, err := stputil.GetLoginID(token)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, ginfw.H{
-				"code":    401,
-				"message": "登录状态无效",
-			})
+			writeErrorResponse(c, err)
+			c.Abort()
 			return
 		}
 
 		// 检查是否被封禁
 		if len(annotations) > 0 && annotations[0].CheckDisable {
 			if stputil.IsDisable(loginID) {
-				c.AbortWithStatusJSON(http.StatusForbidden, ginfw.H{
-					"code":    403,
-					"message": "账号已被封禁",
-				})
+				writeErrorResponse(c, core.NewAccountDisabledError(loginID))
+				c.Abort()
 				return
 			}
 		}
@@ -330,10 +340,8 @@ func Middleware(annotations ...*Annotation) ginfw.HandlerFunc {
 				}
 			}
 			if !hasPermission {
-				c.AbortWithStatusJSON(http.StatusForbidden, ginfw.H{
-					"code":    403,
-					"message": "权限不足",
-				})
+				writeErrorResponse(c, core.NewPermissionDeniedError(strings.Join(annotations[0].CheckPermission, ",")))
+				c.Abort()
 				return
 			}
 		}
@@ -348,10 +356,8 @@ func Middleware(annotations ...*Annotation) ginfw.HandlerFunc {
 				}
 			}
 			if !hasRole {
-				c.AbortWithStatusJSON(http.StatusForbidden, ginfw.H{
-					"code":    403,
-					"message": "角色不足",
-				})
+				writeErrorResponse(c, core.NewRoleDeniedError(strings.Join(annotations[0].CheckRole, ",")))
+				c.Abort()
 				return
 			}
 		}

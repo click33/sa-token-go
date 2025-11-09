@@ -466,22 +466,25 @@ accessToken, _ := oauth2Server.ExchangeCodeForToken(
 监听认证和授权事件，实现审计日志、安全监控等功能：
 
 ```go
-// 创建事件管理器
-eventMgr := core.NewEventManager()
+storage := memory.NewStorage()
+
+manager := core.NewBuilder().
+    Storage(storage).
+    Build()
 
 // 监听登录事件
-eventMgr.RegisterFunc(core.EventLogin, func(data *core.EventData) {
+manager.RegisterFunc(core.EventLogin, func(data *core.EventData) {
     fmt.Printf("[LOGIN] User: %s, Token: %s\n", data.LoginID, data.Token)
     // 记录审计日志、发送通知等
 })
 
-// 监听注销事件
-eventMgr.RegisterFunc(core.EventLogout, func(data *core.EventData) {
+// 监听登出事件
+manager.RegisterFunc(core.EventLogout, func(data *core.EventData) {
     fmt.Printf("[LOGOUT] User: %s\n", data.LoginID)
 })
 
 // 高级特性：优先级、同步执行
-eventMgr.RegisterWithConfig(core.EventLogin,
+manager.RegisterWithConfig(core.EventLogin,
     core.ListenerFunc(auditLogger),
     core.ListenerConfig{
         Priority: 100,   // 高优先级
@@ -490,9 +493,15 @@ eventMgr.RegisterWithConfig(core.EventLogin,
 )
 
 // 监听所有事件（通配符）
-eventMgr.RegisterFunc(core.EventAll, func(data *core.EventData) {
+manager.RegisterFunc(core.EventAll, func(data *core.EventData) {
     log.Printf("[%s] %s", data.Event, data.LoginID)
 })
+
+// 可通过底层 EventManager 访问更多控制能力
+manager.GetEventManager().SetPanicHandler(customPanicHandler)
+
+// 设置全局管理器
+stputil.SetManager(manager)
 ```
 
 **可用事件：**
