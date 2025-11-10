@@ -35,6 +35,16 @@ func GetManager() *manager.Manager {
 	return globalManager
 }
 
+// CloseManager closes global Manager and releases resources | 关闭全局 Manager 并释放资源
+func CloseManager() {
+	mu.Lock()
+	defer mu.Unlock()
+	if globalManager != nil {
+		globalManager.Close()
+		globalManager = nil // 置 nil 避免后续误用
+	}
+}
+
 // ============ Authentication | 登录认证 ============
 
 // Login performs user login | 用户登录
