@@ -2,6 +2,7 @@ package manager
 
 import (
 	"fmt"
+	"github.com/click33/sa-token-go/core/pool"
 	"strings"
 	"time"
 
@@ -63,6 +64,7 @@ type Manager struct {
 	nonceManager   *security.NonceManager
 	refreshManager *security.RefreshTokenManager
 	oauth2Server   *oauth2.OAuth2Server
+	renewPool      *pool.RenewPoolManager
 }
 
 // NewManager Creates a new manager | 创建管理器
@@ -77,6 +79,22 @@ func NewManager(storage adapter.Storage, cfg *config.Config) *Manager {
 		prefix = DefaultPrefix
 	}
 
+	// Initialize renew pool manager if configuration is provided | 如果配置了续期池，初始化续期池管理器
+	var renewPoolManager *pool.RenewPoolManager
+	if cfg.RenewPoolConfig != nil {
+		renewPoolManager, _ = pool.NewRenewPoolManagerWithConfig(&pool.RenewPoolConfig{
+			MinSize:             cfg.RenewPoolConfig.MinSize,             // Minimum pool size | 最小协程数
+			MaxSize:             cfg.RenewPoolConfig.MaxSize,             // Maximum pool size | 最大协程数
+			ScaleUpRate:         cfg.RenewPoolConfig.ScaleUpRate,         // Scale-up threshold | 扩容阈值
+			ScaleDownRate:       cfg.RenewPoolConfig.ScaleDownRate,       // Scale-down threshold | 缩容阈值
+			CheckInterval:       cfg.RenewPoolConfig.CheckInterval,       // Auto-scale check interval | 自动缩放检查间隔
+			Expiry:              cfg.RenewPoolConfig.Expiry,              // Idle worker expiry duration | 空闲协程过期时间
+			PrintStatusInterval: cfg.RenewPoolConfig.PrintStatusInterval, // Interval for periodic status printing | 定时打印池状态的间隔
+			PreAlloc:            cfg.RenewPoolConfig.PreAlloc,            // Whether to pre-allocate memory | 是否预分配内存
+			NonBlocking:         cfg.RenewPoolConfig.NonBlocking,         // Whether to use non-blocking mode | 是否为非阻塞模式
+		})
+	}
+
 	return &Manager{
 		storage:        storage,
 		config:         cfg,
@@ -85,6 +103,15 @@ func NewManager(storage adapter.Storage, cfg *config.Config) *Manager {
 		nonceManager:   security.NewNonceManager(storage, prefix, DefaultNonceTTL),
 		refreshManager: security.NewRefreshTokenManager(storage, prefix, cfg),
 		oauth2Server:   oauth2.NewOAuth2Server(storage, prefix),
+		renewPool:      renewPoolManager,
+	}
+}
+
+// Close closes the Manager and releases resources | 关闭Manager并释放资源
+func (m *Manager) Close() {
+	if m.renewPool != nil {
+		m.renewPool.Stop() // 安全关闭 renewPool
+		m.renewPool = nil
 	}
 }
 
@@ -245,7 +272,16 @@ func (m *Manager) IsLogin(tokenValue string) bool {
 	// Async auto-renew for better performance | 异步自动续期（提高性能）
 	// Note: ActiveTimeout feature removed to comply with Java sa-token design
 	if m.config.AutoRenew && m.config.Timeout > 0 {
-		go m.renewToken(tokenKey)
+		if m.renewPool != nil {
+			// Submit token renewal task to the pool | 提交续期任务到续期池
+			// TODO 完善日志打印
+			_ = m.renewPool.Submit(func() {
+				m.renewToken(tokenKey)
+			})
+		} else {
+			// Fallback to go routine if pool is not configured | 如果续期池未配置，使用普通协程
+			go m.renewToken(tokenKey)
+		}
 	}
 
 	return true

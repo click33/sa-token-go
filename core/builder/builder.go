@@ -2,6 +2,7 @@ package builder
 
 import (
 	"fmt"
+	"github.com/click33/sa-token-go/core/pool"
 	"strings"
 	"time"
 
@@ -32,6 +33,7 @@ type Builder struct {
 	tokenSessionCheckLogin bool
 	keyPrefix              string
 	cookieConfig           *config.CookieConfig
+	renewPoolConfig        *pool.RenewPoolConfig
 }
 
 // NewBuilder creates a new builder with default configuration | 创建新的构建器（使用默认配置）
@@ -232,6 +234,12 @@ func (b *Builder) CookieConfig(cfg *config.CookieConfig) *Builder {
 	return b
 }
 
+// RenewPoolConfig sets the token renewal pool configuration | 设置Token续期池配置
+func (b *Builder) RenewPoolConfig(cfg *pool.RenewPoolConfig) *Builder {
+	b.renewPoolConfig = cfg
+	return b
+}
+
 // KeyPrefix sets storage key prefix | 设置存储键前缀
 // Automatically adds ":" suffix if not present (except for empty string) | 自动添加 ":" 后缀（空字符串除外）
 // Examples: "satoken" -> "satoken:", "myapp" -> "myapp:", "" -> ""
@@ -282,6 +290,34 @@ func (b *Builder) Validate() error {
 		return fmt.Errorf("at least one of IsReadHeader, IsReadCookie, or IsReadBody must be true")
 	}
 
+	// Validate RenewPoolConfig if set | 如果设置了续期池配置，进行验证
+	if b.renewPoolConfig != nil {
+		// Check MinSize and MaxSize | 检查最小和最大协程池大小
+		if b.renewPoolConfig.MinSize <= 0 {
+			return fmt.Errorf("RenewPoolConfig.MinSize must be > 0") // 最小协程池大小必须大于0
+		}
+		if b.renewPoolConfig.MaxSize < b.renewPoolConfig.MinSize {
+			return fmt.Errorf("RenewPoolConfig.MaxSize must be >= RenewPoolConfig.MinSize") // 最大协程池大小必须大于等于最小协程池大小
+		}
+
+		// Check ScaleUpRate and ScaleDownRate | 检查扩容和缩容阈值
+		if b.renewPoolConfig.ScaleUpRate <= 0 || b.renewPoolConfig.ScaleUpRate > 1 {
+			return fmt.Errorf("RenewPoolConfig.ScaleUpRate must be between 0 and 1") // 扩容阈值必须在0和1之间
+		}
+		if b.renewPoolConfig.ScaleDownRate < 0 || b.renewPoolConfig.ScaleDownRate > 1 {
+			return fmt.Errorf("RenewPoolConfig.ScaleDownRate must be between 0 and 1") // 缩容阈值必须在0和1之间
+		}
+
+		// Check CheckInterval | 检查检查间隔
+		if b.renewPoolConfig.CheckInterval <= 0 {
+			return fmt.Errorf("RenewPoolConfig.CheckInterval must be a positive duration") // 检查间隔必须是一个正值
+		}
+
+		// Check Expiry | 检查过期时间
+		if b.renewPoolConfig.Expiry <= 0 {
+			return fmt.Errorf("RenewPoolConfig.Expiry must be a positive duration") // 过期时间必须是正值
+		}
+	}
 	return nil
 }
 
@@ -311,6 +347,7 @@ func (b *Builder) Build() *manager.Manager {
 		IsPrintBanner:          b.isPrintBanner,
 		KeyPrefix:              b.keyPrefix,
 		CookieConfig:           b.cookieConfig,
+		RenewPoolConfig:        b.renewPoolConfig,
 	}
 
 	// Print startup banner with full configuration | 打印启动Banner和完整配置

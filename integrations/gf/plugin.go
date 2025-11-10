@@ -3,10 +3,18 @@ package gf
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/click33/sa-token-go/core"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
+)
+
+type MiddlewareType string
+
+var (
+	MiddlewareTypeOr  MiddlewareType = "MiddlewareTypeOr"  // Logical OR permission mode | “或” 逻辑权限模式
+	MiddlewareTypeAnd MiddlewareType = "MiddlewareTypeAnd" // Logical AND permission mode | “与” 逻辑权限模式
 )
 
 // Plugin GoFrame plugin for Sa-Token | GoFrame插件
@@ -77,6 +85,114 @@ func (p *Plugin) RoleRequired(role string) ghttp.HandlerFunc {
 
 		r.SetCtxVar("satoken", saCtx)
 		r.Middleware.Next()
+	}
+}
+
+// HandlerAuthMiddleware — Authentication check middleware | 认证校验中间件
+func (p *Plugin) HandlerAuthMiddleware(authFailedFunc ...func(r *ghttp.Request)) ghttp.HandlerFunc {
+	return func(r *ghttp.Request) {
+		ctx := NewGFContext(r)
+		saCtx := core.NewContext(ctx, p.manager)
+		// Check login | 检查登录
+		if err := saCtx.CheckLogin(); err != nil {
+			if len(authFailedFunc) > 0 && authFailedFunc[0] != nil {
+				authFailedFunc[0](r)
+				return
+			}
+			writeErrorResponse(r, err)
+			return
+		}
+
+		// Store Sa-Token context in GoFrame context | 将Sa-Token上下文存储到GoFrame上下文
+		r.SetCtxVar("satoken", saCtx)
+
+		r.Middleware.Next()
+	}
+}
+
+// HandlerPermissionRequiredMiddleware — Permission check middleware | 权限校验中间件
+func (p *Plugin) HandlerPermissionRequiredMiddleware(middlewareType MiddlewareType, permissions []string, permFailedFunc ...func(r *ghttp.Request)) ghttp.HandlerFunc {
+	return func(r *ghttp.Request) {
+		if len(permissions) == 0 { // Skip if no permission required | 无需权限则跳过
+			r.Middleware.Next()
+			return
+		}
+
+		ctx := NewGFContext(r)
+		saCtx := core.NewContext(ctx, p.manager)
+		loginID, err := saCtx.GetLoginID()
+		if err != nil {
+			if len(permFailedFunc) > 0 && permFailedFunc[0] != nil {
+				permFailedFunc[0](r)
+				return
+			}
+			writeErrorResponse(r, err)
+			return
+		}
+
+		var hasPerm bool
+		switch middlewareType {
+		case MiddlewareTypeOr:
+			hasPerm = saCtx.GetManager().HasPermissionsOr(loginID, permissions) // OR check | 任一权限满足即可
+		case MiddlewareTypeAnd:
+			hasPerm = saCtx.GetManager().HasPermissionsAnd(loginID, permissions) // AND check | 所有权限都需满足
+		default:
+			hasPerm = false
+		}
+
+		if !hasPerm { // No permission | 权限不足
+			if len(permFailedFunc) > 0 && permFailedFunc[0] != nil {
+				permFailedFunc[0](r)
+				return
+			}
+			writeErrorResponse(r, core.NewPermissionDeniedError(strings.Join(permissions, ",")))
+			return
+		}
+
+		r.Middleware.Next() // Continue | 继续执行
+	}
+}
+
+// HandlerRoleRequiredMiddleware — Role check middleware | 角色校验中间件
+func (p *Plugin) HandlerRoleRequiredMiddleware(middlewareType MiddlewareType, roles []string, roleFailedFunc ...func(r *ghttp.Request)) ghttp.HandlerFunc {
+	return func(r *ghttp.Request) {
+		if len(roles) == 0 { // Skip if no role required | 无需角色则跳过
+			r.Middleware.Next()
+			return
+		}
+
+		ctx := NewGFContext(r)
+		saCtx := core.NewContext(ctx, p.manager)
+		loginID, err := saCtx.GetLoginID()
+		if err != nil {
+			if len(roleFailedFunc) > 0 && roleFailedFunc[0] != nil {
+				roleFailedFunc[0](r)
+				return
+			}
+			writeErrorResponse(r, err)
+			return
+		}
+
+		var hasRole bool
+		switch middlewareType {
+		case MiddlewareTypeOr:
+			hasRole = saCtx.GetManager().HasRolesOr(loginID, roles) // OR mode | 任一角色满足即可
+		case MiddlewareTypeAnd:
+			hasRole = saCtx.GetManager().HasRolesAnd(loginID, roles) // AND mode | 所有角色都需满足
+		default:
+			hasRole = false
+		}
+
+		if !hasRole { // No required role | 无权限角色
+			if len(roleFailedFunc) > 0 && roleFailedFunc[0] != nil {
+				roleFailedFunc[0](r)
+				return
+			}
+			writeErrorResponse(r, core.NewRoleDeniedError(strings.Join(roles, ",")))
+			return
+		}
+
+		r.Middleware.Next() // Continue | 继续执行
 	}
 }
 
