@@ -59,12 +59,22 @@ Remaining listeners: 4
 
 ## Key Concepts
 
+In this example the authentication manager automatically owns an internal event manager:
+
+```go
+manager := core.NewBuilder().
+    Storage(memory.NewStorage()).
+    Build()
+
+eventMgr := manager.GetEventManager() // Advanced controls (stats, enable/disable, panic handler, ...)
+```
+
 ### Function Listeners
 
 The simplest way to register an event handler:
 
 ```go
-eventMgr.RegisterFunc(core.EventLogin, func(data *core.EventData) {
+manager.RegisterFunc(core.EventLogin, func(data *core.EventData) {
     fmt.Printf("User %s logged in\n", data.LoginID)
 })
 ```
@@ -74,7 +84,7 @@ eventMgr.RegisterFunc(core.EventLogin, func(data *core.EventData) {
 Control execution order with priorities:
 
 ```go
-eventMgr.RegisterWithConfig(core.EventLogin,
+manager.RegisterWithConfig(core.EventLogin,
     myListener,
     core.ListenerConfig{
         Priority: 100,  // Higher = executes first
@@ -88,7 +98,7 @@ eventMgr.RegisterWithConfig(core.EventLogin,
 Listen to all events:
 
 ```go
-eventMgr.RegisterFunc(core.EventAll, func(data *core.EventData) {
+manager.RegisterFunc(core.EventAll, func(data *core.EventData) {
     // This will be called for every event
 })
 ```
@@ -99,12 +109,12 @@ Add and remove listeners at runtime:
 
 ```go
 // Register with custom ID
-id := eventMgr.RegisterWithConfig(event, listener, core.ListenerConfig{
+id := manager.RegisterWithConfig(event, listener, core.ListenerConfig{
     ID: "my-listener",
 })
 
 // Later, unregister
-eventMgr.Unregister(id)
+manager.Unregister(id)
 ```
 
 ## Use Cases
@@ -112,7 +122,7 @@ eventMgr.Unregister(id)
 ### 1. Audit Logging
 
 ```go
-eventMgr.RegisterFunc(core.EventAll, func(data *core.EventData) {
+manager.RegisterFunc(core.EventAll, func(data *core.EventData) {
     auditLog.Write(fmt.Sprintf("[%s] %s - %s", 
         data.Event, data.LoginID, time.Unix(data.Timestamp, 0)))
 })
@@ -121,7 +131,7 @@ eventMgr.RegisterFunc(core.EventAll, func(data *core.EventData) {
 ### 2. Security Monitoring
 
 ```go
-eventMgr.RegisterFunc(core.EventKickout, func(data *core.EventData) {
+manager.RegisterFunc(core.EventKickout, func(data *core.EventData) {
     alertSystem.Send(fmt.Sprintf("User %s was kicked out", data.LoginID))
 })
 ```
@@ -129,7 +139,7 @@ eventMgr.RegisterFunc(core.EventKickout, func(data *core.EventData) {
 ### 3. Analytics
 
 ```go
-eventMgr.RegisterFunc(core.EventLogin, func(data *core.EventData) {
+manager.RegisterFunc(core.EventLogin, func(data *core.EventData) {
     analytics.Track("user_login", map[string]interface{}{
         "user_id": data.LoginID,
         "device":  data.Device,
@@ -140,7 +150,7 @@ eventMgr.RegisterFunc(core.EventLogin, func(data *core.EventData) {
 ### 4. Cache Invalidation
 
 ```go
-eventMgr.RegisterFunc(core.EventLogout, func(data *core.EventData) {
+manager.RegisterFunc(core.EventLogout, func(data *core.EventData) {
     cache.Delete("user:" + data.LoginID)
 })
 ```

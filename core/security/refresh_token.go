@@ -3,6 +3,7 @@ package security
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -42,12 +43,22 @@ var (
 
 // RefreshTokenInfo refresh token information | 刷新令牌信息
 type RefreshTokenInfo struct {
-	RefreshToken string // Refresh token (long-lived) | 刷新令牌（长期有效）
-	AccessToken  string // Access token (short-lived) | 访问令牌（短期有效）
-	LoginID      string // User login ID | 用户登录ID
-	Device       string // Device type | 设备类型
-	CreateTime   int64  // Creation timestamp | 创建时间戳
-	ExpireTime   int64  // Expiration timestamp | 过期时间戳
+	RefreshToken string `json:"refreshToken"` // Refresh token (long-lived) | 刷新令牌（长期有效）
+	AccessToken  string `json:"accessToken"`  // Access token (short-lived) | 访问令牌（短期有效）
+	LoginID      string `json:"loginID"`      // User login ID | 用户登录ID
+	Device       string `json:"device"`       // Device type | 设备类型
+	CreateTime   int64  `json:"createTime"`   // Creation timestamp | 创建时间戳
+	ExpireTime   int64  `json:"expireTime"`   // Expiration timestamp | 过期时间戳
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler for Redis storage | 实现encoding.BinaryMarshaler接口用于Redis存储
+func (r *RefreshTokenInfo) MarshalBinary() ([]byte, error) {
+	return json.Marshal(r)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler for Redis storage | 实现encoding.BinaryUnmarshaler接口用于Redis存储
+func (r *RefreshTokenInfo) UnmarshalBinary(data []byte) error {
+	return json.Unmarshal(data, r)
 }
 
 // RefreshTokenManager Refresh token manager | 刷新令牌管理器

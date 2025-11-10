@@ -39,35 +39,32 @@ The event system allows you to:
 
 ## Basic Usage
 
-### 1. Create an Event Manager
+### 1. 创建带事件功能的 Manager
 
 ```go
-import "github.com/click33/sa-token-go/core"
+import (
+    "github.com/click33/sa-token-go/core"
+    "github.com/click33/sa-token-go/storage/memory"
+)
 
-eventManager := core.NewEventManager()
-```
-
-### 2. Register a Simple Listener
-
-```go
-// Function-based listener
-eventManager.RegisterFunc(core.EventLogin, func(data *core.EventData) {
-    fmt.Printf("User logged in: %s\n", data.LoginID)
-})
-```
-
-### 3. Register with the Manager
-
-```go
 manager := core.NewBuilder().
     Storage(memory.NewStorage()).
     Build()
 
-// Set event manager (if your Manager supports it)
-// Note: You may need to integrate this into your Manager initialization
+// 如需高级控制，可以获取底层事件管理器
+eventMgr := manager.GetEventManager()
 ```
 
-### 4. Complete Example
+### 2. 注册简单监听器
+
+```go
+// 基于函数的监听器
+manager.RegisterFunc(core.EventLogin, func(data *core.EventData) {
+    fmt.Printf("User logged in: %s\n", data.LoginID)
+})
+```
+
+### 3. 完整示例
 
 ```go
 package main
@@ -80,26 +77,24 @@ import (
 )
 
 func main() {
-    // Create event manager
-    eventMgr := core.NewEventManager()
+    // Create manager with default event support
+    manager := core.NewBuilder().
+        Storage(memory.NewStorage()).
+        Build()
     
     // Register login listener
-    eventMgr.RegisterFunc(core.EventLogin, func(data *core.EventData) {
+    manager.RegisterFunc(core.EventLogin, func(data *core.EventData) {
         fmt.Printf("[LOGIN] User: %s, Token: %s, Device: %s\n", 
             data.LoginID, data.Token, data.Device)
     })
     
     // Register logout listener
-    eventMgr.RegisterFunc(core.EventLogout, func(data *core.EventData) {
+    manager.RegisterFunc(core.EventLogout, func(data *core.EventData) {
         fmt.Printf("[LOGOUT] User: %s\n", data.LoginID)
     })
     
     // Initialize StpUtil
-    stputil.SetManager(
-        core.NewBuilder().
-            Storage(memory.NewStorage()).
-            Build(),
-    )
+    stputil.SetManager(manager)
     
     // Perform login (will trigger event)
     token, _ := stputil.Login(1000)
@@ -118,7 +113,7 @@ Control the execution order of listeners using priorities:
 
 ```go
 // High priority listener (executes first)
-eventMgr.RegisterWithConfig(core.EventLogin, 
+manager.RegisterWithConfig(core.EventLogin, 
     core.ListenerFunc(func(data *core.EventData) {
         fmt.Println("High priority listener")
     }),
@@ -129,7 +124,7 @@ eventMgr.RegisterWithConfig(core.EventLogin,
 )
 
 // Low priority listener (executes later)
-eventMgr.RegisterWithConfig(core.EventLogin,
+manager.RegisterWithConfig(core.EventLogin,
     core.ListenerFunc(func(data *core.EventData) {
         fmt.Println("Low priority listener")
     }),
@@ -144,7 +139,7 @@ eventMgr.RegisterWithConfig(core.EventLogin,
 
 ```go
 // Synchronous listener (blocks until complete)
-eventMgr.RegisterWithConfig(core.EventLogin,
+manager.RegisterWithConfig(core.EventLogin,
     core.ListenerFunc(func(data *core.EventData) {
         // Critical operation that must complete before continuing
         saveToDatabase(data)
@@ -155,7 +150,7 @@ eventMgr.RegisterWithConfig(core.EventLogin,
 )
 
 // Asynchronous listener (non-blocking)
-eventMgr.RegisterWithConfig(core.EventLogin,
+manager.RegisterWithConfig(core.EventLogin,
     core.ListenerFunc(func(data *core.EventData) {
         // Non-critical operation (logging, analytics)
         sendToAnalytics(data)
@@ -170,7 +165,7 @@ eventMgr.RegisterWithConfig(core.EventLogin,
 
 ```go
 // Register with a custom ID
-listenerID := eventMgr.RegisterWithConfig(core.EventLogin,
+listenerID := manager.RegisterWithConfig(core.EventLogin,
     core.ListenerFunc(func(data *core.EventData) {
         fmt.Println("Temporary listener")
     }),
@@ -180,7 +175,7 @@ listenerID := eventMgr.RegisterWithConfig(core.EventLogin,
 )
 
 // Later, unregister by ID
-eventMgr.Unregister(listenerID)
+manager.Unregister(listenerID)
 ```
 
 ### Wildcard Listeners
@@ -189,7 +184,7 @@ Listen to all events:
 
 ```go
 // Listen to all events
-eventMgr.RegisterFunc(core.EventAll, func(data *core.EventData) {
+manager.RegisterFunc(core.EventAll, func(data *core.EventData) {
     fmt.Printf("[%s] LoginID: %s\n", data.Event, data.LoginID)
 })
 ```
@@ -230,7 +225,7 @@ stputil.Login(1000)
 stputil.Login(2000)
 
 // Wait for all async listeners to complete
-eventMgr.Wait()
+manager.WaitEvents()
 ```
 
 ## Best Practices
@@ -239,7 +234,7 @@ eventMgr.Wait()
 
 ```go
 // ✅ Good: Async for logging
-eventMgr.RegisterWithConfig(core.EventLogin,
+manager.RegisterWithConfig(core.EventLogin,
     core.ListenerFunc(func(data *core.EventData) {
         logToFile(data) // Can be async
     }),
@@ -247,7 +242,7 @@ eventMgr.RegisterWithConfig(core.EventLogin,
 )
 
 // ❌ Avoid: Sync for slow operations
-eventMgr.RegisterWithConfig(core.EventLogin,
+manager.RegisterWithConfig(core.EventLogin,
     core.ListenerFunc(func(data *core.EventData) {
         sendEmail(data) // Slow operation blocks login
     }),
@@ -259,12 +254,12 @@ eventMgr.RegisterWithConfig(core.EventLogin,
 
 ```go
 // ✅ Good: Quick processing
-eventMgr.RegisterFunc(core.EventLogin, func(data *core.EventData) {
+manager.RegisterFunc(core.EventLogin, func(data *core.EventData) {
     counter.Increment("login_count")
 })
 
 // ❌ Avoid: Heavy processing
-eventMgr.RegisterFunc(core.EventLogin, func(data *core.EventData) {
+manager.RegisterFunc(core.EventLogin, func(data *core.EventData) {
     processLargeDataset() // This should be in a background job
 })
 ```
@@ -273,13 +268,13 @@ eventMgr.RegisterFunc(core.EventLogin, func(data *core.EventData) {
 
 ```go
 // Validation (high priority)
-eventMgr.RegisterWithConfig(core.EventLogin,
+manager.RegisterWithConfig(core.EventLogin,
     validationListener,
     core.ListenerConfig{Priority: 100},
 )
 
 // Logging (low priority)
-eventMgr.RegisterWithConfig(core.EventLogin,
+manager.RegisterWithConfig(core.EventLogin,
     loggingListener,
     core.ListenerConfig{Priority: 10},
 )
@@ -288,7 +283,7 @@ eventMgr.RegisterWithConfig(core.EventLogin,
 ### 4. Handle Errors Gracefully
 
 ```go
-eventMgr.RegisterFunc(core.EventLogin, func(data *core.EventData) {
+manager.RegisterFunc(core.EventLogin, func(data *core.EventData) {
     defer func() {
         if r := recover(); r != nil {
             log.Printf("Listener error: %v", r)
@@ -317,7 +312,7 @@ func (a *AuditLogger) OnEvent(data *core.EventData) {
 
 // Usage
 logger := &AuditLogger{file: logFile}
-eventMgr.Register(core.EventAll, logger)
+manager.Register(core.EventAll, logger)
 ```
 
 ### Example 2: Security Monitor
@@ -338,14 +333,14 @@ func (s *SecurityMonitor) OnEvent(data *core.EventData) {
 
 // Usage
 monitor := &SecurityMonitor{alertChan: make(chan string, 100)}
-eventMgr.Register(core.EventKickout, monitor)
-eventMgr.Register(core.EventDisable, monitor)
+manager.Register(core.EventKickout, monitor)
+manager.Register(core.EventDisable, monitor)
 ```
 
 ### Example 3: Login Counter with Redis
 
 ```go
-eventMgr.RegisterFunc(core.EventLogin, func(data *core.EventData) {
+manager.RegisterFunc(core.EventLogin, func(data *core.EventData) {
     // Increment daily login counter
     key := fmt.Sprintf("login:count:%s", time.Now().Format("2006-01-02"))
     redisClient.Incr(ctx, key)
@@ -360,7 +355,7 @@ eventMgr.RegisterFunc(core.EventLogin, func(data *core.EventData) {
 ### Example 4: Multi-Factor Authentication
 
 ```go
-eventMgr.RegisterWithConfig(core.EventLogin,
+manager.RegisterWithConfig(core.EventLogin,
     core.ListenerFunc(func(data *core.EventData) {
         // Check if MFA is required
         if requiresMFA(data.LoginID) {
@@ -404,8 +399,8 @@ func (s *SessionAnalytics) OnEvent(data *core.EventData) {
 
 // Usage
 analytics := &SessionAnalytics{sessions: make(map[string]time.Time)}
-eventMgr.Register(core.EventCreateSession, analytics)
-eventMgr.Register(core.EventDestroySession, analytics)
+manager.Register(core.EventCreateSession, analytics)
+manager.Register(core.EventDestroySession, analytics)
 ```
 
 ## EventData Structure
@@ -424,7 +419,7 @@ type EventData struct {
 ### Accessing Extra Data
 
 ```go
-eventMgr.RegisterFunc(core.EventLogin, func(data *core.EventData) {
+manager.RegisterFunc(core.EventLogin, func(data *core.EventData) {
     if ipAddr, ok := data.Extra["ip_address"].(string); ok {
         fmt.Printf("Login from IP: %s\n", ipAddr)
     }
@@ -441,8 +436,8 @@ All event manager operations are thread-safe:
 
 ```go
 // Safe to call from multiple goroutines
-go eventMgr.RegisterFunc(core.EventLogin, handler1)
-go eventMgr.RegisterFunc(core.EventLogin, handler2)
+go manager.RegisterFunc(core.EventLogin, handler1)
+go manager.RegisterFunc(core.EventLogin, handler2)
 go eventMgr.Trigger(&core.EventData{Event: core.EventLogin})
 ```
 

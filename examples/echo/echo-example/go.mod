@@ -5,9 +5,9 @@ go 1.23.0
 toolchain go1.24.1
 
 require (
-	github.com/click33/sa-token-go/core v0.1.2
-	github.com/click33/sa-token-go/integrations/echo v0.1.2
-	github.com/click33/sa-token-go/storage/memory v0.1.2
+	github.com/click33/sa-token-go/core v0.1.3
+	github.com/click33/sa-token-go/integrations/echo v0.1.3
+	github.com/click33/sa-token-go/storage/memory v0.1.3
 	github.com/labstack/echo/v4 v4.11.4
 )
 

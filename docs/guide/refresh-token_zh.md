@@ -289,7 +289,7 @@ if REFRESH_TOKEN_ROTATION {
 
 ```go
 // 记录刷新事件
-eventMgr.RegisterFunc(core.EventRefresh, func(data *core.EventData) {
+manager.RegisterFunc(core.EventRefresh, func(data *core.EventData) {
     // 检测异常刷新模式
     if isAbnormalRefreshPattern(data.LoginID) {
         alert("可能的令牌泄露")
