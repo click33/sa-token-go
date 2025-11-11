@@ -478,6 +478,22 @@ func ToBool(v any) (bool, error) {
 	}
 }
 
+// ToBytes Converts any to bytes | 将any转换为字节
+func ToBytes(value any) ([]byte, error) {
+	switch v := value.(type) {
+	case string:
+		return []byte(v), nil
+	case []byte:
+		return v, nil
+	case byte:
+		return []byte{v}, nil
+	case rune:
+		return []byte(string(v)), nil
+	default:
+		return nil, fmt.Errorf("unsupported type: %T", value)
+	}
+}
+
 // ============ Hash & Encoding | 哈希和编码 ============
 
 // SHA256Hash Generates SHA256 hash of string | 生成字符串的SHA256哈希

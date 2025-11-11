@@ -182,7 +182,7 @@ func NewNonceManager(storage Storage, prefix string, ttl ...int64) *NonceManager
 
 // NewRefreshTokenManager Creates a new refresh token manager | 创建新的刷新令牌管理器
 func NewRefreshTokenManager(storage Storage, prefix string, cfg *Config) *RefreshTokenManager {
-	return security.NewRefreshTokenManager(storage, prefix, cfg)
+	return security.NewRefreshTokenManager(storage, prefix, manager.TokenKeyPrefix, cfg)
 }
 
 // NewOAuth2Server Creates a new OAuth2 server | 创建新的OAuth2服务器
