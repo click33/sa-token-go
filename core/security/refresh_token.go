@@ -90,15 +90,21 @@ func NewRefreshTokenManager(storage adapter.Storage, prefix string, cfg *config.
 }
 
 // GenerateTokenPair Generates access token and refresh token pair | 生成访问令牌和刷新令牌对
-func (rtm *RefreshTokenManager) GenerateTokenPair(loginID, device string) (*RefreshTokenInfo, error) {
+func (rtm *RefreshTokenManager) GenerateTokenPair(loginID, device string, accessTokenOverride ...string) (*RefreshTokenInfo, error) {
 	if loginID == "" {
 		return nil, fmt.Errorf("loginID cannot be empty")
 	}
 
 	// Generate access token | 生成访问令牌
-	accessToken, err := rtm.tokenGen.Generate(loginID, device)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate access token: %w", err)
+	var accessToken string
+	if len(accessTokenOverride) > 0 && accessTokenOverride[0] != "" {
+		accessToken = accessTokenOverride[0]
+	} else {
+		var err error
+		accessToken, err = rtm.tokenGen.Generate(loginID, device)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate access token: %w", err)
+		}
 	}
 
 	// Generate refresh token | 生成刷新令牌

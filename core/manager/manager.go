@@ -799,7 +799,14 @@ func (m *Manager) VerifyNonce(nonce string) bool {
 
 // LoginWithRefreshToken Logs in with refresh token | 使用刷新令牌登录
 func (m *Manager) LoginWithRefreshToken(loginID, device string) (*security.RefreshTokenInfo, error) {
-	return m.refreshManager.GenerateTokenPair(loginID, device)
+	deviceType := getDevice([]string{device})
+
+	accessToken, err := m.Login(loginID, deviceType)
+	if err != nil {
+		return nil, err
+	}
+
+	return m.refreshManager.GenerateTokenPair(loginID, deviceType, accessToken)
 }
 
 // RefreshAccessToken Refreshes access token | 刷新访问令牌
