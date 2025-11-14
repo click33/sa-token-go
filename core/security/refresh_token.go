@@ -10,6 +10,7 @@ import (
 	"github.com/click33/sa-token-go/core/adapter"
 	"github.com/click33/sa-token-go/core/config"
 	"github.com/click33/sa-token-go/core/token"
+	"github.com/click33/sa-token-go/core/utils"
 )
 
 // Refresh Token Implementation
@@ -63,17 +64,18 @@ func (r *RefreshTokenInfo) UnmarshalBinary(data []byte) error {
 
 // RefreshTokenManager Refresh token manager | 刷新令牌管理器
 type RefreshTokenManager struct {
-	storage    adapter.Storage
-	keyPrefix  string // Configurable prefix | 可配置的前缀
-	tokenGen   *token.Generator
-	refreshTTL time.Duration // Refresh token TTL (30 days) | 刷新令牌有效期（30天）
-	accessTTL  time.Duration // Access token TTL (configurable) | 访问令牌有效期（可配置）
+	storage        adapter.Storage
+	keyPrefix      string // Configurable prefix | 可配置的前缀
+	tokenKeyPrefix string // Token key prefix | 令牌键前缀
+	tokenGen       *token.Generator
+	refreshTTL     time.Duration // Refresh token TTL (30 days) | 刷新令牌有效期（30天）
+	accessTTL      time.Duration // Access token TTL (configurable) | 访问令牌有效期（可配置）
 }
 
 // NewRefreshTokenManager Creates a new refresh token manager | 创建新的刷新令牌管理器
 // prefix: key prefix (e.g., "satoken:" or "" for Java compatibility) | 键前缀（如："satoken:" 或 "" 兼容Java）
 // cfg: configuration, uses Timeout for access token TTL | 配置，使用Timeout作为访问令牌有效期
-func NewRefreshTokenManager(storage adapter.Storage, prefix string, cfg *config.Config) *RefreshTokenManager {
+func NewRefreshTokenManager(storage adapter.Storage, prefix, keyPrefix string, cfg *config.Config) *RefreshTokenManager {
 	accessTTL := time.Duration(cfg.Timeout) * time.Second
 
 	if accessTTL == 0 {
@@ -81,11 +83,12 @@ func NewRefreshTokenManager(storage adapter.Storage, prefix string, cfg *config.
 	}
 
 	return &RefreshTokenManager{
-		storage:    storage,
-		keyPrefix:  prefix,
-		tokenGen:   token.NewGenerator(cfg),
-		refreshTTL: DefaultRefreshTTL,
-		accessTTL:  accessTTL,
+		storage:        storage,
+		keyPrefix:      prefix,
+		tokenKeyPrefix: keyPrefix,
+		tokenGen:       token.NewGenerator(cfg),
+		refreshTTL:     DefaultRefreshTTL,
+		accessTTL:      accessTTL,
 	}
 }
 
@@ -99,6 +102,12 @@ func (rtm *RefreshTokenManager) GenerateTokenPair(loginID, device string) (*Refr
 	accessToken, err := rtm.tokenGen.Generate(loginID, device)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate access token: %w", err)
+	}
+
+	// Save token-loginID mapping (符合 Java sa-token 设计) | 保存 Token-LoginID 映射
+	tokenKey := rtm.getTokenKey(accessToken)
+	if err := rtm.storage.Set(tokenKey, loginID, rtm.accessTTL); err != nil {
+		return nil, fmt.Errorf("failed to save token: %w", err)
 	}
 
 	// Generate refresh token | 生成刷新令牌
@@ -132,15 +141,25 @@ func (rtm *RefreshTokenManager) RefreshAccessToken(refreshToken string) (*Refres
 		return nil, ErrInvalidRefreshToken
 	}
 
+	// Get refresh token info | 获取刷新令牌信息
 	key := rtm.getRefreshKey(refreshToken)
 
+	// Get refresh token info | 获取刷新令牌信息
 	data, err := rtm.storage.Get(key)
 	if err != nil || data == nil {
 		return nil, ErrInvalidRefreshToken
 	}
 
-	oldInfo, ok := data.(*RefreshTokenInfo)
-	if !ok {
+	// Convert to RefreshTokenInfo | 转换为 RefreshTokenInfo
+	dataBytes, err := utils.ToBytes(data)
+	if err != nil {
+		return nil, ErrInvalidRefreshData
+	}
+
+	// Unmarshal data | 反序列化数据
+	oldInfo := &RefreshTokenInfo{}
+	err = oldInfo.UnmarshalBinary(dataBytes)
+	if err != nil {
 		return nil, ErrInvalidRefreshData
 	}
 
@@ -156,7 +175,14 @@ func (rtm *RefreshTokenManager) RefreshAccessToken(refreshToken string) (*Refres
 		return nil, fmt.Errorf("failed to generate new access token: %w", err)
 	}
 
+	// Update access token info | 更新访问令牌信息
 	oldInfo.AccessToken = newAccessToken
+
+	// Save token-loginID mapping (符合 Java sa-token 设计) | 保存 Token-LoginID 映射
+	tokenKey := rtm.getTokenKey(newAccessToken)
+	if err := rtm.storage.Set(tokenKey, oldInfo.LoginID, rtm.accessTTL); err != nil {
+		return nil, fmt.Errorf("failed to save token: %w", err)
+	}
 
 	// Update storage | 更新存储
 	if err := rtm.storage.Set(key, oldInfo, rtm.refreshTTL); err != nil {
@@ -188,8 +214,14 @@ func (rtm *RefreshTokenManager) GetRefreshTokenInfo(refreshToken string) (*Refre
 		return nil, ErrInvalidRefreshToken
 	}
 
-	info, ok := data.(*RefreshTokenInfo)
-	if !ok {
+	dataBytes, err := utils.ToBytes(data)
+	if err != nil {
+		return nil, ErrInvalidRefreshData
+	}
+
+	info := &RefreshTokenInfo{}
+	err = info.UnmarshalBinary(dataBytes)
+	if err != nil {
 		return nil, ErrInvalidRefreshData
 	}
 
@@ -209,4 +241,9 @@ func (rtm *RefreshTokenManager) IsValid(refreshToken string) bool {
 // getRefreshKey Gets storage key for refresh token | 获取刷新令牌的存储键
 func (rtm *RefreshTokenManager) getRefreshKey(refreshToken string) string {
 	return rtm.keyPrefix + RefreshKeySuffix + refreshToken
+}
+
+// getTokenKey Gets token storage key | 获取Token存储键
+func (rtm *RefreshTokenManager) getTokenKey(tokenValue string) string {
+	return rtm.keyPrefix + rtm.tokenKeyPrefix + tokenValue
 }
