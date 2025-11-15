@@ -104,12 +104,12 @@ func getReasonFromCode(code int) string {
 	case core.CodePermissionDenied:
 		return "FORBIDDEN"
 	case core.CodeBadRequest:
-		return "BADREQUEST"
+		return "BAD_REQUEST"
 	case core.CodeNotFound:
-		return "NOTFOUND"
+		return "NOT_FOUND"
 	case core.CodeServerError:
-		return "INTERNALSERVERERROR"
+		return "INTERNAL_SERVER_ERROR"
 	default:
-		return "INTERNALSERVERERROR"
+		return "INTERNAL_SERVER_ERROR"
 	}
 }
