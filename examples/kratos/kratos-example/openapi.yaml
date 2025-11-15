@@ -1,0 +1,79 @@
+# Generated with protoc-gen-openapi
+# https://github.com/google/gnostic/tree/master/cmd/protoc-gen-openapi
+
+openapi: 3.0.3
+info:
+    title: User API
+    description: 用户服务
+    version: 0.0.1
+paths:
+    /api/login:
+        post:
+            tags:
+                - User
+            description: 用户登录
+            operationId: User_Login
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/helloworld.v1.LoginRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/helloworld.v1.LoginReply'
+    /api/user/info:
+        get:
+            tags:
+                - User
+            description: 获取用户信息（需要登录）
+            operationId: User_GetUserInfo
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/helloworld.v1.GetUserInfoReply'
+components:
+    schemas:
+        helloworld.v1.GetUserInfoReply:
+            type: object
+            properties:
+                userId:
+                    type: string
+                username:
+                    type: string
+                roles:
+                    type: array
+                    items:
+                        type: string
+                permissions:
+                    type: array
+                    items:
+                        type: string
+            description: 获取用户信息响应
+        helloworld.v1.LoginReply:
+            type: object
+            properties:
+                token:
+                    type: string
+                message:
+                    type: string
+                userId:
+                    type: string
+            description: 登录响应
+        helloworld.v1.LoginRequest:
+            type: object
+            properties:
+                username:
+                    type: string
+                password:
+                    type: string
+            description: 登录请求
+tags:
+    - name: User
