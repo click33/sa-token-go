@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/click33/sa-token-go/core"
-	"github.com/go-kratos/kratos/v2/errors"
 	"github.com/go-kratos/kratos/v2/middleware"
 	"github.com/go-kratos/kratos/v2/transport"
 )
@@ -48,7 +47,6 @@ func NewPlugin(manager *core.Manager, opts ...*PluginOptions) *Plugin {
 func (e *Plugin) Server() middleware.Middleware {
 	return func(handler middleware.Handler) middleware.Handler {
 		return func(ctx context.Context, req interface{}) (reply interface{}, err error) {
-			// 获取传输层信息
 			info, ok := transport.FromServerContext(ctx)
 			if !ok {
 				// 无法获取传输层信息，直接放行
@@ -59,33 +57,27 @@ func (e *Plugin) Server() middleware.Middleware {
 			saCtx := core.NewContext(kratosContext, e.manager)
 			operation := info.Operation()
 
-			// 检查是否跳过认证
 			if e.shouldSkip(operation) {
 				return handler(ctx, req)
 			}
 
-			// 查找匹配的规则
 			rule, found := e.findRule(operation)
 
-			// 未找到规则，使用默认策略
 			if !found {
 				if e.options.DefaultRequireLogin {
 					if !saCtx.IsLogin() {
-						return nil, e.options.ErrorHandler(ctx, errors.Unauthorized("UNAUTHORIZED", "未登录或token无效"))
+						return nil, e.options.ErrorHandler(ctx, core.ErrNotLogin)
 					}
 				}
 				ctx = context.WithValue(ctx, "satoken", saCtx)
 				return handler(ctx, req)
 			}
 
-			// 先获取loginID
 			loginID, err := saCtx.GetLoginID()
 			if err != nil {
-				// 无法获取loginID，说明未登录
-				return nil, e.options.ErrorHandler(ctx, errors.Unauthorized("UNAUTHORIZED", "未登录或token无效"))
+				return nil, e.options.ErrorHandler(ctx, core.ErrNotLogin)
 			}
 
-			// 执行所有checker
 			for _, checker := range rule.Checkers {
 				if err := checker.Check(ctx, e.manager, loginID); err != nil {
 					return nil, e.options.ErrorHandler(ctx, err)

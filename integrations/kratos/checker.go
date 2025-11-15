@@ -2,10 +2,7 @@ package kratos
 
 import (
 	"context"
-	"fmt"
-
 	"github.com/click33/sa-token-go/core"
-	"github.com/go-kratos/kratos/v2/errors"
 )
 
 // Checker 检查器接口
@@ -21,7 +18,7 @@ type LoginChecker struct{}
 
 func (c *LoginChecker) Check(ctx context.Context, manager *core.Manager, loginID string) error {
 	if loginID == "" {
-		return errors.Unauthorized("UNAUTHORIZED", "未登录")
+		return core.ErrNotLogin
 	}
 	return nil
 }
@@ -35,7 +32,7 @@ type PermissionChecker struct {
 
 func (c *PermissionChecker) Check(ctx context.Context, manager *core.Manager, loginID string) error {
 	if !manager.HasPermission(loginID, c.permission) {
-		return errors.Forbidden("FORBIDDEN", fmt.Sprintf("缺少权限: %s", c.permission))
+		return core.ErrPermissionDenied
 	}
 	return nil
 }
@@ -48,7 +45,7 @@ type PermissionsAndChecker struct {
 func (c *PermissionsAndChecker) Check(ctx context.Context, manager *core.Manager, loginID string) error {
 	for _, permission := range c.permissions {
 		if !manager.HasPermission(loginID, permission) {
-			return errors.Forbidden("FORBIDDEN", fmt.Sprintf("缺少权限: %s", permission))
+			return core.ErrPermissionDenied
 		}
 	}
 	return nil
@@ -70,7 +67,7 @@ func (c *PermissionsOrChecker) Check(ctx context.Context, manager *core.Manager,
 		}
 	}
 
-	return errors.Forbidden("FORBIDDEN", fmt.Sprintf("缺少以下任一权限: %v", c.permissions))
+	return core.ErrPermissionDenied
 }
 
 // ========== 角色检查 ==========
@@ -82,7 +79,7 @@ type RoleChecker struct {
 
 func (c *RoleChecker) Check(ctx context.Context, manager *core.Manager, loginID string) error {
 	if !manager.HasRole(loginID, c.role) {
-		return errors.Forbidden("FORBIDDEN", fmt.Sprintf("缺少角色: %s", c.role))
+		return core.ErrRoleDenied
 	}
 	return nil
 }
@@ -95,7 +92,7 @@ type RolesAndChecker struct {
 func (c *RolesAndChecker) Check(ctx context.Context, manager *core.Manager, loginID string) error {
 	for _, role := range c.roles {
 		if !manager.HasRole(loginID, role) {
-			return errors.Forbidden("FORBIDDEN", fmt.Sprintf("缺少角色: %s", role))
+			return core.ErrRoleDenied
 		}
 	}
 	return nil
@@ -117,7 +114,7 @@ func (c *RolesOrChecker) Check(ctx context.Context, manager *core.Manager, login
 		}
 	}
 
-	return errors.Forbidden("FORBIDDEN", fmt.Sprintf("缺少以下任一角色: %v", c.roles))
+	return core.ErrRoleDenied
 }
 
 // ========== 封禁检查 ==========
@@ -127,8 +124,7 @@ type DisableChecker struct{}
 
 func (c *DisableChecker) Check(ctx context.Context, manager *core.Manager, loginID string) error {
 	if manager.IsDisable(loginID) {
-		disableTime, _ := manager.GetDisableTime(loginID)
-		return errors.Forbidden("ACCOUNT_DISABLED", fmt.Sprintf("账号已被封禁，剩余时间: %d秒", disableTime))
+		return core.ErrAccountDisabled
 	}
 	return nil
 }

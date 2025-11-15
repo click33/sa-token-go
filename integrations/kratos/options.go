@@ -2,6 +2,8 @@ package kratos
 
 import (
 	"context"
+	"github.com/click33/sa-token-go/core"
+	"net/http"
 
 	"github.com/go-kratos/kratos/v2/errors"
 )
@@ -29,26 +31,26 @@ func defaultPluginOptions() *PluginOptions {
 
 // defaultErrorHandler 默认错误处理器
 func defaultErrorHandler(ctx context.Context, err error) error {
-	// 如果已经是Kratos错误，直接返回
-	if errors.IsUnauthorized(err) || errors.IsForbidden(err) {
-		return err
+	var saErr *core.SaTokenError
+	var code int
+	var message string
+	var httpStatus int
+	var reason string
+	// Check if it's a SaTokenError | 检查是否为SaTokenError
+	if errors.As(err, &saErr) {
+		code = saErr.Code
+		message = saErr.Message
+		httpStatus = getHTTPStatusFromCode(code)
+		reason = getReasonFromCode(code)
+	} else {
+		// Handle standard errors | 处理标准错误
+		code = core.CodeServerError
+		message = err.Error()
+		httpStatus = http.StatusInternalServerError
+		reason = getReasonFromCode(code)
 	}
 
-	// 根据错误类型转换为Kratos标准错误
-	errMsg := err.Error()
-
-	// 未登录错误
-	if contains(errMsg, "未登录") || contains(errMsg, "token") {
-		return errors.Unauthorized("UNAUTHORIZED", errMsg)
-	}
-
-	// 权限不足错误
-	if contains(errMsg, "权限") || contains(errMsg, "角色") || contains(errMsg, "封禁") {
-		return errors.Forbidden("FORBIDDEN", errMsg)
-	}
-
-	// 其他错误统一返回403
-	return errors.Forbidden("FORBIDDEN", errMsg)
+	return errors.Errorf(httpStatus, reason, message)
 }
 
 // ========== Option模式 ==========
@@ -74,5 +76,40 @@ func WithDefaultRequireLogin(require bool) Option {
 func WithErrorHandler(handler func(ctx context.Context, err error) error) Option {
 	return func(o *PluginOptions) {
 		o.ErrorHandler = handler
+	}
+}
+
+// getHTTPStatusFromCode converts Sa-Token error code to HTTP status | 将Sa-Token错误码转换为HTTP状态码
+func getHTTPStatusFromCode(code int) int {
+	switch code {
+	case core.CodeNotLogin:
+		return http.StatusUnauthorized
+	case core.CodePermissionDenied:
+		return http.StatusForbidden
+	case core.CodeBadRequest:
+		return http.StatusBadRequest
+	case core.CodeNotFound:
+		return http.StatusNotFound
+	case core.CodeServerError:
+		return http.StatusInternalServerError
+	default:
+		return http.StatusInternalServerError
+	}
+}
+
+func getReasonFromCode(code int) string {
+	switch code {
+	case core.CodeNotLogin:
+		return "UNAUTHORIZED"
+	case core.CodePermissionDenied:
+		return "FORBIDDEN"
+	case core.CodeBadRequest:
+		return "BADREQUEST"
+	case core.CodeNotFound:
+		return "NOTFOUND"
+	case core.CodeServerError:
+		return "INTERNALSERVERERROR"
+	default:
+		return "INTERNALSERVERERROR"
 	}
 }
