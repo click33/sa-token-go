@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 	v1 "github.com/click33/sa-token-go/examples/kratos/kratos-example/api/helloworld/v1"
 	sakratos "github.com/click33/sa-token-go/integrations/kratos"
 	"github.com/click33/sa-token-go/storage/memory"
+	"github.com/click33/sa-token-go/stputil"
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/transport/http"
 )
@@ -18,13 +20,17 @@ type server struct {
 }
 
 func (s server) GetUserInfo(ctx context.Context, request *v1.GetUserInfoRequest) (*v1.GetUserInfoReply, error) {
-	//TODO implement me
-	panic("implement me")
+	fmt.Println("==============GetUserInfo==============")
+
+	return &v1.GetUserInfoReply{}, nil
 }
 
 func (s server) Login(ctx context.Context, request *v1.LoginRequest) (*v1.LoginReply, error) {
-	//TODO implement me
-	panic("implement me")
+	tokenInfo, _ := stputil.Login(request.LoginId)
+	_ = stputil.SetPermissions(request.LoginId, []string{"user:some:info", "other:permission"})
+	return &v1.LoginReply{
+		Token: tokenInfo,
+	}, nil
 }
 
 func main() {
@@ -40,7 +46,7 @@ func main() {
 		// 跳过公开路由
 		Skip(v1.OperationUserLogin).
 		// 用户信息需要登录
-		AutoMatcher(v1.OperationUserGetUserInfo).RequireLogin().RequirePermission("user:some:info").Build()
+		ExactMatcher(v1.OperationUserGetUserInfo).RequireLogin().RequirePermission("user:some:info").Build()
 
 	httpSrv := http.NewServer(
 		http.Address(":8000"),
@@ -56,6 +62,7 @@ func main() {
 			httpSrv,
 		),
 	)
+	fmt.Println("Server running on port 8000")
 
 	if err := app.Run(); err != nil {
 		panic(err)

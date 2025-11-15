@@ -28,15 +28,12 @@ service User {
 
 // 登录请求
 message LoginRequest {
-  string username = 1;
-  string password = 2;
+  string loginId = 1;
 }
 
 // 登录响应
 message LoginReply {
   string token = 1;
-  string message = 2;
-  string user_id = 3;
 }
 
 
@@ -45,9 +42,5 @@ message GetUserInfoRequest {}
 
 // 获取用户信息响应
 message GetUserInfoReply {
-  string user_id = 1;
-  string username = 2;
-  repeated string roles = 3;
-  repeated string permissions = 4;
 }
 

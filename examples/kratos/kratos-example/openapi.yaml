@@ -43,36 +43,18 @@ components:
     schemas:
         helloworld.v1.GetUserInfoReply:
             type: object
-            properties:
-                userId:
-                    type: string
-                username:
-                    type: string
-                roles:
-                    type: array
-                    items:
-                        type: string
-                permissions:
-                    type: array
-                    items:
-                        type: string
+            properties: {}
             description: 获取用户信息响应
         helloworld.v1.LoginReply:
             type: object
             properties:
                 token:
                     type: string
-                message:
-                    type: string
-                userId:
-                    type: string
             description: 登录响应
         helloworld.v1.LoginRequest:
             type: object
             properties:
-                username:
-                    type: string
-                password:
+                loginId:
                     type: string
             description: 登录请求
 tags:

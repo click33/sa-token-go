@@ -25,8 +25,7 @@ const (
 // 登录请求
 type LoginRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
-	Password      string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
+	LoginId       string                 `protobuf:"bytes,1,opt,name=loginId,proto3" json:"loginId,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -61,16 +60,9 @@ func (*LoginRequest) Descriptor() ([]byte, []int) {
 	return file_helloworld_v1_user_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *LoginRequest) GetUsername() string {
+func (x *LoginRequest) GetLoginId() string {
 	if x != nil {
-		return x.Username
-	}
-	return ""
-}
-
-func (x *LoginRequest) GetPassword() string {
-	if x != nil {
-		return x.Password
+		return x.LoginId
 	}
 	return ""
 }
@@ -79,8 +71,6 @@ func (x *LoginRequest) GetPassword() string {
 type LoginReply struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
-	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -118,20 +108,6 @@ func (*LoginReply) Descriptor() ([]byte, []int) {
 func (x *LoginReply) GetToken() string {
 	if x != nil {
 		return x.Token
-	}
-	return ""
-}
-
-func (x *LoginReply) GetMessage() string {
-	if x != nil {
-		return x.Message
-	}
-	return ""
-}
-
-func (x *LoginReply) GetUserId() string {
-	if x != nil {
-		return x.UserId
 	}
 	return ""
 }
@@ -176,10 +152,6 @@ func (*GetUserInfoRequest) Descriptor() ([]byte, []int) {
 // 获取用户信息响应
 type GetUserInfoReply struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Username      string                 `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
-	Roles         []string               `protobuf:"bytes,3,rep,name=roles,proto3" json:"roles,omitempty"`
-	Permissions   []string               `protobuf:"bytes,4,rep,name=permissions,proto3" json:"permissions,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -214,53 +186,18 @@ func (*GetUserInfoReply) Descriptor() ([]byte, []int) {
 	return file_helloworld_v1_user_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *GetUserInfoReply) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
-}
-
-func (x *GetUserInfoReply) GetUsername() string {
-	if x != nil {
-		return x.Username
-	}
-	return ""
-}
-
-func (x *GetUserInfoReply) GetRoles() []string {
-	if x != nil {
-		return x.Roles
-	}
-	return nil
-}
-
-func (x *GetUserInfoReply) GetPermissions() []string {
-	if x != nil {
-		return x.Permissions
-	}
-	return nil
-}
-
 var File_helloworld_v1_user_proto protoreflect.FileDescriptor
 
 const file_helloworld_v1_user_proto_rawDesc = "" +
 	"\n" +
-	"\x18helloworld/v1/user.proto\x12\rhelloworld.v1\x1a\x1cgoogle/api/annotations.proto\"F\n" +
-	"\fLoginRequest\x12\x1a\n" +
-	"\busername\x18\x01 \x01(\tR\busername\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\"U\n" +
+	"\x18helloworld/v1/user.proto\x12\rhelloworld.v1\x1a\x1cgoogle/api/annotations.proto\"(\n" +
+	"\fLoginRequest\x12\x18\n" +
+	"\aloginId\x18\x01 \x01(\tR\aloginId\"\"\n" +
 	"\n" +
 	"LoginReply\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\x12\x17\n" +
-	"\auser_id\x18\x03 \x01(\tR\x06userId\"\x14\n" +
-	"\x12GetUserInfoRequest\"\x7f\n" +
-	"\x10GetUserInfoReply\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1a\n" +
-	"\busername\x18\x02 \x01(\tR\busername\x12\x14\n" +
-	"\x05roles\x18\x03 \x03(\tR\x05roles\x12 \n" +
-	"\vpermissions\x18\x04 \x03(\tR\vpermissions2\xc9\x01\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\"\x14\n" +
+	"\x12GetUserInfoRequest\"\x12\n" +
+	"\x10GetUserInfoReply2\xc9\x01\n" +
 	"\x04User\x12V\n" +
 	"\x05Login\x12\x1b.helloworld.v1.LoginRequest\x1a\x19.helloworld.v1.LoginReply\"\x15\x82\xd3\xe4\x93\x02\x0f:\x01*\"\n" +
 	"/api/login\x12i\n" +
