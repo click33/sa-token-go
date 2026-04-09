@@ -4,171 +4,135 @@
 
 ## 设计目标
 
-实现Token自动续签功能，让活跃用户无需重新登录，同时保证高性能。
+自动续签的目标是：
+
+- 让活跃用户尽量不因 Token 到期而频繁重新登录
+- 避免每次登录校验都做重型同步操作
+- 通过阈值和节流机制控制续签频率
+- 通过协程池提升高并发下的稳定性
 
 ## 核心设计
 
 ### 异步续签策略
 
-在 `IsLogin()` 方法中使用 **异步goroutine** 执行续签操作，避免阻塞主流程。
+当前版本的自动续签发生在登录校验流程内部，核心入口是 `Manager.checkLoginInternal()`。
 
-### 实现代码
+与旧版“每次 `IsLogin()` 直接裸 `goroutine` 续期”不同，当前实现会：
+
+1. 先读取 Token 的剩余 TTL
+2. 只有剩余 TTL 小于等于 `RenewMaxRefresh` 时才考虑续期
+3. 如果配置了 `RenewInterval`，则通过续期标记键限制频繁续期
+4. 优先通过协程池提交续期任务
+5. 同时异步更新活跃时间键
+
+### 实现思路
 
 ```go
-// IsLogin 检查是否登录
-func (m *Manager) IsLogin(tokenValue string) bool {
-    // 1. 检查Token存在（同步）
-    if tokenValue == "" || !m.storage.Exists(tokenKey) {
-        return false
-    }
+if m.config.AutoRenew && m.config.Timeout > 0 {
+    if ttl <= RenewMaxRefresh && renewInterval 条件满足 {
+        renewFunc := func() {
+            m.renewFunc(context.Background(), tokenValue, tokenInfo.LoginID)
+        }
 
-    // 2. 检查活跃超时（同步）
-    if m.config.ActiveTimeout > 0 {
-        info, _ := m.getTokenInfo(tokenValue)
-        if info != nil {
-            elapsed := time.Now().Unix() - info.ActiveTime
-            if elapsed > m.config.ActiveTimeout {
-                m.LogoutByToken(tokenValue)  // 强制登出
-                return false
-            }
+        if m.pool != nil {
+            _ = m.pool.Submit(renewFunc)
+        } else {
+            go renewFunc()
         }
     }
+}
 
-    // 3. 异步续签（不阻塞）
-    if m.config.AutoRenew && m.config.Timeout > 0 {
-        go func() {
-            expiration := time.Duration(m.config.Timeout) * time.Second
-            
-            // 延长Token过期时间
-            m.storage.Expire(tokenKey, expiration)
-
-            // 更新活跃时间
-            info, _ := m.getTokenInfo(tokenValue)
-            if info != nil {
-                info.ActiveTime = time.Now().Unix()
-                m.saveTokenInfo(tokenValue, info, expiration)
-            }
-        }()
+if m.config.ActiveTimeout > 0 {
+    activeFunc := func() {
+        _ = m.storage.Set(ctx, m.getActiveKey(tokenValue), time.Now().Unix(), m.getExpiration())
     }
-
-    return true  // 立即返回
+    // 同样优先走协程池
 }
 ```
 
 ## 工作流程
 
-### 同步部分（必须等待）
+### 同步部分
 
+```text
+1. 读取 TokenInfo
+   ├─ 失败 -> 返回未登录或 Token 状态错误
+   └─ 成功 -> 继续
+
+2. 检查账号封禁状态
+   ├─ 已封禁 -> 返回封禁错误
+   └─ 未封禁 -> 继续
+
+3. 检查 ActiveTimeout
+   ├─ 超时 -> 执行踢出并返回错误
+   └─ 未超时 -> 继续
+
+4. 返回登录校验成功
 ```
-1. Token存在性检查
-   ├─ 不存在 → 返回false
-   └─ 存在 → 继续
 
-2. 活跃超时检查（如果配置）
-   ├─ 超时 → 强制登出 → 返回false
-   └─ 未超时 → 继续
+### 异步部分
 
-3. 返回true（立即）
-```
-
-### 异步部分（后台执行）
-
-```
-启动goroutine
+```text
+异步续期任务
   ↓
-1. 延长Token存储过期时间
-   m.storage.Expire(tokenKey, expiration)
+1. 延长 Token 过期时间
   ↓
-2. 获取Token信息
-   info := m.getTokenInfo(tokenValue)
+2. 延长 Session 过期时间
   ↓
-3. 更新活跃时间
-   info.ActiveTime = time.Now().Unix()
+3. 写入续期间隔标记（如果启用）
   ↓
-4. 保存Token信息
-   m.saveTokenInfo(tokenValue, info, expiration)
+4. 触发续期事件
+
+异步活跃任务
   ↓
-goroutine结束
+1. 更新 active:{token} 键
 ```
 
-## 性能对比
+## 续签触发条件
 
-### 同步续签（旧）
+当前实现中，自动续签通常需要同时满足这些条件：
 
-```
-请求 → IsLogin()
-         ↓
-      检查Token
-         ↓
-      [同步续签]
-      - Expire()        (100ms)
-      - GetTokenInfo()  (50ms)
-      - SaveTokenInfo() (100ms)
-         ↓
-      返回true          (总耗时: 250ms)
-         ↓
-      响应用户
-```
+- `AutoRenew = true`
+- `Timeout > 0`
+- Token 当前 TTL 大于 0
+- `TTL <= RenewMaxRefresh`，或者 `RenewMaxRefresh <= 0`
+- 未命中 `RenewInterval` 的节流限制
 
-### 异步续签（新）
+这意味着：
 
-```
-请求 → IsLogin()
-         ↓
-      检查Token
-         ↓
-      启动续签goroutine ──┐
-         ↓                │
-      立即返回true        │ (总耗时: 10ms)
-         ↓                │
-      响应用户            │
-                         │
-                         └→ 后台续签
-                            - Expire()
-                            - GetTokenInfo()
-                            - SaveTokenInfo()
-                            (用户已收到响应)
-```
-
-### 性能提升
-
-| 指标 | 同步 | 异步 | 提升 |
-|------|------|------|------|
-| 单次IsLogin耗时 | 150-500ms | 10-50ms | **↑ 80-90%** |
-| 10000次调用耗时 | ~2.5秒 | ~0.5秒 | **↑ 400%** |
-| QPS（单核） | ~2000 | ~10000 | **↑ 400%** |
-| 用户感知延迟 | 明显 | 几乎无 | ⭐⭐⭐⭐⭐ |
+- 不是每次请求都会续期
+- 越接近过期，越有可能触发续期
+- 可以避免高频请求不断刷新同一 Token
 
 ## 触发时机
 
-任何调用 `IsLogin()` 的场景都会触发续签：
+凡是内部走登录校验流程的场景，都可能触发自动续签：
 
-### 1. 中间件验证
+### 1. 中间件认证
 
 ```go
-r.Use(plugin.AuthMiddleware())
-// ↓ 内部调用 IsLogin()
+r.Use(satoken.AuthMiddleware(ctx))
 ```
 
-### 2. 装饰器
+### 2. 注解式登录校验
 
 ```go
-r.GET("/api", sagin.CheckLogin(), handler)
-// ↓ 装饰器调用 IsLogin()
+annotation.GET("/profile",
+    satoken.CheckLoginMiddleware(ctx, handleProfile, handleAuthFail))
 ```
 
-### 3. 手动检查
+### 3. 手动检查登录
 
 ```go
-stputil.IsLogin(token)
-// ↓ 直接调用
+stputil.IsLogin(ctx, token)
+stputil.CheckLogin(ctx, token)
 ```
 
-### 4. GetLoginID等方法
+### 4. 获取登录信息
 
 ```go
-stputil.GetLoginID(token)
-// ↓ 内部先调用 IsLogin()
+stputil.GetLoginID(ctx, token)
+stputil.GetTokenInfo(ctx, token)
 ```
 
 ## 配置选项
@@ -176,159 +140,131 @@ stputil.GetLoginID(token)
 ### 启用自动续签
 
 ```go
-core.NewBuilder().
-    Timeout(86400).      // 必须>0
-    AutoRenew(true).     // 开启自动续签
+builder.NewBuilder().
+    SetStorage(memory.NewStorage()).
+    Timeout(86400).
+    AutoRenew(true).
     Build()
 ```
 
-### 禁用自动续签
+### 指定续签触发阈值
 
 ```go
-core.NewBuilder().
-    Timeout(1800).       // 30分钟硬超时
-    AutoRenew(false).    // 关闭续签
+builder.NewBuilder().
+    SetStorage(memory.NewStorage()).
+    Timeout(86400).
+    AutoRenew(true).
+    RenewMaxRefresh(3600). // 剩余 1 小时内才触发续签
     Build()
 ```
 
-### 结合活跃超时
+### 指定最小续期间隔
 
 ```go
-core.NewBuilder().
-    Timeout(86400).       // 24小时绝对超时
-    ActiveTimeout(1800).  // 30分钟无操作登出
-    AutoRenew(true).      // 自动续签
+builder.NewBuilder().
+    SetStorage(memory.NewStorage()).
+    Timeout(86400).
+    AutoRenew(true).
+    RenewMaxRefresh(3600).
+    RenewInterval(300). // 同一 Token 至少 5 分钟才续一次
+    Build()
+```
+
+### 结合最大不活跃时长
+
+```go
+builder.NewBuilder().
+    SetStorage(memory.NewStorage()).
+    Timeout(86400).
+    ActiveTimeout(1800).
+    AutoRenew(true).
+    RenewMaxRefresh(3600).
+    RenewInterval(300).
     Build()
 ```
 
 **效果**：
-- 用户保持活跃可使用24小时
-- 30分钟不操作会被强制登出
-- 每次请求异步续签，响应快速
+- 活跃用户在接近过期时自动续签
+- 超过 `ActiveTimeout` 未活跃会被踢出
+- 续签不会因高频请求无限制执行
 
 ## 并发安全
 
-### Storage线程安全
+### Storage 接口是上下文化的
 
 ```go
-// Memory存储使用锁
-type Storage struct {
-    data map[string]*item
-    mu   sync.RWMutex  // ← 读写锁
+type Storage interface {
+    Set(ctx context.Context, key string, value any, expiration time.Duration) error
+    Get(ctx context.Context, key string) (any, error)
+    Delete(ctx context.Context, keys ...string) error
+    Exists(ctx context.Context, key string) bool
+    TTL(ctx context.Context, key string) (time.Duration, error)
 }
-
-// Redis天然支持并发
 ```
 
-### Goroutine管理
+### 协程池支持
 
-```go
-go func() {
-    // 异步续签
-    // 自动回收，无需手动管理
-}()
-```
+默认情况下，开启自动续签时会优先使用续期协程池：
 
-**优势**：
-- ✅ Storage操作都是线程安全的
-- ✅ Goroutine自动回收
-- ✅ 无内存泄漏
-- ✅ 并发性能优异
+- `com/pool/ants`
+- `adapter.Pool`
+- `Builder.SetPool(...)`
+
+如果未显式传入池，内部也会在合适场景创建默认续期池。
 
 ## 续签失败处理
 
-### 策略
+### 处理策略
 
-异步续签失败**不影响**当前请求：
+异步续签失败不会直接阻塞当前请求：
 
-1. 用户已收到响应（true）
-2. Token仍然有效
-3. 下次请求时会重试续签
+1. 当前登录校验结果已返回
+2. 本次续期失败只影响后续有效期延长
+3. 下一次满足条件时仍可重试续期
 
-### 场景
+### 影响范围
 
-```go
-// 续签操作
-go func() {
-    err := m.storage.Expire(tokenKey, expiration)
-    if err != nil {
-        // 续签失败，但不影响当前请求
-        // 下次IsLogin时会重试
-    }
-}()
-
-return true  // 当前请求成功
-```
-
-## 性能测试
-
-### 测试代码
-
-```go
-func BenchmarkIsLogin(b *testing.B) {
-    stputil.SetManager(
-        core.NewBuilder().
-            Storage(memory.NewStorage()).
-            Timeout(3600).
-            AutoRenew(true).
-            Build(),
-    )
-
-    token, _ := stputil.Login(1000)
-
-    b.ResetTimer()
-    for i := 0; i < b.N; i++ {
-        stputil.IsLogin(token)
-    }
-}
-```
-
-### 预期结果
-
-```
-BenchmarkIsLogin-8   10000000   120 ns/op   0 B/op   0 allocs/op
-```
-
-- 每次调用仅需 ~120纳秒
-- 零内存分配
-- 高并发友好
+- 不会直接让当前请求失败
+- 可能导致 Token 没有被成功延长
+- 若连续失败，Token 最终会按原始 TTL 到期
 
 ## 最佳实践
 
-### 生产环境配置
+### 生产环境建议
 
 ```go
-core.NewBuilder().
-    Storage(redisStorage).     // Redis存储
-    Timeout(86400).            // 24小时
-    ActiveTimeout(1800).       // 30分钟活跃超时
-    AutoRenew(true).           // 异步续签
+builder.NewBuilder().
+    SetStorage(redisStorage).
+    Timeout(86400).
+    ActiveTimeout(1800).
+    AutoRenew(true).
+    RenewMaxRefresh(3600).
+    RenewInterval(300).
     Build()
 ```
 
-### 开发环境配置
+### 开发环境建议
 
 ```go
-core.NewBuilder().
-    Storage(memory.NewStorage()).
-    Timeout(7200).             // 2小时
-    AutoRenew(true).           // 异步续签
+builder.NewBuilder().
+    SetStorage(memory.NewStorage()).
+    Timeout(7200).
+    AutoRenew(true).
     Build()
 ```
 
 ### 安全优先配置
 
 ```go
-core.NewBuilder().
-    Storage(redisStorage).
-    Timeout(1800).             // 30分钟硬超时
-    AutoRenew(false).          // 不续签
+builder.NewBuilder().
+    SetStorage(redisStorage).
+    Timeout(1800).
+    AutoRenew(false).
     Build()
 ```
 
 ## 下一步
 
-- [架构设计](architecture.md)
-- [性能优化](performance.md)
-- [模块化设计](modular.md)
-
+- [架构设计](architecture_zh.md)
+- [模块化设计](modular_zh.md)
+- [StpUtil API 文档](../api/stputil_zh.md)

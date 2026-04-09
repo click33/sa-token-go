@@ -1,362 +1,149 @@
 [English](nonce.md) | 中文文档
 
-# Nonce 防重放攻击
+# Nonce 防重放
 
-## 什么是重放攻击？
+## 概览
 
-重放攻击是指攻击者截获并重复发送合法请求，以达到非法目的。例如：
-- 攻击者截获转账请求，重复发送导致多次扣款
-- 攻击者截获登录请求，重复登录获取多个 Token
-- 攻击者截获操作请求，重复执行敏感操作
+当前项目已经内置 `Nonce` 管理能力，用来防止请求重放。
 
-## Nonce 防重放原理
+公开入口包括：
 
-**Nonce** (Number used once) 是一次性随机数：
-1. 服务器生成唯一的 Nonce
-2. 客户端在请求中携带 Nonce
-3. 服务器验证 Nonce 并立即删除
-4. 相同的 Nonce 无法再次使用
+- `GenerateNonce`
+- `GenerateNonceWithTimeout`
+- `VerifyNonce`
+- `VerifyAndConsumeNonce`
+- `IsNonceValid`
+- `GetNonceTTL`
 
-## 快速开始
+## 工作机制
 
-### 基本使用
+当前实现里的 Nonce 规则很清晰：
 
-```go
-import (
-    "github.com/click33/sa-token-go/core"
-    "github.com/click33/sa-token-go/stputil"
-    "github.com/click33/sa-token-go/storage/memory"
-)
+1. 生成一个随机 nonce
+2. 存入存储层并带 TTL
+3. 校验时通过 `GetAndDelete` 原子消费
+4. 同一个 nonce 只能成功一次
 
-func init() {
-    stputil.SetManager(
-        core.NewBuilder().
-            Storage(memory.NewStorage()).
-            Build(),
-    )
-}
+## 默认行为
 
-func main() {
-    // 1. 生成 Nonce
-    nonce, err := stputil.GenerateNonce()
-    if err != nil {
-        panic(err)
-    }
-    fmt.Println("Nonce:", nonce)
-    // 输出: 64字符十六进制字符串
-    
-    // 2. 首次验证（成功）
-    valid := stputil.VerifyNonce(nonce)
-    fmt.Println("First verify:", valid)  // true
-    
-    // 3. 再次验证（失败 - 防重放）
-    valid = stputil.VerifyNonce(nonce)
-    fmt.Println("Second verify:", valid)  // false
-}
-```
+根据 `core/nonce` 当前实现：
 
-## 完整流程
+- nonce 原始长度为 `32` 字节随机数
+- 输出后是 `64` 位十六进制字符串
+- 默认 TTL 为 `5` 分钟
 
-### 1. API 端点保护
+## 基本使用
 
 ```go
 package main
 
 import (
-    "github.com/gin-gonic/gin"
+    "context"
+    "fmt"
+
+    "github.com/click33/sa-token-go/com/storage/memory"
+    "github.com/click33/sa-token-go/core/builder"
     "github.com/click33/sa-token-go/stputil"
 )
 
+func initSaToken() {
+    stputil.SetManager(
+        builder.NewBuilder().
+            SetStorage(memory.NewStorage()).
+            Build(),
+    )
+}
+
 func main() {
-    r := gin.Default()
-    
-    // 生成 Nonce
-    r.GET("/nonce", func(c *gin.Context) {
-        nonce, err := stputil.GenerateNonce()
-        if err != nil {
-            c.JSON(500, gin.H{"error": err.Error()})
-            return
-        }
-        c.JSON(200, gin.H{"nonce": nonce})
-    })
-    
-    // 需要 Nonce 保护的 API
-    r.POST("/transfer", func(c *gin.Context) {
-        nonce := c.GetHeader("X-Nonce")
-        
-        // 验证 Nonce
-        if !stputil.VerifyNonce(nonce) {
-            c.JSON(401, gin.H{"error": "Invalid or expired nonce"})
-            return
-        }
-        
-        // 执行转账逻辑
-        amount := c.PostForm("amount")
-        c.JSON(200, gin.H{
-            "message": "Transfer successful",
-            "amount":  amount,
-        })
-    })
-    
-    r.Run(":8080")
+    ctx := context.Background()
+
+    nonce, _ := stputil.GenerateNonce(ctx)
+    fmt.Println(nonce)
+
+    ok := stputil.VerifyNonce(ctx, nonce)
+    fmt.Println(ok) // true
+
+    ok = stputil.VerifyNonce(ctx, nonce)
+    fmt.Println(ok) // false
 }
 ```
 
-### 2. 客户端使用
+## 自定义有效期
 
 ```go
-// Step 1: 获取 Nonce
-resp1, _ := http.Get("http://localhost:8080/nonce")
-var result map[string]string
-json.NewDecoder(resp1.Body).Decode(&result)
-nonce := result["nonce"]
+ctx := context.Background()
 
-// Step 2: 使用 Nonce 发起请求
-req, _ := http.NewRequest("POST", "http://localhost:8080/transfer", nil)
-req.Header.Set("X-Nonce", nonce)
-req.PostForm = url.Values{
-    "amount": []string{"100"},
-}
-
-resp2, _ := http.DefaultClient.Do(req)
-// 转账成功
-
-// Step 3: 重复请求（会失败）
-resp3, _ := http.DefaultClient.Do(req)
-// 失败：Invalid or expired nonce
+nonce, err := stputil.GenerateNonceWithTimeout(ctx, 30*time.Second)
+_ = nonce
+_ = err
 ```
 
-## Nonce 配置
+如果传入的超时时间小于等于 `0`，底层会退回默认 TTL。
 
-### 自定义过期时间
+## 非消费式校验
 
 ```go
-import "time"
+ctx := context.Background()
 
-// 方式 1：通过 Manager 创建
-manager := core.NewBuilder().
-    Storage(storage).
-    Build()
+nonce, _ := stputil.GenerateNonce(ctx)
 
-// 获取 NonceManager 并配置
-nonceManager := core.NewNonceManager(storage, 300) // 5分钟（秒）
+valid := stputil.IsNonceValid(ctx, nonce) // 只校验，不消费
+err := stputil.VerifyAndConsumeNonce(ctx, nonce)
 ```
 
-### 默认配置
+区别是：
+
+- `IsNonceValid`：只检查
+- `VerifyNonce`：检查并消费，返回 `bool`
+- `VerifyAndConsumeNonce`：检查并消费，失败时返回 `ErrInvalidNonce`
+
+## 查看 TTL
 
 ```go
-// 默认过期时间：5分钟
-// 默认长度：64字符（32字节十六进制）
+ctx := context.Background()
+
+ttl, err := stputil.GetNonceTTL(ctx, nonce)
 ```
 
-## 高级用法
+返回值约定：
 
-### 1. 中间件保护
+- `-2`：nonce 不存在
+- `-1`：永久有效
+- `>=0`：剩余秒数
+
+## HTTP 场景示例
 
 ```go
-func NonceMiddleware() gin.HandlerFunc {
-    return func(c *gin.Context) {
-        // 跳过GET请求
-        if c.Request.Method == "GET" {
-            c.Next()
-            return
-        }
-        
-        nonce := c.GetHeader("X-Nonce")
-        
-        if !stputil.VerifyNonce(nonce) {
-            c.JSON(401, gin.H{"error": "Invalid or expired nonce"})
-            c.Abort()
-            return
-        }
-        
-        c.Next()
+r.GET("/nonce", func(c *gin.Context) {
+    nonce, err := stputil.GenerateNonce(ctx)
+    if err != nil {
+        c.JSON(500, gin.H{"error": err.Error()})
+        return
     }
-}
+    c.JSON(200, gin.H{"nonce": nonce})
+})
 
-// 使用
-r.Use(NonceMiddleware())
-```
+r.POST("/transfer", func(c *gin.Context) {
+    nonce := c.GetHeader("X-Nonce")
 
-### 2. 敏感操作保护
-
-```go
-// 仅保护敏感操作
-r.POST("/delete-account", NonceMiddleware(), deleteAccountHandler)
-r.POST("/transfer-money", NonceMiddleware(), transferHandler)
-r.POST("/change-password", NonceMiddleware(), changePasswordHandler)
-```
-
-### 3. 批量验证
-
-```go
-func verifyMultipleNonces(nonces []string) bool {
-    for _, nonce := range nonces {
-        if !stputil.VerifyNonce(nonce) {
-            return false
-        }
+    if err := stputil.VerifyAndConsumeNonce(ctx, nonce); err != nil {
+        c.JSON(401, gin.H{"error": "invalid_nonce"})
+        return
     }
-    return true
-}
+
+    c.JSON(200, gin.H{"message": "ok"})
+})
 ```
 
 ## 最佳实践
 
-### 1. 仅保护敏感操作
+1. 只给敏感写操作加 nonce，比如支付、转账、修改密码、删除操作
+2. 建议和登录态一起使用，不要只校验 nonce 不校验用户身份
+3. 对表单提交或一次性确认操作，5 分钟左右的 TTL 通常足够
+4. 如果客户端需要先预校验，可先调用 `IsNonceValid`，真正提交时再消费
 
-```go
-// ✅ 需要 Nonce
-POST /transfer       // 转账
-POST /delete         // 删除
-POST /change-email   // 修改邮箱
+## 相关文档
 
-// ❌ 不需要 Nonce
-GET  /list           // 查询
-GET  /detail         // 详情
-POST /search         // 搜索
-```
-
-### 2. 设置合理的过期时间
-
-```go
-// 快速操作（1分钟）
-core.NewNonceManager(storage, 60)
-
-// 表单提交（5分钟，默认）
-core.NewNonceManager(storage, 300)
-
-// 长流程操作（10分钟）
-core.NewNonceManager(storage, 600)
-```
-
-### 3. 清晰的错误提示
-
-```go
-if !stputil.VerifyNonce(nonce) {
-    c.JSON(401, gin.H{
-        "error": "invalid_nonce",
-        "message": "请求已过期或重复，请刷新页面重试",
-        "code": 1001,
-    })
-    return
-}
-```
-
-### 4. 前端集成
-
-```javascript
-// 前端示例（Vue/React）
-async function protectedRequest(url, data) {
-    // 1. 获取 Nonce
-    const nonceResp = await fetch('/nonce');
-    const { nonce } = await nonceResp.json();
-    
-    // 2. 发起请求
-    const resp = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'X-Nonce': nonce,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-    });
-    
-    return resp.json();
-}
-
-// 使用
-protectedRequest('/transfer', { amount: 100 })
-    .then(result => console.log('Success:', result))
-    .catch(err => console.error('Error:', err));
-```
-
-## 存储键结构
-
-```
-satoken:nonce:{nonce_value} → timestamp (TTL: 5分钟)
-```
-
-## 性能优化
-
-### 1. Nonce 生成性能
-
-```
-单次生成: ~100ns
-10000次: ~1ms
-并发安全: ✅
-```
-
-### 2. 验证性能
-
-```
-单次验证: ~50ns (内存)
-单次验证: ~1ms (Redis)
-```
-
-### 3. 内存占用
-
-```
-单个 Nonce: ~100 bytes
-10000个 Nonce: ~1MB
-过期自动清理: ✅
-```
-
-## 安全建议
-
-### 1. HTTPS 传输
-
-```
-❌ HTTP  - Nonce可被截获
-✅ HTTPS - Nonce加密传输
-```
-
-### 2. 结合 Token 认证
-
-```go
-// 同时验证 Token 和 Nonce
-token := c.GetHeader("Authorization")
-nonce := c.GetHeader("X-Nonce")
-
-if !stputil.IsLogin(token) {
-    c.JSON(401, gin.H{"error": "未登录"})
-    return
-}
-
-if !stputil.VerifyNonce(nonce) {
-    c.JSON(401, gin.H{"error": "请求重放"})
-    return
-}
-```
-
-### 3. 限流配合
-
-```go
-// Nonce + 限流双重保护
-r.Use(RateLimitMiddleware())
-r.Use(NonceMiddleware())
-```
-
-## 常见问题
-
-### Q: Nonce 过期了怎么办？
-
-A: 客户端重新请求 `/nonce` 端点获取新的 Nonce。
-
-### Q: 如何避免 Nonce 被截获？
-
-A: 必须使用 HTTPS，配合 Token 认证双重保护。
-
-### Q: Nonce 会占用大量存储吗？
-
-A: 不会，Nonce 自动过期清理，内存占用很小。
-
-### Q: 所有 API 都需要 Nonce 吗？
-
-A: 不需要，只保护敏感的写操作（POST/PUT/DELETE）。
-
-## 下一步
-
-- [Refresh Token 指南](refresh-token_zh.md)
 - [OAuth2 指南](oauth2_zh.md)
-- [安全特性示例](../../examples/security-features/)
-
+- [登录认证](authentication_zh.md)
+- [Refresh Token 指南](refresh-token_zh.md)

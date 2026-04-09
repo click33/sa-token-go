@@ -4,64 +4,128 @@
 
 ## Get Started with Sa-Token-Go in 5 Minutes
 
-### Step 1: Installation
+This page is based on the current version of the codebase and walks through the minimum steps for installation, initialization, and basic usage.
+
+## Step 1: Install
+
+### Option 1: Core Modules + Memory Storage
 
 ```bash
 go get github.com/click33/sa-token-go/core
 go get github.com/click33/sa-token-go/stputil
-go get github.com/click33/sa-token-go/storage/memory
+go get github.com/click33/sa-token-go/com/storage/memory
 ```
 
-### Step 2: Initialize
+### Option 2: Use a Framework Integration Package Directly
+
+If you are already using a web framework, you can also import an integration package directly:
+
+```bash
+go get github.com/click33/sa-token-go/integrations/gin
+go get github.com/click33/sa-token-go/com/storage/memory
+```
+
+## Step 2: Initialize
 
 ```go
+package main
+
 import (
-    "github.com/click33/sa-token-go/core"
+    "context"
+
+    "github.com/click33/sa-token-go/com/storage/memory"
+    "github.com/click33/sa-token-go/core/builder"
     "github.com/click33/sa-token-go/stputil"
-    "github.com/click33/sa-token-go/storage/memory"
 )
 
+var ctx = context.Background()
+
 func init() {
-    // One-line initialization!
     stputil.SetManager(
-        core.NewBuilder().
-            Storage(memory.NewStorage()).
+        builder.NewBuilder().
+            SetStorage(memory.NewStorage()).
+            TokenName("Authorization").
+            Timeout(86400).
             Build(),
     )
 }
 ```
 
-### Step 3: Use
+### Initialization Notes
+
+- `builder.NewBuilder()` is used to build a `Manager`
+- `SetStorage(...)` specifies the storage implementation
+- `stputil.SetManager(...)` registers the global `Manager`
+- after that, application code can call capability directly through `stputil`
+
+## Step 3: Use It
 
 ```go
 func main() {
     // Login
-    token, _ := stputil.Login(1000)
-    println("Token:", token)
+    token, _ := stputil.Login(ctx, "1000")
 
-    // Check login
-    if stputil.IsLogin(token) {
-        println("User is logged in")
-    }
+    // Check login state
+    isLogin := stputil.IsLogin(ctx, token)
 
-    // Set permissions
-    stputil.SetPermissions(1000, []string{"user:read", "user:write"})
+    // Add permissions
+    _ = stputil.AddPermissions(ctx, "1000", []string{"user:read"})
 
     // Check permission
-    if stputil.HasPermission(1000, "user:read") {
-        println("Has permission")
-    }
+    hasPermission := stputil.HasPermission(ctx, "1000", "user:read")
 
     // Logout
-    stputil.Logout(1000)
+    _ = stputil.Logout(ctx, token)
+
+    _, _, _ = token, isLogin, hasPermission
 }
 ```
+
+## Step 4: Common Configuration
+
+You can continue adjusting common settings through the Builder:
+
+```go
+mgr := builder.NewBuilder().
+    SetStorage(memory.NewStorage()).
+    TokenName("token").
+    Timeout(7200).
+    ActiveTimeout(1800).
+    AutoRenew(true).
+    IsReadHeader(true).
+    IsPrintBanner(true).
+    Build()
+
+stputil.SetManager(mgr)
+```
+
+Common config meanings:
+
+- `TokenName` - token name
+- `Timeout` - absolute token timeout
+- `ActiveTimeout` - maximum inactive duration
+- `AutoRenew` - whether auto-renew is enabled
+- `IsReadHeader` - whether to read token from HTTP header
+- `IsPrintBanner` - whether to print the startup banner
+
+## Step 5: Read Complete Examples
+
+If you want to see more complete examples, you can directly refer to:
+
+- [Quick Start example](../../examples/quick_start/)
+- [Gin example](../../examples/gin/)
+- [GoFrame example](../../examples/gf/)
+- [Echo example](../../examples/echo/)
+- [Fiber example](../../examples/fiber/)
+- [Chi example](../../examples/chi/)
+- [Hertz example](../../examples/hertz/)
+- [Kratos example](../../examples/kratos/)
+
+After these steps, you already understand the most basic usage of the current Sa-Token-Go version.
 
 ## Next Steps
 
 - [Authentication Guide](../guide/authentication.md)
-- [Permission Management](../guide/permission.md)
-- [Annotation Usage](../guide/annotation.md)
-- [Event Listener](../guide/listener.md)
-- [JWT Guide](../guide/jwt.md)
-- [Redis Storage](../guide/redis-storage.md)
+- [Permission Guide](../guide/permission.md)
+- [Annotation Guide](../guide/annotation.md)
+- [Single Import Guide](../guide/single-import.md)

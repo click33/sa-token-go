@@ -12,10 +12,11 @@ English | [中文文档](README_zh.md)
 
 - [Authentication](guide/authentication.md) - Login, logout, token management
 - [Permission Verification](guide/permission.md) - Permission system, wildcard usage
-- [Annotations](guide/annotation.md) - Decorator pattern guide
+- [Annotations](guide/annotation.md) - Annotation-style middleware guide
 - [Event Listener](guide/listener.md) - Event system usage guide
 - [JWT Integration](guide/jwt.md) - JWT token configuration and usage
 - [Redis Storage](guide/redis-storage.md) - Redis storage configuration guide
+- [Single Import](guide/single-import.md) - `integrations/*` single-package import style
 
 ### 🔒 Security Features
 
@@ -35,15 +36,14 @@ English | [中文文档](README_zh.md)
 
 ## 📖 Example Projects
 
-- [quick-start](../examples/quick-start/) - Quick start example
-- [token-styles](../examples/token-styles/) - 9 token styles demonstration
-- [security-features](../examples/security-features/) - Security features demo
-- [oauth2-example](../examples/oauth2-example/) - Complete OAuth2 implementation
-- [annotation](../examples/annotation/) - Annotation usage example
-- [jwt-example](../examples/jwt-example/) - JWT usage example
-- [redis-example](../examples/redis-example/) - Redis storage example
-- [listener-example](../examples/listener-example/) - Event listener example
-- [gin/echo/fiber/chi](../examples/) - Framework integration examples
+- [quick_start](../examples/quick_start/) - Quick start example
+- [gin](../examples/gin/) - Gin integration example
+- [gf](../examples/gf/) - GoFrame integration example
+- [echo](../examples/echo/) - Echo integration example
+- [fiber](../examples/fiber/) - Fiber integration example
+- [chi](../examples/chi/) - Chi integration example
+- [hertz](../examples/hertz/) - Hertz integration example
+- [kratos](../examples/kratos/) - Kratos integration example
 
 ## 🔗 External Resources
 
@@ -52,4 +52,4 @@ English | [中文文档](README_zh.md)
 
 ---
 
-**Sa-Token-Go v0.1.0**
+**Sa-Token-Go v0.1.9**

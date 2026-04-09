@@ -1,333 +1,270 @@
 English | [中文文档](auto-renew_zh.md)
 
-# Auto-Renewal Design
+# Auto-Renew Design
 
 ## Design Goals
 
-Implement automatic token renewal functionality to keep active users logged in without requiring re-authentication, while ensuring high performance.
+The goals of auto-renew are:
+
+- keep active users logged in without frequent re-authentication
+- avoid heavy synchronous work on every login check
+- control renew frequency with threshold and throttling
+- improve stability under high concurrency with a worker pool
 
 ## Core Design
 
-### Asynchronous Renewal Strategy
+### Asynchronous Renew Strategy
 
-Use **asynchronous goroutines** in the `IsLogin()` method to execute renewal operations, avoiding blocking the main flow.
+In the current version, auto-renew happens inside the login validation flow, with `Manager.checkLoginInternal()` as the key entry.
 
-### Implementation Code
+Compared with the old "plain goroutine on every `IsLogin()`" idea, the current implementation:
+
+1. checks the token TTL first
+2. only considers renew when TTL is less than or equal to `RenewMaxRefresh`
+3. uses a renew marker key to throttle repeated renews when `RenewInterval` is configured
+4. prefers submitting renew work to a worker pool
+5. updates the active timestamp asynchronously as well
+
+### Implementation Idea
 
 ```go
-// IsLogin checks if user is logged in
-func (m *Manager) IsLogin(tokenValue string) bool {
-    // 1. Check token existence (synchronous)
-    if tokenValue == "" || !m.storage.Exists(tokenKey) {
-        return false
-    }
+if m.config.AutoRenew && m.config.Timeout > 0 {
+    if ttl <= RenewMaxRefresh && renewInterval condition passes {
+        renewFunc := func() {
+            m.renewFunc(context.Background(), tokenValue, tokenInfo.LoginID)
+        }
 
-    // 2. Check active timeout (synchronous)
-    if m.config.ActiveTimeout > 0 {
-        info, _ := m.getTokenInfo(tokenValue)
-        if info != nil {
-            elapsed := time.Now().Unix() - info.ActiveTime
-            if elapsed > m.config.ActiveTimeout {
-                m.LogoutByToken(tokenValue)  // Force logout
-                return false
-            }
+        if m.pool != nil {
+            _ = m.pool.Submit(renewFunc)
+        } else {
+            go renewFunc()
         }
     }
+}
 
-    // 3. Async renewal (non-blocking)
-    if m.config.AutoRenew && m.config.Timeout > 0 {
-        go func() {
-            expiration := time.Duration(m.config.Timeout) * time.Second
-            
-            // Extend token expiration time
-            m.storage.Expire(tokenKey, expiration)
-
-            // Update active time
-            info, _ := m.getTokenInfo(tokenValue)
-            if info != nil {
-                info.ActiveTime = time.Now().Unix()
-                m.saveTokenInfo(tokenValue, info, expiration)
-            }
-        }()
+if m.config.ActiveTimeout > 0 {
+    activeFunc := func() {
+        _ = m.storage.Set(ctx, m.getActiveKey(tokenValue), time.Now().Unix(), m.getExpiration())
     }
-
-    return true  // Return immediately
+    // also prefers the worker pool
 }
 ```
 
 ## Workflow
 
-### Synchronous Part (Must Wait)
+### Synchronous Part
 
+```text
+1. Load TokenInfo
+   ├─ failed -> return not-login or token-state error
+   └─ success -> continue
+
+2. Check account disable state
+   ├─ disabled -> return disable error
+   └─ not disabled -> continue
+
+3. Check ActiveTimeout
+   ├─ timeout -> kick out and return error
+   └─ not timeout -> continue
+
+4. Return login validation success
 ```
-1. Token existence check
-   ├─ Not exists → Return false
-   └─ Exists → Continue
 
-2. Active timeout check (if configured)
-   ├─ Timeout → Force logout → Return false
-   └─ Not timeout → Continue
+### Asynchronous Part
 
-3. Return true (immediately)
-```
-
-### Asynchronous Part (Background Execution)
-
-```
-Start goroutine
+```text
+Async renew task
   ↓
-1. Extend token storage expiration
-   m.storage.Expire(tokenKey, expiration)
+1. Extend token expiration
   ↓
-2. Get token info
-   info := m.getTokenInfo(tokenValue)
+2. Extend session expiration
   ↓
-3. Update active time
-   info.ActiveTime = time.Now().Unix()
+3. Write renew throttle marker (if enabled)
   ↓
-4. Save token info
-   m.saveTokenInfo(tokenValue, info, expiration)
+4. Trigger renew event
+
+Async active task
   ↓
-goroutine ends
+1. Update active:{token} key
 ```
 
-## Performance Comparison
+## Renew Trigger Conditions
 
-### Synchronous Renewal (Old)
+In the current implementation, auto-renew typically requires all of the following:
 
-```
-Request → IsLogin()
-         ↓
-      Check Token
-         ↓
-      [Sync Renewal]
-      - Expire()        (100ms)
-      - GetTokenInfo()  (50ms)
-      - SaveTokenInfo() (100ms)
-         ↓
-      Return true       (Total: 250ms)
-         ↓
-      Response to User
-```
+- `AutoRenew = true`
+- `Timeout > 0`
+- current token TTL is greater than 0
+- `TTL <= RenewMaxRefresh`, or `RenewMaxRefresh <= 0`
+- the renew-throttle condition of `RenewInterval` is not hit
 
-### Asynchronous Renewal (New)
+This means:
 
-```
-Request → IsLogin()
-         ↓
-      Check Token
-         ↓
-      Start renewal goroutine ──┐
-         ↓                      │
-      Return true immediately   │ (Total: 10ms)
-         ↓                      │
-      Response to User          │
-                               │
-                               └→ Background renewal
-                                  - Expire()
-                                  - GetTokenInfo()
-                                  - SaveTokenInfo()
-                                  (User already received response)
-```
-
-### Performance Improvements
-
-| Metric | Sync | Async | Improvement |
-|--------|------|-------|-------------|
-| Single IsLogin latency | 150-500ms | 10-50ms | **↑ 80-90%** |
-| 10000 calls total time | ~2.5s | ~0.5s | **↑ 400%** |
-| QPS (single core) | ~2000 | ~10000 | **↑ 400%** |
-| User-perceived latency | Noticeable | Nearly none | ⭐⭐⭐⭐⭐ |
+- renew does not happen on every request
+- renew is more likely when the token is closer to expiry
+- frequent requests do not endlessly refresh the same token
 
 ## Trigger Timing
 
-Any scenario calling `IsLogin()` will trigger renewal:
+Any scenario that goes through login validation may trigger auto-renew:
 
-### 1. Middleware Verification
+### 1. Middleware Authentication
 
 ```go
-r.Use(plugin.AuthMiddleware())
-// ↓ Internally calls IsLogin()
+r.Use(satoken.AuthMiddleware(ctx))
 ```
 
-### 2. Decorators
+### 2. Annotation-Style Login Check
 
 ```go
-r.GET("/api", sagin.CheckLogin(), handler)
-// ↓ Decorator calls IsLogin()
+annotation.GET("/profile",
+    satoken.CheckLoginMiddleware(ctx, handleProfile, handleAuthFail))
 ```
 
-### 3. Manual Check
+### 3. Manual Login Check
 
 ```go
-stputil.IsLogin(token)
-// ↓ Direct call
+stputil.IsLogin(ctx, token)
+stputil.CheckLogin(ctx, token)
 ```
 
-### 4. GetLoginID and Other Methods
+### 4. Fetching Login Information
 
 ```go
-stputil.GetLoginID(token)
-// ↓ Internally calls IsLogin() first
+stputil.GetLoginID(ctx, token)
+stputil.GetTokenInfo(ctx, token)
 ```
 
 ## Configuration Options
 
-### Enable Auto-Renewal
+### Enable Auto-Renew
 
 ```go
-core.NewBuilder().
-    Timeout(86400).      // Must be > 0
-    AutoRenew(true).     // Enable auto-renewal
+builder.NewBuilder().
+    SetStorage(memory.NewStorage()).
+    Timeout(86400).
+    AutoRenew(true).
     Build()
 ```
 
-### Disable Auto-Renewal
+### Set Renew Trigger Threshold
 
 ```go
-core.NewBuilder().
-    Timeout(1800).       // 30-minute hard timeout
-    AutoRenew(false).    // Disable renewal
+builder.NewBuilder().
+    SetStorage(memory.NewStorage()).
+    Timeout(86400).
+    AutoRenew(true).
+    RenewMaxRefresh(3600). // only renew within the last hour
     Build()
 ```
 
-### Combined with Active Timeout
+### Set Minimum Renew Interval
 
 ```go
-core.NewBuilder().
-    Timeout(86400).       // 24-hour absolute timeout
-    ActiveTimeout(1800).  // 30-minute inactive logout
-    AutoRenew(true).      // Auto-renewal
+builder.NewBuilder().
+    SetStorage(memory.NewStorage()).
+    Timeout(86400).
+    AutoRenew(true).
+    RenewMaxRefresh(3600).
+    RenewInterval(300). // at most once every 5 minutes for the same token
+    Build()
+```
+
+### Combine with Active Timeout
+
+```go
+builder.NewBuilder().
+    SetStorage(memory.NewStorage()).
+    Timeout(86400).
+    ActiveTimeout(1800).
+    AutoRenew(true).
+    RenewMaxRefresh(3600).
+    RenewInterval(300).
     Build()
 ```
 
 **Effect**:
-- Users can stay logged in for 24 hours while active
-- Forced logout after 30 minutes of inactivity
-- Each request triggers async renewal, fast response
+- active users are auto-renewed when close to expiry
+- inactive users are kicked out after `ActiveTimeout`
+- renew work is not executed without limit under high request frequency
 
 ## Concurrency Safety
 
-### Thread-Safe Storage
+### Storage Interface Is Context-Aware
 
 ```go
-// Memory storage uses locks
-type Storage struct {
-    data map[string]*item
-    mu   sync.RWMutex  // ← Read-write lock
+type Storage interface {
+    Set(ctx context.Context, key string, value any, expiration time.Duration) error
+    Get(ctx context.Context, key string) (any, error)
+    Delete(ctx context.Context, keys ...string) error
+    Exists(ctx context.Context, key string) bool
+    TTL(ctx context.Context, key string) (time.Duration, error)
 }
-
-// Redis naturally supports concurrency
 ```
 
-### Goroutine Management
+### Worker Pool Support
 
-```go
-go func() {
-    // Async renewal
-    // Auto-recycled, no manual management needed
-}()
-```
+When auto-renew is enabled, renew work prefers a renew task pool:
 
-**Advantages**:
-- ✅ All Storage operations are thread-safe
-- ✅ Goroutines auto-recycled
-- ✅ No memory leaks
-- ✅ Excellent concurrent performance
+- `com/pool/ants`
+- `adapter.Pool`
+- `Builder.SetPool(...)`
 
-## Renewal Failure Handling
+If no pool is explicitly provided, a default renew pool may still be created internally in suitable cases.
+
+## Renew Failure Handling
 
 ### Strategy
 
-Async renewal failures **do not affect** the current request:
+Async renew failure does not directly block the current request:
 
-1. User has already received response (true)
-2. Token is still valid
-3. Renewal will be retried on next request
+1. the current login validation result has already been returned
+2. renew failure only affects the extension of future lifetime
+3. renew can still be retried on the next eligible request
 
-### Scenario
+### Impact Scope
 
-```go
-// Renewal operation
-go func() {
-    err := m.storage.Expire(tokenKey, expiration)
-    if err != nil {
-        // Renewal failed, but doesn't affect current request
-        // Will retry on next IsLogin call
-    }
-}()
-
-return true  // Current request succeeds
-```
-
-## Performance Testing
-
-### Test Code
-
-```go
-func BenchmarkIsLogin(b *testing.B) {
-    stputil.SetManager(
-        core.NewBuilder().
-            Storage(memory.NewStorage()).
-            Timeout(3600).
-            AutoRenew(true).
-            Build(),
-    )
-
-    token, _ := stputil.Login(1000)
-
-    b.ResetTimer()
-    for i := 0; i < b.N; i++ {
-        stputil.IsLogin(token)
-    }
-}
-```
-
-### Expected Results
-
-```
-BenchmarkIsLogin-8   10000000   120 ns/op   0 B/op   0 allocs/op
-```
-
-- Each call takes only ~120 nanoseconds
-- Zero memory allocations
-- High concurrency friendly
+- it does not directly fail the current request
+- it may leave the token unextended
+- if renew keeps failing, the token will eventually expire by its original TTL
 
 ## Best Practices
 
-### Production Environment Configuration
+### Recommended Production Configuration
 
 ```go
-core.NewBuilder().
-    Storage(redisStorage).     // Redis storage
-    Timeout(86400).            // 24 hours
-    ActiveTimeout(1800).       // 30-minute active timeout
-    AutoRenew(true).           // Async renewal
+builder.NewBuilder().
+    SetStorage(redisStorage).
+    Timeout(86400).
+    ActiveTimeout(1800).
+    AutoRenew(true).
+    RenewMaxRefresh(3600).
+    RenewInterval(300).
     Build()
 ```
 
-### Development Environment Configuration
+### Recommended Development Configuration
 
 ```go
-core.NewBuilder().
-    Storage(memory.NewStorage()).
-    Timeout(7200).             // 2 hours
-    AutoRenew(true).           // Async renewal
+builder.NewBuilder().
+    SetStorage(memory.NewStorage()).
+    Timeout(7200).
+    AutoRenew(true).
     Build()
 ```
 
 ### Security-First Configuration
 
 ```go
-core.NewBuilder().
-    Storage(redisStorage).
-    Timeout(1800).             // 30-minute hard timeout
-    AutoRenew(false).          // No renewal
+builder.NewBuilder().
+    SetStorage(redisStorage).
+    Timeout(1800).
+    AutoRenew(false).
     Build()
 ```
 
 ## Next Steps
 
 - [Architecture Design](architecture.md)
-- [Performance Optimization](performance.md)
 - [Modular Design](modular.md)
+- [StpUtil API Documentation](../api/stputil.md)

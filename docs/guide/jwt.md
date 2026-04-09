@@ -1,118 +1,156 @@
-# JWT Token Guide
+# JWT Guide
 
 [中文文档](jwt_zh.md) | English
 
-## Introduction
+## Overview
 
-JWT (JSON Web Token) is a stateless token solution. The token itself contains user information and expiration time, making it ideal for distributed systems.
+The current project supports switching the token generation style to `JWT` through:
 
-## JWT Advantages
+- `builder.NewBuilder().TokenStyle(TokenStyleJWT)`
+- `builder.NewBuilder().JwtSecretKey(...)`
+- `builder.NewBuilder().JwtSecret(...)`
 
-- ✅ **Stateless**: No need for server-side session storage
-- ✅ **Distributed-friendly**: Multiple services can validate independently
-- ✅ **Self-contained**: Token contains user information
-- ✅ **Cross-domain support**: Can be used across different domains
+## Important Note
 
-## JWT Structure
+In the current implementation, JWT only changes the token format. It does not make the whole system fully stateless.
 
-JWT consists of three parts separated by `.`:
+These items are still stored on the server side after login:
 
-```
-Header.Payload.Signature
-```
+- `TokenInfo`
+- `Session`
+- auto-renew markers
+- activity timeout markers
 
-**Example:**
-```
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2dpbklkIjoiMTAwMCIsImRldmljZSI6IiIsImlhdCI6MTY5NzIzNDU2NywiZXhwIjoxNjk3MjM4MTY3fQ.xxx
+That means:
+
+1. `Kickout`, `Replace`, and `Logout` still work
+2. permissions, roles, disable checks, and session features still work
+3. storage backends such as Memory or Redis are still meaningful
+
+## JWT Claims
+
+The current generator writes claims like:
+
+```json
+{
+  "loginId": "10001",
+  "device": "web",
+  "deviceId": "chrome-mac",
+  "iat": 1710000000,
+  "exp": 1710003600
+}
 ```
 
 ## Basic Usage
 
-### 1. Configure JWT
-
 ```go
+package main
+
 import (
-    "github.com/click33/sa-token-go/core"
+    "context"
+
+    "github.com/click33/sa-token-go/com/storage/memory"
+    "github.com/click33/sa-token-go/core/adapter"
+    "github.com/click33/sa-token-go/core/builder"
     "github.com/click33/sa-token-go/stputil"
-    "github.com/click33/sa-token-go/storage/memory"
 )
 
-func init() {
+func initSaToken() {
     stputil.SetManager(
-        core.NewBuilder().
-            Storage(memory.NewStorage()).
-            TokenStyle(core.TokenStyleJWT).              // Use JWT
-            JwtSecretKey("your-256-bit-secret-key").    // Set secret key
-            Timeout(3600).                               // 1 hour
+        builder.NewBuilder().
+            SetStorage(memory.NewStorage()).
+            TokenStyle(adapter.TokenStyleJWT).
+            JwtSecretKey("your-very-strong-secret-key").
+            Timeout(2 * 60 * 60).
             Build(),
     )
 }
-```
 
-### 2. Login with JWT
-
-```go
-// Login and get JWT token
-token, _ := stputil.Login(1000)
-// Returns: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-### 3. Validate JWT
-
-```go
-// Validate token
-if stputil.IsLogin(token) {
-    fmt.Println("Token is valid")
+func main() {
+    ctx := context.Background()
+    token, _ := stputil.Login(ctx, "10001", "web", "chrome-mac")
+    _ = token
 }
-
-// Get login ID
-loginID, _ := stputil.GetLoginID(token)
 ```
 
-## Security Best Practices
-
-### 1. Use Strong Secret Key
+### Shortcut
 
 ```go
-// ❌ Weak key
-JwtSecretKey("secret")
-
-// ✅ Strong key (at least 32 bytes recommended)
-JwtSecretKey("a-very-long-and-random-secret-key-at-least-256-bits")
+builder.NewBuilder().
+    SetStorage(memory.NewStorage()).
+    JwtSecret("your-very-strong-secret-key").
+    Timeout(2 * 60 * 60).
+    Build()
 ```
 
-### 2. Set Reasonable Expiration
+`JwtSecret(...)` both enables JWT style and sets the secret.
+
+## Login and Validation
 
 ```go
-// Short-term token (recommended)
-Timeout(3600)   // 1 hour
-Timeout(7200)   // 2 hours
+ctx := context.Background()
 
-// Long-term token (needs refresh mechanism)
-Timeout(86400)  // 24 hours
+token, err := stputil.Login(ctx, "10001", "web")
+
+isLogin := stputil.IsLogin(ctx, token)
+loginID, err := stputil.GetLoginID(ctx, token)
+info, err := stputil.GetTokenInfo(ctx, token)
+ttl, err := stputil.GetTokenTTL(ctx, token)
 ```
 
-### 3. Read from Environment Variables
+The usage is the same as with UUID or random token styles.
+
+## Generator APIs
 
 ```go
-import "os"
+generator := sgenerator.NewGenerator(7200, "your-secret", adapter.TokenStyleJWT)
 
-JwtSecretKey(os.Getenv("JWT_SECRET_KEY"))
+token, err := generator.Generate("10001", "web", "chrome-mac")
+claims, err := generator.ParseJWT(token)
+err = generator.ValidateJWT(token)
+loginID, err := generator.GetLoginIDFromJWT(token)
 ```
+
+## Configuration
+
+| Option | Description |
+|------|------|
+| `TokenStyle(TokenStyleJWT)` | enable JWT style |
+| `JwtSecretKey(key)` | set the JWT secret |
+| `JwtSecret(key)` | enable JWT and set the secret in one step |
+| `Timeout(seconds)` | controls both `exp` and server-side TTL |
+| `AutoRenew(true)` | controls server-side renew behavior |
+
+## Security Notes
+
+### Use a Strong Secret
+
+When `TokenStyleJWT` is enabled, `JwtSecretKey` must not be empty. Use a long, random secret in production.
+
+### Do Not Treat It As Fully Stateless
+
+If you need a truly stateless authentication architecture, that is not the current design goal of this project. Here, JWT is better understood as:
+
+1. a token format option
+2. a convenient way to inspect basic claims
+3. something that coexists with session, permission, and login-state features
+
+### Use HTTPS
+
+JWT is signed, not encrypted. It should still be transported over HTTPS in production.
 
 ## JWT vs Regular Token
 
-| Feature | JWT | UUID/Random |
-|---------|-----|-------------|
-| State | Stateless | Stateful |
-| Server Storage | Not needed | Required |
-| Token Size | Larger | Smaller |
-| Revocability | Difficult | Easy |
-| Distributed | Excellent | Needs shared storage |
-| Performance | High | Medium |
+| Item | JWT Style | UUID / Random Style |
+|------|------|------|
+| Token readability | higher | lower |
+| Token length | longer | shorter |
+| Server-side storage | still required | required |
+| Kickout / Replace | supported | supported |
+| Permissions / Session | supported | supported |
 
 ## Related Documentation
 
-- [Quick Start](../tutorial/quick-start.md)
 - [Authentication Guide](authentication.md)
-- [JWT Example](../../examples/manager-example/jwt-example/README.md)
+- [Redis Storage](redis-storage.md)
+- [Single Import Guide](single-import.md)

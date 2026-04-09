@@ -1,57 +1,38 @@
 go 1.25.0
 
 use (
-	// codec
-	./codec/json
-	./codec/msgpack
+	./com/codec/base64
+	./com/codec/json
+	./com/codec/jsonv2
+	./com/codec/msgpack
 
-	// core
+	./com/generator/sgenerator
+	./com/log/slog
+	./com/log/gf
+	./com/log/nop
+
+	./com/pool/ants
+
+	./com/storage/memory
+	./com/storage/redis
+
 	./core
+	./stputil
 
-	// examples - integrations
-	./examples/annotation/annotation-example
-	./examples/chi/chi-example
-	./examples/echo/echo-example
-	./examples/fiber/fiber-example
-	./examples/gf/gf-example
-	./examples/gin/gin-example
-	./examples/gin/gin-simple
-	./examples/kratos/kratos-example
+	./examples/chi
+	./examples/echo
+	./examples/fiber
+	./examples/gf
+	./examples/gin
+	./examples/hertz
+	./examples/kratos
+	./examples/quick_start
 
-	// examples - manager-example
-	./examples/manager-example/jwt-example
-	./examples/manager-example/listener-example
-	./examples/manager-example/oauth2-example
-	./examples/manager-example/security-example
-	./examples/manager-example/session-demo
-	./examples/manager-example/token-styles
-
-	// examples - quick-start
-	./examples/quick-start/simple-example
-	./examples/quick-start/complex-example
-
-	// generator
-	./generator/sgenerator
-
-	// integrations
 	./integrations/chi
-	./integrations/echo
 	./integrations/fiber
+	./integrations/echo
 	./integrations/gf
 	./integrations/gin
+	./integrations/hertz
 	./integrations/kratos
-	./integrations/zero
-
-	// log
-	./log/gf
-	./log/nop
-	./log/slog
-
-	// pool
-	./pool/ants
-
-	// storage
-	./storage/memory
-	./storage/redis
-	./stputil
 )

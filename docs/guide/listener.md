@@ -2,153 +2,204 @@
 
 [中文文档](listener_zh.md) | English
 
-## Overview
+## Current Status
 
-Sa-Token-Go provides a powerful event system for monitoring authentication and authorization events.
+The project already contains a complete internal event system under `core/listener`.
 
-## Event Types
+It is used for:
 
-- `EventLogin` - User login event
-- `EventLogout` - User logout event
-- `EventKickout` - User kicked out event
-- `EventDisable` - Account disabled event
-- `EventUntie` - Account re-enabled event
-- `EventRenew` - Token renewal event
-- `EventCreateSession` - Session created event
-- `EventDestroySession` - Session destroyed event
-- `EventPermissionCheck` - Permission check event
-- `EventRoleCheck` - Role check event
-- `EventAll` - Wildcard (all events)
+- login
+- logout
+- kickout
+- replace
+- account disable / untie
+- service disable / untie
+- auto renew
+- session create / destroy
+- permission checks
+- role checks
 
-## Basic Usage
+## Important Note
 
-### Create Manager with Event Support
+Even though the event system exists internally, the current version does **not** expose a unified listener-registration API from `stputil` or `manager.Manager`.
+
+So historical examples such as these are not valid in the current codebase:
+
+```go
+// Not available as public APIs in the current version
+// manager.RegisterFunc(...)
+// manager.GetEventManager(...)
+```
+
+This guide therefore focuses on:
+
+1. which internal events already exist
+2. what the standalone `core/listener` package currently exposes
+
+## Internal Event Types
+
+The events defined in `core/listener/consts.go` are:
+
+| Event | Description |
+|------|------|
+| `EventLogin` | login |
+| `EventLogout` | logout |
+| `EventKickout` | kickout |
+| `EventReplace` | replace |
+| `EventDisable` | account disable |
+| `EventUntie` | account untie |
+| `EventRenew` | token renew |
+| `EventCreateSession` | session create |
+| `EventDestroySession` | session destroy |
+| `EventPermissionCheck` | permission check |
+| `EventRoleCheck` | role check |
+| `EventDisableService` | service disable |
+| `EventUntieService` | service untie |
+| `EventAll` | wildcard |
+
+## EventData Structure
+
+The payload is defined in `core/listener/listener.go`:
+
+```go
+type EventData struct {
+    Event     Event
+    AuthType  string
+    LoginID   string
+    Device    string
+    DeviceId  string
+    Token     string
+    Extra     map[string]any
+    Timestamp int64
+}
+```
+
+## Extra Field Constants
+
+Current extra keys include:
+
+- `ExtraKeyPermission`
+- `ExtraKeyPermissions`
+- `ExtraKeyRole`
+- `ExtraKeyRoles`
+- `ExtraKeyLogic`
+- `ExtraKeyResult`
+- `ExtraKeyService`
+- `ExtraKeyLevel`
+
+## Standalone core/listener APIs
+
+The package itself is public and usable on its own.
+
+### Create a Manager
 
 ```go
 import (
-    "github.com/click33/sa-token-go/core"
-    "github.com/click33/sa-token-go/storage/memory"
+    "github.com/click33/sa-token-go/core/listener"
 )
 
-manager := core.NewBuilder().
-    Storage(memory.NewStorage()).
-    Build()
-
-// Optional: direct access to advanced controls
-eventMgr := manager.GetEventManager()
+eventMgr := listener.NewManager()
 ```
 
-### Register Listener (Function)
+### Register a Listener
 
 ```go
-// Listen to login event
-manager.RegisterFunc(core.EventLogin, func(data *core.EventData) {
-    fmt.Printf("[LOGIN] User: %s, Token: %s\n", data.LoginID, data.Token)
+id := eventMgr.RegisterFunc(listener.EventLogin, func(data *listener.EventData) {
+    println("login:", data.LoginID)
 })
 
-// Listen to logout event
-manager.RegisterFunc(core.EventLogout, func(data *core.EventData) {
-    fmt.Printf("[LOGOUT] User: %s\n", data.LoginID)
-})
+_ = id
 ```
 
-### Register Listener (Interface)
+### Register With Config
 
 ```go
-type AuditLogger struct{}
+id := eventMgr.RegisterFuncWithConfig(
+    listener.EventLogin,
+    func(data *listener.EventData) {
+        println("login:", data.LoginID)
+    },
+    listener.ListenerConfig{
+        Async:    true,
+        Priority: 100,
+        ID:       "login-audit",
+    },
+)
+```
 
-func (a *AuditLogger) OnEvent(data *core.EventData) {
-    // Log to database, file, etc.
-    fmt.Printf("[AUDIT] Event: %s, User: %s\n", data.Event, data.LoginID)
-}
+### Unregister
 
-manager.Register(core.EventLogin, &AuditLogger{})
+```go
+ok := eventMgr.Unregister("login-audit")
+_ = ok
 ```
 
 ## Advanced Features
 
-### Priority
+### Global Filters
 
 ```go
-// Higher priority listeners execute first
-manager.RegisterWithConfig(
-    core.EventLogin,
-    myListener,
-    core.ListenerConfig{
-        Priority: 100,  // Higher = earlier execution
-    },
-)
-```
-
-### Synchronous Execution
-
-```go
-// Execute synchronously (blocking)
-manager.RegisterWithConfig(
-    core.EventLogin,
-    myListener,
-    core.ListenerConfig{
-        Async: false,  // Synchronous
-    },
-)
-```
-
-### Wildcard Listener
-
-```go
-// Listen to all events
-manager.RegisterFunc(core.EventAll, func(data *core.EventData) {
-    fmt.Printf("[ALL] Event: %s, User: %s\n", data.Event, data.LoginID)
+eventMgr.AddFilter(func(data *listener.EventData) bool {
+    return data.AuthType == "satoken:"
 })
 ```
 
-### Unregister Listener
+If the filter returns `false`, the event will not be dispatched any further.
+
+### Statistics
 
 ```go
-// Register and get ID
-id := manager.RegisterWithConfig(
-    core.EventLogin,
-    myListener,
-    core.ListenerConfig{
-        ID: "my-listener",
-    },
-)
+eventMgr.EnableStats(true)
 
-// Unregister by ID
-manager.Unregister(id)
+stats := eventMgr.GetStats()
+println(stats.TotalTriggered)
 ```
 
-## Use Cases
-
-### Audit Logging
+### Panic Handling
 
 ```go
-manager.RegisterFunc(core.EventAll, func(data *core.EventData) {
-    log.Printf("[AUDIT] %s - User: %s, IP: %s, Time: %d",
-        data.Event, data.LoginID, data.Extra["ip"], data.Timestamp)
+eventMgr.SetPanicHandler(func(event listener.Event, data *listener.EventData, recovered any) {
+    println("listener panic:", event, recovered)
 })
 ```
 
-### Security Monitoring
+### Enable or Disable Events
 
 ```go
-manager.RegisterFunc(core.EventLogin, func(data *core.EventData) {
-    // Check for suspicious login
-    // Send alert if needed
-})
+eventMgr.DisableEvent(listener.EventRenew, listener.EventPermissionCheck)
+eventMgr.EnableEvent(listener.EventLogin, listener.EventLogout)
+eventMgr.EnableEvent() // no args means enable all
 ```
 
-### Session Analytics
+### Wait For Async Listeners
 
 ```go
-manager.RegisterFunc(core.EventLogin, func(data *core.EventData) {
-    // Track active users
-    // Update analytics
-})
+eventMgr.Wait()
 ```
+
+## Logic Constants
+
+```go
+listener.LogicAnd
+listener.LogicOr
+```
+
+These usually appear in the `Extra` payload of permission and role check events.
+
+## Practical Recommendation
+
+If you are only using `stputil` as-is:
+
+1. treat this guide mainly as documentation of the internal event model
+2. connect business audit and monitoring later if the project exposes public registration APIs
+
+If you are extending the framework:
+
+1. you can work directly with `core/listener`
+2. and follow the internal `manager.triggerEvent(...)` path for integration work
 
 ## Related Documentation
 
-- [Quick Start](../tutorial/quick-start.md)
 - [Authentication Guide](authentication.md)
-- [Event Listener Example](../../examples/manager-example/listener-example/README.md)
+- [Permission Management](permission.md)
+- [OAuth2 Guide](oauth2.md)

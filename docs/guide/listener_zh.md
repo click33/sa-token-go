@@ -1,466 +1,213 @@
-# Event Listener Guide
+# 事件监听指南
 
-Sa-Token-Go provides a powerful event system that allows you to hook into authentication and authorization events. This guide explains how to use event listeners effectively.
+[English](listener.md) | 中文文档
 
-## Table of Contents
+## 当前状态
 
-- [Overview](#overview)
-- [Available Events](#available-events)
-- [Basic Usage](#basic-usage)
-- [Advanced Features](#advanced-features)
-- [Best Practices](#best-practices)
-- [Examples](#examples)
+当前项目内部已经实现了完整的事件系统，底层代码位于 `core/listener`。
 
-## Overview
+它会在这些场景触发事件：
 
-The event system allows you to:
+- 登录
+- 登出
+- 踢下线
+- 顶下线
+- 账号封禁 / 解封
+- 服务封禁 / 解封
+- 自动续期
+- Session 创建 / 销毁
+- 权限校验
+- 角色校验
 
-- **Monitor** authentication activities (login, logout, kickout)
-- **Audit** permission and role checks
-- **React** to session lifecycle events
-- **Log** security-related operations
-- **Extend** functionality without modifying core code
+## 重要说明
 
-## Available Events
+虽然事件系统已经存在，但当前版本还**没有**从 `stputil` 或 `manager.Manager` 对外暴露统一的监听器注册入口。
 
-| Event | Description | When Triggered |
-|-------|-------------|----------------|
-| `EventLogin` | User login | When a user successfully logs in |
-| `EventLogout` | User logout | When a user logs out |
-| `EventKickout` | Forced logout | When a user is forcibly logged out |
-| `EventDisable` | Account disabled | When an account is disabled/banned |
-| `EventUntie` | Account enabled | When an account is re-enabled |
-| `EventRenew` | Token renewal | When a token is automatically renewed |
-| `EventCreateSession` | Session created | When a new session is created |
-| `EventDestroySession` | Session destroyed | When a session is destroyed |
-| `EventPermissionCheck` | Permission check | When a permission check is performed |
-| `EventRoleCheck` | Role check | When a role check is performed |
-| `EventAll` | Wildcard | Matches all events (use with caution) |
-
-## Basic Usage
-
-### 1. 创建带事件功能的 Manager
+也就是说，下面这种历史写法在当前代码里并不存在：
 
 ```go
-import (
-    "github.com/click33/sa-token-go/core"
-    "github.com/click33/sa-token-go/storage/memory"
-)
-
-manager := core.NewBuilder().
-    Storage(memory.NewStorage()).
-    Build()
-
-// 如需高级控制，可以获取底层事件管理器
-eventMgr := manager.GetEventManager()
+// 当前版本没有这类公开入口
+// manager.RegisterFunc(...)
+// manager.GetEventManager(...)
 ```
 
-### 2. 注册简单监听器
+因此这篇文档会分成两部分：
 
-```go
-// 基于函数的监听器
-manager.RegisterFunc(core.EventLogin, func(data *core.EventData) {
-    fmt.Printf("User logged in: %s\n", data.LoginID)
-})
-```
+1. 当前项目内部已经有哪些事件
+2. `core/listener` 包本身有哪些公开能力
 
-### 3. 完整示例
+## 内部事件类型
 
-```go
-package main
+当前定义在 `core/listener/consts.go` 中的事件有：
 
-import (
-    "fmt"
-    "github.com/click33/sa-token-go/core"
-    "github.com/click33/sa-token-go/stputil"
-    "github.com/click33/sa-token-go/storage/memory"
-)
+| 事件 | 说明 |
+|------|------|
+| `EventLogin` | 登录事件 |
+| `EventLogout` | 登出事件 |
+| `EventKickout` | 踢下线事件 |
+| `EventReplace` | 顶下线事件 |
+| `EventDisable` | 账号封禁事件 |
+| `EventUntie` | 账号解封事件 |
+| `EventRenew` | Token 续期事件 |
+| `EventCreateSession` | Session 创建事件 |
+| `EventDestroySession` | Session 销毁事件 |
+| `EventPermissionCheck` | 权限校验事件 |
+| `EventRoleCheck` | 角色校验事件 |
+| `EventDisableService` | 服务封禁事件 |
+| `EventUntieService` | 服务解封事件 |
+| `EventAll` | 通配事件 |
 
-func main() {
-    // Create manager-example with log event support
-    manager := core.NewBuilder().
-        Storage(memory.NewStorage()).
-        Build()
-    
-    // Register login listener
-    manager.RegisterFunc(core.EventLogin, func(data *core.EventData) {
-        fmt.Printf("[LOGIN] User: %s, Token: %s, Device: %s\n", 
-            data.LoginID, data.Token, data.Device)
-    })
-    
-    // Register logout listener
-    manager.RegisterFunc(core.EventLogout, func(data *core.EventData) {
-        fmt.Printf("[LOGOUT] User: %s\n", data.LoginID)
-    })
-    
-    // Initialize StpUtil
-    stputil.SetManager(manager)
-    
-    // Perform login (will trigger event)
-    token, _ := stputil.Login(1000)
-    fmt.Println("Token:", token)
-    
-    // Perform logout (will trigger event)
-    stputil.Logout(1000)
-}
-```
+## EventData 结构
 
-## Advanced Features
-
-### Priority-Based Listeners
-
-Control the execution order of listeners using priorities:
-
-```go
-// High priority listener (executes first)
-manager.RegisterWithConfig(core.EventLogin, 
-    core.ListenerFunc(func(data *core.EventData) {
-        fmt.Println("High priority listener")
-    }),
-    core.ListenerConfig{
-        Priority: 100,
-        Async: false,
-    },
-)
-
-// Low priority listener (executes later)
-manager.RegisterWithConfig(core.EventLogin,
-    core.ListenerFunc(func(data *core.EventData) {
-        fmt.Println("Low priority listener")
-    }),
-    core.ListenerConfig{
-        Priority: 10,
-        Async: false,
-    },
-)
-```
-
-### Synchronous vs Asynchronous Execution
-
-```go
-// Synchronous listener (blocks until complete)
-manager.RegisterWithConfig(core.EventLogin,
-    core.ListenerFunc(func(data *core.EventData) {
-        // Critical operation that must complete before continuing
-        saveToDatabase(data)
-    }),
-    core.ListenerConfig{
-        Async: false, // Synchronous
-    },
-)
-
-// Asynchronous listener (non-blocking)
-manager.RegisterWithConfig(core.EventLogin,
-    core.ListenerFunc(func(data *core.EventData) {
-        // Non-critical operation (logging, analytics)
-        sendToAnalytics(data)
-    }),
-    core.ListenerConfig{
-        Async: true, // Default
-    },
-)
-```
-
-### Unregistering Listeners
-
-```go
-// Register with a custom ID
-listenerID := manager.RegisterWithConfig(core.EventLogin,
-    core.ListenerFunc(func(data *core.EventData) {
-        fmt.Println("Temporary listener")
-    }),
-    core.ListenerConfig{
-        ID: "my-temp-listener",
-    },
-)
-
-// Later, unregister by ID
-manager.Unregister(listenerID)
-```
-
-### Wildcard Listeners
-
-Listen to all events:
-
-```go
-// Listen to all events
-manager.RegisterFunc(core.EventAll, func(data *core.EventData) {
-    fmt.Printf("[%s] LoginID: %s\n", data.Event, data.LoginID)
-})
-```
-
-### Custom Panic Handler
-
-Handle panics in listeners gracefully:
-
-```go
-eventMgr.SetPanicHandler(func(event core.Event, data *core.EventData, recovered interface{}) {
-    log.Printf("Listener panic: event=%s, error=%v, data=%+v", event, recovered, data)
-    // Send alert, increment error counter, etc.
-})
-```
-
-### Enable/Disable Events
-
-Control which events are active:
-
-```go
-// Disable specific events
-eventMgr.DisableEvent(core.EventRenew, core.EventPermissionCheck)
-
-// Enable only specific events
-eventMgr.EnableEvent(core.EventLogin, core.EventLogout, core.EventKickout)
-
-// Enable all events
-eventMgr.EnableEvent() // No arguments = enable all
-```
-
-### Wait for Async Listeners
-
-Useful for testing or graceful shutdown:
-
-```go
-// Trigger events
-stputil.Login(1000)
-stputil.Login(2000)
-
-// Wait for all async listeners to complete
-manager.WaitEvents()
-```
-
-## Best Practices
-
-### 1. Use Async for Non-Critical Operations
-
-```go
-// ✅ Good: Async for logging
-manager.RegisterWithConfig(core.EventLogin,
-    core.ListenerFunc(func(data *core.EventData) {
-        logToFile(data) // Can be async
-    }),
-    core.ListenerConfig{Async: true},
-)
-
-// ❌ Avoid: Sync for slow operations
-manager.RegisterWithConfig(core.EventLogin,
-    core.ListenerFunc(func(data *core.EventData) {
-        sendEmail(data) // Slow operation blocks login
-    }),
-    core.ListenerConfig{Async: false},
-)
-```
-
-### 2. Keep Listeners Fast and Lightweight
-
-```go
-// ✅ Good: Quick processing
-manager.RegisterFunc(core.EventLogin, func(data *core.EventData) {
-    counter.Increment("login_count")
-})
-
-// ❌ Avoid: Heavy processing
-manager.RegisterFunc(core.EventLogin, func(data *core.EventData) {
-    processLargeDataset() // This should be in a background job
-})
-```
-
-### 3. Use Priority for Order-Sensitive Operations
-
-```go
-// Validation (high priority)
-manager.RegisterWithConfig(core.EventLogin,
-    validationListener,
-    core.ListenerConfig{Priority: 100},
-)
-
-// Logging (low priority)
-manager.RegisterWithConfig(core.EventLogin,
-    loggingListener,
-    core.ListenerConfig{Priority: 10},
-)
-```
-
-### 4. Handle Errors Gracefully
-
-```go
-manager.RegisterFunc(core.EventLogin, func(data *core.EventData) {
-    defer func() {
-        if r := recover(); r != nil {
-            log.Printf("Listener error: %v", r)
-        }
-    }()
-    
-    // Your listener logic
-    riskyOperation(data)
-})
-```
-
-## Examples
-
-### Example 1: Audit Logger
-
-```go
-type AuditLogger struct {
-    file *os.File
-}
-
-func (a *AuditLogger) OnEvent(data *core.EventData) {
-    entry := fmt.Sprintf("[%d] %s - User: %s, Token: %s\n",
-        data.Timestamp, data.Event, data.LoginID, data.Token)
-    a.file.WriteString(entry)
-}
-
-// Usage
-logger := &AuditLogger{file: logFile}
-manager.Register(core.EventAll, logger)
-```
-
-### Example 2: Security Monitor
-
-```go
-type SecurityMonitor struct {
-    alertChan chan string
-}
-
-func (s *SecurityMonitor) OnEvent(data *core.EventData) {
-    switch data.Event {
-    case core.EventKickout:
-        s.alertChan <- fmt.Sprintf("User %s was kicked out", data.LoginID)
-    case core.EventDisable:
-        s.alertChan <- fmt.Sprintf("Account %s was disabled", data.LoginID)
-    }
-}
-
-// Usage
-monitor := &SecurityMonitor{alertChan: make(chan string, 100)}
-manager.Register(core.EventKickout, monitor)
-manager.Register(core.EventDisable, monitor)
-```
-
-### Example 3: Login Counter with Redis
-
-```go
-manager.RegisterFunc(core.EventLogin, func(data *core.EventData) {
-    // Increment daily login counter
-    key := fmt.Sprintf("login:count:%s", time.Now().Format("2006-01-02"))
-    redisClient.Incr(ctx, key)
-    redisClient.Expire(ctx, key, 7*24*time.Hour)
-    
-    // Track unique users
-    userKey := fmt.Sprintf("login:users:%s", time.Now().Format("2006-01-02"))
-    redisClient.SAdd(ctx, userKey, data.LoginID)
-})
-```
-
-### Example 4: Multi-Factor Authentication
-
-```go
-manager.RegisterWithConfig(core.EventLogin,
-    core.ListenerFunc(func(data *core.EventData) {
-        // Check if MFA is required
-        if requiresMFA(data.LoginID) {
-            // Store pending MFA verification
-            storePendingMFA(data.LoginID, data.Token)
-            
-            // Send MFA code
-            sendMFACode(data.LoginID)
-        }
-    }),
-    core.ListenerConfig{
-        Async:    false, // Must complete before login returns
-        Priority: 100,   // High priority
-    },
-)
-```
-
-### Example 5: Session Analytics
-
-```go
-type SessionAnalytics struct {
-    sessions map[string]time.Time
-    mu       sync.RWMutex
-}
-
-func (s *SessionAnalytics) OnEvent(data *core.EventData) {
-    s.mu.Lock()
-    defer s.mu.Unlock()
-    
-    switch data.Event {
-    case core.EventCreateSession:
-        s.sessions[data.LoginID] = time.Now()
-    case core.EventDestroySession:
-        if startTime, ok := s.sessions[data.LoginID]; ok {
-            duration := time.Since(startTime)
-            recordSessionDuration(data.LoginID, duration)
-            delete(s.sessions, data.LoginID)
-        }
-    }
-}
-
-// Usage
-analytics := &SessionAnalytics{sessions: make(map[string]time.Time)}
-manager.Register(core.EventCreateSession, analytics)
-manager.Register(core.EventDestroySession, analytics)
-```
-
-## EventData Structure
+事件载荷结构在 `core/listener/listener.go` 中定义：
 
 ```go
 type EventData struct {
-    Event     Event                  // Event type (e.g., "login", "logout")
-    LoginID   string                 // User login identifier
-    Device    string                 // Device identifier (e.g., "web", "mobile")
-    Token     string                 // Authentication token
-    Extra     map[string]interface{} // Custom data (event-specific)
-    Timestamp int64                  // Unix timestamp when event occurred
+    Event     Event
+    AuthType  string
+    LoginID   string
+    Device    string
+    DeviceId  string
+    Token     string
+    Extra     map[string]any
+    Timestamp int64
 }
 ```
 
-### Accessing Extra Data
+其中：
+
+- `AuthType`：当前认证体系
+- `LoginID`：账号 ID
+- `Device` / `DeviceId`：终端信息
+- `Token`：相关 token
+- `Extra`：额外信息，比如权限校验结果、服务封禁等级等
+
+## Extra 字段常量
+
+当前额外字段常量包括：
+
+- `ExtraKeyPermission`
+- `ExtraKeyPermissions`
+- `ExtraKeyRole`
+- `ExtraKeyRoles`
+- `ExtraKeyLogic`
+- `ExtraKeyResult`
+- `ExtraKeyService`
+- `ExtraKeyLevel`
+
+## core/listener 包能力
+
+虽然还没接到 `stputil` 的公开入口上，但 `core/listener` 包本身是可用的。
+
+### 创建监听管理器
 
 ```go
-manager.RegisterFunc(core.EventLogin, func(data *core.EventData) {
-    if ipAddr, ok := data.Extra["ip_address"].(string); ok {
-        fmt.Printf("Login from IP: %s\n", ipAddr)
-    }
-    
-    if userAgent, ok := data.Extra["user_agent"].(string); ok {
-        fmt.Printf("User agent: %s\n", userAgent)
-    }
+import (
+    "github.com/click33/sa-token-go/core/listener"
+)
+
+eventMgr := listener.NewManager()
+```
+
+### 注册监听器
+
+```go
+id := eventMgr.RegisterFunc(listener.EventLogin, func(data *listener.EventData) {
+    println("login:", data.LoginID)
+})
+
+_ = id
+```
+
+### 使用配置注册
+
+```go
+id := eventMgr.RegisterFuncWithConfig(
+    listener.EventLogin,
+    func(data *listener.EventData) {
+        println("login:", data.LoginID)
+    },
+    listener.ListenerConfig{
+        Async:    true,
+        Priority: 100,
+        ID:       "login-audit",
+    },
+)
+```
+
+### 注销监听器
+
+```go
+ok := eventMgr.Unregister("login-audit")
+_ = ok
+```
+
+## 高级能力
+
+### 全局过滤器
+
+```go
+eventMgr.AddFilter(func(data *listener.EventData) bool {
+    return data.AuthType == "satoken:"
 })
 ```
 
-## Thread Safety
+过滤器返回 `false` 时，事件不会继续分发。
 
-All event manager operations are thread-safe:
-
-```go
-// Safe to call from multiple goroutines
-go manager.RegisterFunc(core.EventLogin, handler1)
-go manager.RegisterFunc(core.EventLogin, handler2)
-go eventMgr.Trigger(&core.EventData{Event: core.EventLogin})
-```
-
-## Performance Considerations
-
-1. **Async by default**: Most listeners should be async to avoid blocking
-2. **Limit listeners**: Too many listeners can impact performance
-3. **Use priorities wisely**: Only when order matters
-4. **Monitor listener count**: Use `eventMgr.Count()` to track
+### 统计信息
 
 ```go
-// Check listener count
-totalListeners := eventMgr.Count()
-loginListeners := eventMgr.CountForEvent(core.EventLogin)
+eventMgr.EnableStats(true)
 
-fmt.Printf("Total listeners: %d, Login listeners: %d\n", 
-    totalListeners, loginListeners)
+stats := eventMgr.GetStats()
+println(stats.TotalTriggered)
 ```
 
-## Related Documentation
+### Panic 处理
 
-- [Authentication Guide](authentication.md)
-- [Session Management](session.md)
-- [Error Handling](../api/errors.md)
+```go
+eventMgr.SetPanicHandler(func(event listener.Event, data *listener.EventData, recovered any) {
+    println("listener panic:", event, recovered)
+})
+```
 
+### 启用 / 禁用事件
 
+```go
+eventMgr.DisableEvent(listener.EventRenew, listener.EventPermissionCheck)
+eventMgr.EnableEvent(listener.EventLogin, listener.EventLogout)
+eventMgr.EnableEvent() // 不传参表示启用全部
+```
+
+### 等待异步监听器完成
+
+```go
+eventMgr.Wait()
+```
+
+## 逻辑常量
+
+```go
+listener.LogicAnd
+listener.LogicOr
+```
+
+它们通常出现在权限 / 角色校验事件的 `Extra` 字段里。
+
+## 现阶段建议
+
+如果你只是使用 `stputil` 现成的登录能力：
+
+1. 可以先把这套事件文档当成“内部机制说明”
+2. 如果后续项目把监听器注册入口导出，再直接接业务审计、告警、统计
+
+如果你准备二次开发：
+
+1. 可以直接参考 `core/listener` 包
+2. 再结合 `manager.triggerEvent(...)` 这条内部链路做扩展
+
+## 相关文档
+
+- [登录认证](authentication_zh.md)
+- [权限管理](permission_zh.md)
+- [OAuth2 指南](oauth2_zh.md)

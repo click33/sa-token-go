@@ -1,162 +1,145 @@
 package fiber
 
 import (
+	"context"
 	"errors"
+	"net/http"
 
-	"github.com/click33/sa-token-go/core"
+	corecontext "github.com/click33/sa-token-go/core/context"
 	"github.com/click33/sa-token-go/core/manager"
-
-	saContext "github.com/click33/sa-token-go/core/context"
+	"github.com/click33/sa-token-go/core/serror"
 	"github.com/click33/sa-token-go/stputil"
-	"github.com/gofiber/fiber/v2"
+	gofiber "github.com/gofiber/fiber/v2"
 )
 
-// LogicType permission/role logic type | 权限/角色判断逻辑
+// LogicType defines permission and role check logic LogicType 定义权限与角色校验的逻辑类型。
 type LogicType string
 
 const (
-	SaTokenCtxKey = "saCtx"
+	// SaTokenCtxKey stores request scoped SaToken context SaTokenCtxKey 存储请求级 SaToken 上下文
+	SaTokenCtxKey = "SaTokenCtx"
 
-	LogicOr  LogicType = "OR"  // Logical OR | 任一满足
-	LogicAnd LogicType = "AND" // Logical AND | 全部满足
+	LogicOr  LogicType = "OR"
+	LogicAnd LogicType = "AND"
 )
 
+// AuthOption defines auth option setter AuthOption 定义认证选项设置器
 type AuthOption func(*AuthOptions)
 
+// AuthOptions carries middleware auth options AuthOptions 保存中间件认证选项。
 type AuthOptions struct {
 	AuthType  string
 	LogicType LogicType
-	FailFunc  func(c *fiber.Ctx, err error) error
+	FailFunc  func(c *gofiber.Ctx, err error)
 }
 
+// defaultAuthOptions returns default middleware options defaultAuthOptions 返回默认中间件选项。
 func defaultAuthOptions() *AuthOptions {
-	return &AuthOptions{LogicType: LogicAnd} // 默认 AND
+	return &AuthOptions{LogicType: LogicAnd}
 }
 
-// WithAuthType sets auth type | 设置认证类型
+// WithAuthType sets the auth type used by middleware WithAuthType 设置中间件使用的认证类型。
 func WithAuthType(authType string) AuthOption {
 	return func(o *AuthOptions) {
 		o.AuthType = authType
 	}
 }
 
-// WithLogicType sets LogicType option | 设置逻辑类型
+// WithLogicType sets the logic mode for permission and role checks WithLogicType 设置权限与角色校验的逻辑模式。
 func WithLogicType(logicType LogicType) AuthOption {
 	return func(o *AuthOptions) {
 		o.LogicType = logicType
 	}
 }
 
-// WithFailFunc sets auth failure callback | 设置认证失败回调
-func WithFailFunc(fn func(c *fiber.Ctx, err error) error) AuthOption {
+// WithFailFunc sets a custom auth failure callback WithFailFunc 设置自定义认证失败回调。
+func WithFailFunc(fn func(c *gofiber.Ctx, err error)) AuthOption {
 	return func(o *AuthOptions) {
 		o.FailFunc = fn
 	}
 }
 
-// ========== Middlewares ==========
-
-// AuthMiddleware authentication middleware | 认证中间件
-func AuthMiddleware(opts ...AuthOption) fiber.Handler {
+// RegisterSaTokenContextMiddleware initializes SaToken context for each request RegisterSaTokenContextMiddleware 为每个请求初始化 SaToken 上下文。
+func RegisterSaTokenContextMiddleware(ctx context.Context, opts ...AuthOption) gofiber.Handler {
 	options := defaultAuthOptions()
 	for _, opt := range opts {
 		opt(options)
 	}
 
-	return func(c *fiber.Ctx) error {
+	return func(c *gofiber.Ctx) error {
 		mgr, err := stputil.GetManager(options.AuthType)
 		if err != nil {
 			if options.FailFunc != nil {
-				return options.FailFunc(c, err)
+				options.FailFunc(c, err)
+				return nil
 			}
 			return writeErrorResponse(c, err)
 		}
 
-		// 获取 token | Get token
-		saCtx := getSaContext(c, mgr)
-		tokenValue := saCtx.GetTokenValue()
+		_ = getSaTokenContext(c, mgr)
+		return c.Next()
+	}
+}
 
-		// 检查登录 | Check login
-		err = mgr.CheckLogin(c.UserContext(), tokenValue)
+// AuthMiddleware checks whether the current request is authenticated AuthMiddleware 检查当前请求是否已认证。
+func AuthMiddleware(ctx context.Context, opts ...AuthOption) gofiber.Handler {
+	options := defaultAuthOptions()
+	for _, opt := range opts {
+		opt(options)
+	}
+
+	return func(c *gofiber.Ctx) error {
+		mgr, err := stputil.GetManager(options.AuthType)
 		if err != nil {
 			if options.FailFunc != nil {
-				return options.FailFunc(c, err)
+				options.FailFunc(c, err)
+				return nil
 			}
 			return writeErrorResponse(c, err)
+		}
+
+		saCtx := getSaTokenContext(c, mgr)
+		tokenValue := saCtx.GetTokenValue()
+		if !mgr.IsLogin(ctx, tokenValue) {
+			if options.FailFunc != nil {
+				options.FailFunc(c, serror.ErrTokenExpired)
+				return nil
+			}
+			return writeErrorResponse(c, serror.ErrTokenExpired)
 		}
 
 		return c.Next()
 	}
 }
 
-// AuthWithStateMiddleware with state authentication middleware | 带状态返回的认证中间件
-func AuthWithStateMiddleware(opts ...AuthOption) fiber.Handler {
-	options := defaultAuthOptions()
-	for _, opt := range opts {
-		opt(options)
-	}
-
-	return func(c *fiber.Ctx) error {
-		// 获取 Manager | Get Manager
-		mgr, err := stputil.GetManager(options.AuthType)
-		if err != nil {
-			if options.FailFunc != nil {
-				return options.FailFunc(c, err)
-			}
-			return writeErrorResponse(c, err)
-		}
-
-		// 构建 Sa-Token 上下文 | Build Sa-Token context
-		saCtx := getSaContext(c, mgr)
-		tokenValue := saCtx.GetTokenValue()
-
-		// 检查登录并返回状态 | Check login with state
-		_, err = mgr.CheckLoginWithState(c.UserContext(), tokenValue)
-
-		if err != nil {
-			// 用户自定义回调优先
-			if options.FailFunc != nil {
-				return options.FailFunc(c, err)
-			}
-			return writeErrorResponse(c, err)
-		}
-
-		return c.Next()
-	}
-}
-
-// PermissionMiddleware permission check middleware | 权限校验中间件
+// PermissionMiddleware checks whether the current token has required permissions PermissionMiddleware 检查当前 token 是否具备所需权限
 func PermissionMiddleware(
+	ctx context.Context,
 	permissions []string,
 	opts ...AuthOption,
-) fiber.Handler {
-
+) gofiber.Handler {
 	options := defaultAuthOptions()
 	for _, opt := range opts {
 		opt(options)
 	}
 
-	return func(c *fiber.Ctx) error {
-		// No permission required | 无需权限直接放行
+	return func(c *gofiber.Ctx) error {
 		if len(permissions) == 0 {
 			return c.Next()
 		}
 
-		// Get Manager | 获取 Manager
 		mgr, err := stputil.GetManager(options.AuthType)
 		if err != nil {
 			if options.FailFunc != nil {
-				return options.FailFunc(c, err)
+				options.FailFunc(c, err)
+				return nil
 			}
 			return writeErrorResponse(c, err)
 		}
 
-		// 构建 Sa-Token 上下文 | Build Sa-Token context
-		saCtx := getSaContext(c, mgr)
+		saCtx := getSaTokenContext(c, mgr)
 		tokenValue := saCtx.GetTokenValue()
-		ctx := c.UserContext()
 
-		// Permission check | 权限校验
 		var ok bool
 		if options.LogicType == LogicAnd {
 			ok = mgr.HasPermissionsAndByToken(ctx, tokenValue, permissions)
@@ -166,47 +149,44 @@ func PermissionMiddleware(
 
 		if !ok {
 			if options.FailFunc != nil {
-				return options.FailFunc(c, core.ErrPermissionDenied)
+				options.FailFunc(c, serror.ErrPermissionDenied)
+				return nil
 			}
-			return writeErrorResponse(c, core.ErrPermissionDenied)
+			return writeErrorResponse(c, serror.ErrPermissionDenied)
 		}
 
 		return c.Next()
 	}
 }
 
-// RoleMiddleware role check middleware | 角色校验中间件
+// RoleMiddleware checks whether the current token has required roles RoleMiddleware 检查当前 token 是否具备所需角色
 func RoleMiddleware(
+	ctx context.Context,
 	roles []string,
 	opts ...AuthOption,
-) fiber.Handler {
-
+) gofiber.Handler {
 	options := defaultAuthOptions()
 	for _, opt := range opts {
 		opt(options)
 	}
 
-	return func(c *fiber.Ctx) error {
-		// No role required | 无需角色直接放行
+	return func(c *gofiber.Ctx) error {
 		if len(roles) == 0 {
 			return c.Next()
 		}
 
-		// Get Manager | 获取 Manager
 		mgr, err := stputil.GetManager(options.AuthType)
 		if err != nil {
 			if options.FailFunc != nil {
-				return options.FailFunc(c, err)
+				options.FailFunc(c, err)
+				return nil
 			}
 			return writeErrorResponse(c, err)
 		}
 
-		// 构建 Sa-Token 上下文 | Build Sa-Token context
-		saCtx := getSaContext(c, mgr)
+		saCtx := getSaTokenContext(c, mgr)
 		tokenValue := saCtx.GetTokenValue()
-		ctx := c.UserContext()
 
-		// Role check | 角色校验
 		var ok bool
 		if options.LogicType == LogicAnd {
 			ok = mgr.HasRolesAndByToken(ctx, tokenValue, roles)
@@ -216,92 +196,87 @@ func RoleMiddleware(
 
 		if !ok {
 			if options.FailFunc != nil {
-				return options.FailFunc(c, core.ErrRoleDenied)
+				options.FailFunc(c, serror.ErrRoleDenied)
+				return nil
 			}
-			return writeErrorResponse(c, core.ErrRoleDenied)
+			return writeErrorResponse(c, serror.ErrRoleDenied)
 		}
 
 		return c.Next()
 	}
 }
 
-// GetSaTokenContext gets Sa-Token context from Fiber context | 获取 Sa-Token 上下文
-func GetSaTokenContext(c *fiber.Ctx) (*saContext.SaTokenContext, bool) {
-	v := c.Locals(SaTokenCtxKey)
-	if v == nil {
+// GetSaTokenContext gets cached SaToken context from Fiber request GetSaTokenContext 从 Fiber 请求中获取缓存的 SaToken 上下文。
+func GetSaTokenContext(c *gofiber.Ctx) (*corecontext.SaTokenContext, bool) {
+	value := c.Locals(SaTokenCtxKey)
+	if value == nil {
 		return nil, false
 	}
 
-	ctx, ok := v.(*saContext.SaTokenContext)
-	return ctx, ok
+	saCtx, ok := value.(*corecontext.SaTokenContext)
+	return saCtx, ok
 }
 
-func getSaContext(c *fiber.Ctx, mgr *manager.Manager) *saContext.SaTokenContext {
-	// Try get from context | 尝试从 ctx 取值
-	if v := c.Locals(SaTokenCtxKey); v != nil {
-		if saCtx, ok := v.(*saContext.SaTokenContext); ok {
+// getSaTokenContext gets or creates sa-token context getSaTokenContext 获取或创建 SaToken 上下文
+func getSaTokenContext(c *gofiber.Ctx, mgr *manager.Manager) *corecontext.SaTokenContext {
+	if value := c.Locals(SaTokenCtxKey); value != nil {
+		if saCtx, ok := value.(*corecontext.SaTokenContext); ok {
 			return saCtx
 		}
 	}
 
-	// Create new context | 创建并缓存 SaTokenContext
-	saCtx := saContext.NewContext(NewFiberContext(c), mgr)
+	saCtx := corecontext.NewContext(NewFiberContext(c), mgr)
 	c.Locals(SaTokenCtxKey, saCtx)
-
 	return saCtx
 }
 
-// ============ Error Handling Helpers | 错误处理辅助函数 ============
-
-// writeErrorResponse writes a standardized error response | 写入标准化的错误响应
-func writeErrorResponse(c *fiber.Ctx, err error) error {
-	var saErr *core.SaTokenError
+// writeErrorResponse writes a standard error response writeErrorResponse 写入标准错误响应。
+func writeErrorResponse(c *gofiber.Ctx, err error) error {
+	var saErr *serror.SaTokenError
 	var code int
 	var message string
 	var httpStatus int
 
-	// Check if it's a SaTokenError | 检查是否为SaTokenError
 	if errors.As(err, &saErr) {
 		code = saErr.Code
 		message = saErr.Message
 		httpStatus = getHTTPStatusFromCode(code)
 	} else {
-		// Handle standard errors | 处理标准错误
-		code = core.CodeServerError
+		code = serror.CodeServerError
 		message = err.Error()
-		httpStatus = fiber.StatusInternalServerError
+		httpStatus = http.StatusInternalServerError
 	}
 
-	return c.Status(httpStatus).JSON(fiber.Map{
+	return c.Status(httpStatus).JSON(gofiber.Map{
 		"code":    code,
 		"message": message,
 		"data":    err.Error(),
 	})
 }
 
-// writeSuccessResponse writes a standardized success response | 写入标准化的成功响应
-func writeSuccessResponse(c *fiber.Ctx, data interface{}) error {
-	return c.JSON(fiber.Map{
-		"code":    core.CodeSuccess,
+// writeSuccessResponse writes a standard success response writeSuccessResponse 写入标准成功响应。
+func writeSuccessResponse(c *gofiber.Ctx, data interface{}) error {
+	return c.Status(http.StatusOK).JSON(gofiber.Map{
+		"code":    serror.CodeSuccess,
 		"message": "success",
 		"data":    data,
 	})
 }
 
-// getHTTPStatusFromCode converts Sa-Token error code to HTTP status | 将Sa-Token错误码转换为HTTP状态码
+// getHTTPStatusFromCode maps SaToken error code to HTTP status getHTTPStatusFromCode 将 SaToken 错误码映射为 HTTP 状态码。
 func getHTTPStatusFromCode(code int) int {
 	switch code {
-	case core.CodeNotLogin:
-		return fiber.StatusUnauthorized
-	case core.CodePermissionDenied:
-		return fiber.StatusForbidden
-	case core.CodeBadRequest:
-		return fiber.StatusBadRequest
-	case core.CodeNotFound:
-		return fiber.StatusNotFound
-	case core.CodeServerError:
-		return fiber.StatusInternalServerError
+	case serror.CodeNotLogin:
+		return http.StatusUnauthorized
+	case serror.CodePermissionDenied:
+		return http.StatusForbidden
+	case serror.CodeBadRequest:
+		return http.StatusBadRequest
+	case serror.CodeNotFound:
+		return http.StatusNotFound
+	case serror.CodeServerError:
+		return http.StatusInternalServerError
 	default:
-		return fiber.StatusInternalServerError
+		return http.StatusInternalServerError
 	}
 }

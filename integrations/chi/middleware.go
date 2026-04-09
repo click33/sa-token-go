@@ -1,63 +1,93 @@
 package chi
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
 
-	"github.com/click33/sa-token-go/core"
+	SaContext "github.com/click33/sa-token-go/core/context"
 	"github.com/click33/sa-token-go/core/manager"
-
-	saContext "github.com/click33/sa-token-go/core/context"
+	"github.com/click33/sa-token-go/core/serror"
 	"github.com/click33/sa-token-go/stputil"
 )
 
-// LogicType permission/role logic type | 权限/角色判断逻辑
+// LogicType defines middleware logic type LogicType 定义中间件逻辑类型
 type LogicType string
 
 const (
-	SaTokenCtxKey = "saCtx"
+	// SaTokenCtxKey stores request scoped SaToken context SaTokenCtxKey 存储请求级 SaToken 上下文
+	SaTokenCtxKey = "SaTokenCtx"
 
-	LogicOr  LogicType = "OR"  // Logical OR | 任一满足
-	LogicAnd LogicType = "AND" // Logical AND | 全部满足
+	// LogicOr represents OR logic LogicOr 表示或逻辑
+	LogicOr LogicType = "OR"
+	// LogicAnd represents AND logic LogicAnd 表示与逻辑
+	LogicAnd LogicType = "AND"
 )
 
+// AuthOption defines auth option setter AuthOption 定义认证选项设置器
 type AuthOption func(*AuthOptions)
 
+// AuthOptions defines middleware auth options AuthOptions 定义中间件认证选项
 type AuthOptions struct {
 	AuthType  string
 	LogicType LogicType
 	FailFunc  func(w http.ResponseWriter, r *http.Request, err error)
 }
 
+// defaultAuthOptions returns default auth options defaultAuthOptions 返回默认认证选项
 func defaultAuthOptions() *AuthOptions {
-	return &AuthOptions{LogicType: LogicAnd} // 默认 AND
+	return &AuthOptions{LogicType: LogicAnd}
 }
 
-// WithAuthType sets auth type | 设置认证类型
+// WithAuthType sets auth type WithAuthType 设置认证类型
 func WithAuthType(authType string) AuthOption {
 	return func(o *AuthOptions) {
 		o.AuthType = authType
 	}
 }
 
-// WithLogicType sets LogicType option | 设置逻辑类型
+// WithLogicType sets logic type WithLogicType 设置逻辑类型
 func WithLogicType(logicType LogicType) AuthOption {
 	return func(o *AuthOptions) {
 		o.LogicType = logicType
 	}
 }
 
-// WithFailFunc sets auth failure callback | 设置认证失败回调
+// WithFailFunc sets auth failure callback WithFailFunc 设置认证失败回调
 func WithFailFunc(fn func(w http.ResponseWriter, r *http.Request, err error)) AuthOption {
 	return func(o *AuthOptions) {
 		o.FailFunc = fn
 	}
 }
 
-// ========== Middlewares ==========
+// RegisterSaTokenContextMiddleware registers SaToken context middleware RegisterSaTokenContextMiddleware 注册 SaToken 上下文中间件
+func RegisterSaTokenContextMiddleware(opts ...AuthOption) func(http.Handler) http.Handler {
+	options := defaultAuthOptions()
+	for _, opt := range opts {
+		opt(options)
+	}
 
-// AuthMiddleware authentication middleware | 认证中间件
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			mgr, err := stputil.GetManager(options.AuthType)
+			if err != nil {
+				if options.FailFunc != nil {
+					options.FailFunc(w, r, err)
+				} else {
+					writeErrorResponse(w, err)
+				}
+				return
+			}
+
+			chiCtx := NewChiContext(w, r).(*ChiContext)
+			_ = getSaTokenContext(chiCtx, mgr)
+			next.ServeHTTP(w, chiCtx.r)
+		})
+	}
+}
+
+// AuthMiddleware checks login status AuthMiddleware 校验登录状态
 func AuthMiddleware(opts ...AuthOption) func(http.Handler) http.Handler {
 	options := defaultAuthOptions()
 	for _, opt := range opts {
@@ -76,29 +106,26 @@ func AuthMiddleware(opts ...AuthOption) func(http.Handler) http.Handler {
 				return
 			}
 
-			// 获取 token | Get token
-			ctx := NewChiContext(w, r)
-			saCtx := getSaContext(ctx.(*ChiContext), r, mgr)
+			chiCtx := NewChiContext(w, r).(*ChiContext)
+			saCtx := getSaTokenContext(chiCtx, mgr)
 			tokenValue := saCtx.GetTokenValue()
 
-			// 检查登录 | Check login
-			err = mgr.CheckLogin(r.Context(), tokenValue)
-			if err != nil {
+			if !mgr.IsLogin(chiCtx.r.Context(), tokenValue) {
 				if options.FailFunc != nil {
-					options.FailFunc(w, r, err)
+					options.FailFunc(w, chiCtx.r, serror.ErrTokenExpired)
 				} else {
-					writeErrorResponse(w, err)
+					writeErrorResponse(w, serror.ErrTokenExpired)
 				}
 				return
 			}
 
-			next.ServeHTTP(w, r)
+			next.ServeHTTP(w, chiCtx.r)
 		})
 	}
 }
 
-// AuthWithStateMiddleware with state authentication middleware | 带状态返回的认证中间件
-func AuthWithStateMiddleware(opts ...AuthOption) func(http.Handler) http.Handler {
+// PermissionMiddleware checks permissions PermissionMiddleware 校验权限
+func PermissionMiddleware(permissions []string, opts ...AuthOption) func(http.Handler) http.Handler {
 	options := defaultAuthOptions()
 	for _, opt := range opts {
 		opt(options)
@@ -106,61 +133,11 @@ func AuthWithStateMiddleware(opts ...AuthOption) func(http.Handler) http.Handler
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// 获取 Manager | Get Manager
-			mgr, err := stputil.GetManager(options.AuthType)
-			if err != nil {
-				if options.FailFunc != nil {
-					options.FailFunc(w, r, err)
-				} else {
-					writeErrorResponse(w, err)
-				}
-				return
-			}
-
-			// 构建 Sa-Token 上下文 | Build Sa-Token context
-			ctx := NewChiContext(w, r)
-			saCtx := getSaContext(ctx.(*ChiContext), r, mgr)
-			tokenValue := saCtx.GetTokenValue()
-
-			// 检查登录并返回状态 | Check login with state
-			_, err = mgr.CheckLoginWithState(r.Context(), tokenValue)
-
-			if err != nil {
-				// 用户自定义回调优先
-				if options.FailFunc != nil {
-					options.FailFunc(w, r, err)
-				} else {
-					writeErrorResponse(w, err)
-				}
-
-				return
-			}
-
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
-// PermissionMiddleware permission check middleware | 权限校验中间件
-func PermissionMiddleware(
-	permissions []string,
-	opts ...AuthOption,
-) func(http.Handler) http.Handler {
-
-	options := defaultAuthOptions()
-	for _, opt := range opts {
-		opt(options)
-	}
-
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// No permission required | 无需权限直接放行
 			if len(permissions) == 0 {
 				next.ServeHTTP(w, r)
 				return
 			}
 
-			// Get Manager | 获取 Manager
 			mgr, err := stputil.GetManager(options.AuthType)
 			if err != nil {
 				if options.FailFunc != nil {
@@ -171,40 +148,33 @@ func PermissionMiddleware(
 				return
 			}
 
-			// 构建 Sa-Token 上下文 | Build Sa-Token context
-			ctx := NewChiContext(w, r)
-			saCtx := getSaContext(ctx.(*ChiContext), r, mgr)
+			chiCtx := NewChiContext(w, r).(*ChiContext)
+			saCtx := getSaTokenContext(chiCtx, mgr)
 			tokenValue := saCtx.GetTokenValue()
-			reqCtx := r.Context()
 
-			// Permission check | 权限校验
 			var ok bool
 			if options.LogicType == LogicAnd {
-				ok = mgr.HasPermissionsAndByToken(reqCtx, tokenValue, permissions)
+				ok = mgr.HasPermissionsAndByToken(chiCtx.r.Context(), tokenValue, permissions)
 			} else {
-				ok = mgr.HasPermissionsOrByToken(reqCtx, tokenValue, permissions)
+				ok = mgr.HasPermissionsOrByToken(chiCtx.r.Context(), tokenValue, permissions)
 			}
 
 			if !ok {
 				if options.FailFunc != nil {
-					options.FailFunc(w, r, core.ErrPermissionDenied)
+					options.FailFunc(w, chiCtx.r, serror.ErrPermissionDenied)
 				} else {
-					writeErrorResponse(w, core.ErrPermissionDenied)
+					writeErrorResponse(w, serror.ErrPermissionDenied)
 				}
 				return
 			}
 
-			next.ServeHTTP(w, r)
+			next.ServeHTTP(w, chiCtx.r)
 		})
 	}
 }
 
-// RoleMiddleware role check middleware | 角色校验中间件
-func RoleMiddleware(
-	roles []string,
-	opts ...AuthOption,
-) func(http.Handler) http.Handler {
-
+// PermissionPathMiddleware checks path permissions PermissionPathMiddleware 基于路径校验权限
+func PermissionPathMiddleware(permissions []string, opts ...AuthOption) func(http.Handler) http.Handler {
 	options := defaultAuthOptions()
 	for _, opt := range opts {
 		opt(options)
@@ -212,13 +182,14 @@ func RoleMiddleware(
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// No role required | 无需角色直接放行
-			if len(roles) == 0 {
+			reqPermissions := append([]string{}, permissions...)
+			reqPermissions = append(reqPermissions, r.URL.Path)
+
+			if len(reqPermissions) == 0 {
 				next.ServeHTTP(w, r)
 				return
 			}
 
-			// Get Manager | 获取 Manager
 			mgr, err := stputil.GetManager(options.AuthType)
 			if err != nil {
 				if options.FailFunc != nil {
@@ -229,112 +200,182 @@ func RoleMiddleware(
 				return
 			}
 
-			// 构建 Sa-Token 上下文 | Build Sa-Token context
-			ctx := NewChiContext(w, r)
-			saCtx := getSaContext(ctx.(*ChiContext), r, mgr)
+			chiCtx := NewChiContext(w, r).(*ChiContext)
+			saCtx := getSaTokenContext(chiCtx, mgr)
 			tokenValue := saCtx.GetTokenValue()
-			reqCtx := r.Context()
 
-			// Role check | 角色校验
 			var ok bool
 			if options.LogicType == LogicAnd {
-				ok = mgr.HasRolesAndByToken(reqCtx, tokenValue, roles)
+				ok = mgr.HasPermissionsAndByToken(chiCtx.r.Context(), tokenValue, reqPermissions)
 			} else {
-				ok = mgr.HasRolesOrByToken(reqCtx, tokenValue, roles)
+				ok = mgr.HasPermissionsOrByToken(chiCtx.r.Context(), tokenValue, reqPermissions)
 			}
 
 			if !ok {
 				if options.FailFunc != nil {
-					options.FailFunc(w, r, core.ErrRoleDenied)
+					options.FailFunc(w, chiCtx.r, serror.ErrPermissionDenied)
 				} else {
-					writeErrorResponse(w, core.ErrRoleDenied)
+					writeErrorResponse(w, serror.ErrPermissionDenied)
 				}
 				return
 			}
 
-			next.ServeHTTP(w, r)
+			next.ServeHTTP(w, chiCtx.r)
 		})
 	}
 }
 
-// GetSaTokenContext gets Sa-Token context from request | 获取 Sa-Token 上下文
-func GetSaTokenContext(r *http.Request) (*saContext.SaTokenContext, bool) {
+// RoleMiddleware checks roles RoleMiddleware 校验角色
+func RoleMiddleware(roles []string, opts ...AuthOption) func(http.Handler) http.Handler {
+	options := defaultAuthOptions()
+	for _, opt := range opts {
+		opt(options)
+	}
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if len(roles) == 0 {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			mgr, err := stputil.GetManager(options.AuthType)
+			if err != nil {
+				if options.FailFunc != nil {
+					options.FailFunc(w, r, err)
+				} else {
+					writeErrorResponse(w, err)
+				}
+				return
+			}
+
+			chiCtx := NewChiContext(w, r).(*ChiContext)
+			saCtx := getSaTokenContext(chiCtx, mgr)
+			tokenValue := saCtx.GetTokenValue()
+
+			var ok bool
+			if options.LogicType == LogicAnd {
+				ok = mgr.HasRolesAndByToken(chiCtx.r.Context(), tokenValue, roles)
+			} else {
+				ok = mgr.HasRolesOrByToken(chiCtx.r.Context(), tokenValue, roles)
+			}
+
+			if !ok {
+				if options.FailFunc != nil {
+					options.FailFunc(w, chiCtx.r, serror.ErrRoleDenied)
+				} else {
+					writeErrorResponse(w, serror.ErrRoleDenied)
+				}
+				return
+			}
+
+			next.ServeHTTP(w, chiCtx.r)
+		})
+	}
+}
+
+// GetSaTokenContext gets cached SaToken context GetSaTokenContext 获取缓存的 SaToken 上下文
+func GetSaTokenContext(r *http.Request) (*SaContext.SaTokenContext, bool) {
 	v := r.Context().Value(SaTokenCtxKey)
 	if v == nil {
 		return nil, false
 	}
 
-	ctx, ok := v.(*saContext.SaTokenContext)
-	return ctx, ok
+	saCtx, ok := v.(*SaContext.SaTokenContext)
+	return saCtx, ok
 }
 
-func getSaContext(chiCtx *ChiContext, r *http.Request, mgr *manager.Manager) *saContext.SaTokenContext {
-	// Try get from context | 尝试从 ctx 取值
-	if v := r.Context().Value(SaTokenCtxKey); v != nil {
-		if saCtx, ok := v.(*saContext.SaTokenContext); ok {
+// GetSaTokenContextByCtx gets SaToken context by context GetSaTokenContextByCtx 从上下文获取 SaToken 上下文
+func GetSaTokenContextByCtx(ctx context.Context) (*SaContext.SaTokenContext, bool) {
+	v := ctx.Value(SaTokenCtxKey)
+	if v == nil {
+		return nil, false
+	}
+
+	saCtx, ok := v.(*SaContext.SaTokenContext)
+	return saCtx, ok
+}
+
+// GetLoginIDByCtx gets login ID by context GetLoginIDByCtx 从上下文获取登录 ID
+func GetLoginIDByCtx(ctx context.Context) (string, error) {
+	saCtx, ok := GetSaTokenContextByCtx(ctx)
+	if !ok {
+		return "", serror.ErrNotLogin
+	}
+	return saCtx.GetLoginID(ctx)
+}
+
+// GetTokenInfoByCtx gets token info by context GetTokenInfoByCtx 从上下文获取 Token 信息
+func GetTokenInfoByCtx(ctx context.Context) (*manager.TokenInfo, error) {
+	saCtx, ok := GetSaTokenContextByCtx(ctx)
+	if !ok {
+		return nil, serror.ErrNotLogin
+	}
+	return saCtx.GetTokenInfo(ctx)
+}
+
+// getSaTokenContext gets or creates sa-token context getSaTokenContext 获取或创建 SaToken 上下文
+func getSaTokenContext(chiCtx *ChiContext, mgr *manager.Manager) *SaContext.SaTokenContext {
+	if v := chiCtx.r.Context().Value(SaTokenCtxKey); v != nil {
+		if saCtx, ok := v.(*SaContext.SaTokenContext); ok {
 			return saCtx
 		}
 	}
 
-	// Create new context | 创建并缓存 SaTokenContext
-	saCtx := saContext.NewContext(chiCtx, mgr)
+	saCtx := SaContext.NewContext(chiCtx, mgr)
 	chiCtx.Set(SaTokenCtxKey, saCtx)
-
 	return saCtx
 }
 
-// ============ Error Handling Helpers | 错误处理辅助函数 ============
-
-// writeErrorResponse writes a standardized error response | 写入标准化的错误响应
+// writeErrorResponse writes error response writeErrorResponse 写入错误响应
 func writeErrorResponse(w http.ResponseWriter, err error) {
-	var saErr *core.SaTokenError
+	var saErr *serror.SaTokenError
 	var code int
 	var message string
 	var httpStatus int
 
-	// Check if it's a SaTokenError | 检查是否为SaTokenError
 	if errors.As(err, &saErr) {
 		code = saErr.Code
 		message = saErr.Message
 		httpStatus = getHTTPStatusFromCode(code)
 	} else {
-		// Handle standard errors | 处理标准错误
-		code = core.CodeServerError
+		code = serror.CodeServerError
 		message = err.Error()
 		httpStatus = http.StatusInternalServerError
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(httpStatus)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"code":    code,
 		"message": message,
 		"data":    err.Error(),
 	})
 }
 
-// writeSuccessResponse writes a standardized success response | 写入标准化的成功响应
+// writeSuccessResponse writes success response writeSuccessResponse 写入成功响应
 func writeSuccessResponse(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"code":    core.CodeSuccess,
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"code":    serror.CodeSuccess,
 		"message": "success",
 		"data":    data,
 	})
 }
 
-// getHTTPStatusFromCode converts Sa-Token error code to HTTP status | 将Sa-Token错误码转换为HTTP状态码
+// getHTTPStatusFromCode maps error code to HTTP status getHTTPStatusFromCode 映射错误码到 HTTP 状态码
 func getHTTPStatusFromCode(code int) int {
 	switch code {
-	case core.CodeNotLogin:
+	case serror.CodeNotLogin:
 		return http.StatusUnauthorized
-	case core.CodePermissionDenied:
+	case serror.CodePermissionDenied:
 		return http.StatusForbidden
-	case core.CodeBadRequest:
+	case serror.CodeBadRequest:
 		return http.StatusBadRequest
-	case core.CodeNotFound:
+	case serror.CodeNotFound:
 		return http.StatusNotFound
-	case core.CodeServerError:
+	case serror.CodeServerError:
 		return http.StatusInternalServerError
 	default:
 		return http.StatusInternalServerError

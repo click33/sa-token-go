@@ -1,5 +1,5 @@
-// @Author daixk 2025/12/22 13:33:00
+// @Author daixk 2026/1/21 10:42:00
 package core
 
-// Version Sa-Token-Go version | Sa-Token-Go版本
-const Version = "0.1.7"
+// Version version 全局版本号
+const Version = "0.1.9"

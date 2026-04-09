@@ -2,27 +2,27 @@
 
 **English** | **[中文](README_zh.md)**
 
-[![Go Version](https://img.shields.io/badge/Go-%3E%3D1.21-blue)](https://img.shields.io)
+[![Go Version](https://img.shields.io/badge/Go-%3E%3D1.25-blue)](https://img.shields.io)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://opensource.org/licenses/Apache-2.0)
 
 A lightweight, high-performance Go authentication and authorization framework, inspired by [sa-token](https://github.com/dromara/sa-token).
 
 ## ✨ Core Features
 
-- 🔐 **Authentication** - Multi-device login, Token management
-- 🛡️ **Authorization** - Fine-grained permission control, wildcard support (`*`, `user:*`, `user:*:view`)
-- 👥 **Role Management** - Flexible role authorization mechanism
-- 🚫 **Account Ban** - Temporary/permanent account disabling
-- 👢 **Kickout** - Force user logout, multi-device mutual exclusion
-- 💾 **Session Management** - Complete Session management
-- ⏰ **Active Detection** - Automatic token activity detection
-- 🔄 **Auto Renewal** - Asynchronous token auto-renewal (400% performance improvement)
-- 🎨 **Annotation Support** - `@SaCheckLogin`, `@SaCheckRole`, `@SaCheckPermission`
-- 🎧 **Event System** - Powerful event system with priority and async execution
-- 📦 **Modular Design** - Import only what you need, minimal dependencies
-- 🔒 **Nonce Anti-Replay** - Prevent replay attacks with one-time tokens
-- 🔄 **Refresh Token** - Refresh token mechanism with seamless refresh
-- 🔐 **OAuth2** - Complete OAuth2 authorization code flow implementation
+- 🔐 **Authentication** - Supports multi-device login, token management, and login-state validation
+- 🛡️ **Authorization** - Fine-grained permission control with wildcard support (`*`, `user:*`, `user:*:view`)
+- 👥 **Role Management** - Flexible role assignment, removal, and combined checks
+- 🚫 **Account Disable** - Supports disable, restore, disable info query, and service-level disable
+- 👢 **Kickout / Replace** - Supports kickout or replace by token, account, or device dimension
+- 💾 **Session Management** - Supports reading session data by login ID or token
+- ⏰ **Activity Detection** - Supports `ActiveTimeout` and auto-renew settings
+- 🔄 **Auto Renewal** - Built-in activity renewal and renew-pool support
+- 🎨 **Annotation Support** - Integration packages provide `CheckLoginMiddleware`, `CheckRoleMiddleware`, `CheckPermissionMiddleware`, and more
+- 🎧 **Event Listener** - Built-in login, logout, renew, disable, permission-check, and role-check events with priority, filter, and stats support
+- 📦 **Modular Design** - Clean layering with `core`, `stputil`, `com/*`, `integrations/*`, and `examples/*`
+- 🔒 **Nonce Anti-Replay** - Supports nonce generation, verification, and one-time consumption
+- 🔄 **OAuth2 / Refresh Token** - Includes OAuth2 authorization code flow and refresh token support
+- 🧩 **Replaceable Components** - Codec, Generator, Log, Pool, and Storage can all be swapped
 
 ## 🚀 Quick Start
 
@@ -30,110 +30,128 @@ A lightweight, high-performance Go authentication and authorization framework, i
 
 #### Option 1: Simplified Import (Recommended) ✨
 
-**Import only one framework integration package, which automatically includes core and stputil!**
+**Import only one framework integration package, then add a storage module as needed. The integration package already depends on `core` and `stputil`.**
 
 ```bash
-# Import only the framework integration (includes core + stputil automatically)
-go get github.com/click33/sa-token-go/integrations/gin@v0.1.5    # Gin framework
+# Import only the framework integration package
+go get github.com/click33/sa-token-go/integrations/gin@latest # Gin integration, suitable for direct use in Gin projects
 # or
-go get github.com/click33/sa-token-go/integrations/echo@v0.1.5   # Echo framework
+go get github.com/click33/sa-token-go/integrations/echo@latest # Echo integration, suitable for direct use in Echo projects
 # or
-go get github.com/click33/sa-token-go/integrations/fiber@v0.1.5  # Fiber framework
+go get github.com/click33/sa-token-go/integrations/fiber@latest # Fiber integration, suitable for direct use in Fiber projects
 # or
-go get github.com/click33/sa-token-go/integrations/chi@v0.1.5    # Chi framework
+go get github.com/click33/sa-token-go/integrations/chi@latest # Chi integration, suitable for direct use in Chi projects
 # or
-go get github.com/click33/sa-token-go/integrations/gf@v0.1.5     # GoFrame framework
+go get github.com/click33/sa-token-go/integrations/gf@latest # GoFrame integration, suitable for direct use in GoFrame projects
 # or
-go get github.com/click33/sa-token-go/integrations/kratos@v0.1.5 # Kratos framework
+go get github.com/click33/sa-token-go/integrations/hertz@latest # Hertz integration, suitable for direct use in Hertz projects
+# or
+go get github.com/click33/sa-token-go/integrations/kratos@latest # Kratos integration, suitable for direct use in Kratos projects
 
 # Storage module (choose one)
-go get github.com/click33/sa-token-go/storage/memory@v0.1.5  # Memory storage (dev)
-go get github.com/click33/sa-token-go/storage/redis@v0.1.5   # Redis storage (prod)
+go get github.com/click33/sa-token-go/com/storage/memory@latest # In-memory storage, suitable for local development and simple testing
+go get github.com/click33/sa-token-go/com/storage/redis@latest # Redis storage, suitable for production or multi-instance deployment
 ```
 
 #### Option 2: Separate Import
 
 ```bash
 # Core modules
-go get github.com/click33/sa-token-go/core@v0.1.5
-go get github.com/click33/sa-token-go/stputil@v0.1.5
+go get github.com/click33/sa-token-go/core@latest     # Core capabilities, Builder, Manager, config, and more
+go get github.com/click33/sa-token-go/stputil@latest  # Global authentication utility entry, usually used directly in business code
 
-# Storage module (choose one)
-go get github.com/click33/sa-token-go/storage/memory@v0.1.5  # Memory storage (dev)
-go get github.com/click33/sa-token-go/storage/redis@v0.1.5   # Redis storage (prod)
+# Component modules
+go get github.com/click33/sa-token-go/com/storage/memory@latest # In-memory storage, suitable for local development and simple testing
+go get github.com/click33/sa-token-go/com/storage/redis@latest  # Redis storage, suitable for production or multi-instance deployment
 
-# Framework integration (optional)
-go get github.com/click33/sa-token-go/integrations/gin@v0.1.5    # Gin framework
-go get github.com/click33/sa-token-go/integrations/echo@v0.1.5   # Echo framework
-go get github.com/click33/sa-token-go/integrations/fiber@v0.1.5  # Fiber framework
-go get github.com/click33/sa-token-go/integrations/chi@v0.1.5    # Chi framework
-go get github.com/click33/sa-token-go/integrations/gf@v0.1.5     # GoFrame framework
-go get github.com/click33/sa-token-go/integrations/kratos@v0.1.5 # Kratos framework
+# Framework integrations (optional)
+go get github.com/click33/sa-token-go/integrations/gin@latest    # Gin integration
+go get github.com/click33/sa-token-go/integrations/echo@latest   # Echo integration
+go get github.com/click33/sa-token-go/integrations/fiber@latest  # Fiber integration
+go get github.com/click33/sa-token-go/integrations/chi@latest    # Chi integration
+go get github.com/click33/sa-token-go/integrations/gf@latest     # GoFrame integration
+go get github.com/click33/sa-token-go/integrations/hertz@latest  # Hertz integration
+go get github.com/click33/sa-token-go/integrations/kratos@latest # Kratos integration
 ```
 
-### ⚡ Minimal Usage (One-line Initialization)
+### ⚡ Minimal Usage (One-Line Initialization)
 
 ```go
 package main
 
 import (
-    "github.com/click33/sa-token-go/core"
+    "context"
+
+    "github.com/click33/sa-token-go/com/storage/memory"
+    "github.com/click33/sa-token-go/core/adapter"
+    "github.com/click33/sa-token-go/core/builder"
     "github.com/click33/sa-token-go/stputil"
-    "github.com/click33/sa-token-go/storage/memory"
 )
 
+var ctx = context.Background()
+
 func init() {
-    // One-line initialization! Shows startup banner
     stputil.SetManager(
-        core.NewBuilder().
-            Storage(memory.NewStorage()).
+        builder.NewBuilder().
+            SetStorage(memory.NewStorage()).
             TokenName("Authorization").
-            Timeout(86400).                      // 24 hours
-            TokenStyle(core.TokenStyleRandom64). // Token style
-            IsPrintBanner(true).                 // Show startup banner
+            Timeout(86400).
+            TokenStyle(adapter.TokenStyleRandom64).
+            IsPrintBanner(true).
             Build(),
     )
 }
 ```
 
-**Startup banner will be displayed:**
+**A startup banner will be printed by default:**
 
-```
+```text
    _____         ______      __                  ______     
   / ___/____ _  /_  __/___  / /_____  ____      / ____/____ 
   \__ \/ __  |   / / / __ \/ //_/ _ \/ __ \_____/ / __/ __ \
  ___/ / /_/ /   / / / /_/ / ,< /  __/ / / /_____/ /_/ / /_/ /
 /____/\__,_/   /_/  \____/_/|_|\___/_/ /_/      \____/\____/ 
-                                                             
-:: Sa-Token-Go ::                                    (v0.1.5)
-:: Go Version ::                                     go1.21.0
-:: GOOS/GOARCH ::                                    linux/amd64
 
-┌─────────────────────────────────────────────────────────┐
-│ Token Style     : random64                              │
-│ Token Timeout   : 86400                      seconds    │
-│ Auto Renew      : true                                  │
-└─────────────────────────────────────────────────────────┘
+:: Sa-Token-Go ::                            (v0.1.5)
+:: Go Version ::                             go1.25.0
+:: GOOS/GOARCH ::                            linux/amd64
+
+========================================
+         Configuration Summary
+========================================
+AuthType         : default
+TokenName        : Authorization
+TokenStyle       : Random-64
+AutoRenew        : Enabled
+ActiveTimeout    : Disabled
+========================================
 ```
 
 ```go
 func main() {
-    // Use StpUtil directly without passing manager-example
-    token, _ := stputil.Login(1000)
-    println("Login successful, Token:", token)
-    
-    // Set permissions
-    stputil.SetPermissions(1000, []string{"user:read", "user:write"})
-    
-    // Check permissions
-    if stputil.HasPermission(1000, "user:read") {
-        println("Has permission!")
+    token, _ := stputil.Login(ctx, "1000")
+    println("login success, token:", token)
+
+    _ = stputil.AddPermissions(ctx, "1000", []string{"user:read", "user:write"})
+
+    if stputil.HasPermission(ctx, "1000", "user:read") {
+        println("has permission")
     }
-    
-    // Logout
-    stputil.Logout(1000)
+
+    _ = stputil.Logout(ctx, token)
 }
 ```
+
+If you want to see more complete startup and routing styles, you can directly refer to these examples in the current repository:
+
+- `examples/quick_start`
+- `examples/gin`
+- `examples/gf`
+- `examples/echo`
+- `examples/fiber`
+- `examples/chi`
+- `examples/hertz`
+- `examples/kratos`
 
 ## 🔧 Core API
 
@@ -141,494 +159,585 @@ func main() {
 
 ```go
 // Login
-token, _ := stputil.Login(1000)
-token, _ := stputil.Login("user123")
-token, _ := stputil.Login(1000, "mobile")  // Specify device
+token, _ := stputil.Login(ctx, "1000")
+token, _ := stputil.Login(ctx, "user123")
+token, _ := stputil.Login(ctx, "1000", "mobile") // specify device
 
-// Check login status
-isLogin := stputil.IsLogin(token)
+// Login with custom timeout
+tempToken, _ := stputil.LoginWithTimeout(ctx, "1000", 2*time.Hour, "web")
+
+// Renew login based on an existing token
+_ = stputil.LoginByToken(ctx, token)
+
+// Check login
+isLogin := stputil.IsLogin(ctx, token)
 
 // Get login ID
-loginID, _ := stputil.GetLoginID(token)
+loginID, _ := stputil.GetLoginID(ctx, token)
+
+// Get token info
+tokenInfo, _ := stputil.GetTokenInfo(ctx, token)
+
+// Get device, device ID, create time, and TTL
+device, _ := stputil.GetDevice(ctx, token)
+deviceID, _ := stputil.GetDeviceId(ctx, token)
+createTime, _ := stputil.GetTokenCreateTime(ctx, token)
+ttl, _ := stputil.GetTokenTTL(ctx, token)
 
 // Logout
-stputil.Logout(1000)
-stputil.LogoutByToken(token)
+_ = stputil.Logout(ctx, token)
+_ = stputil.LogoutByDevice(ctx, "1000", "mobile")
+_ = stputil.LogoutByLoginID(ctx, "1000")
+_ = stputil.LogoutByDeviceAndDeviceId(ctx, "1000", "mobile", "device-001")
 
-// Kickout
-stputil.Kickout(1000)
-stputil.Kickout(1000, "mobile")
+// Kickout / Replace
+_ = stputil.Kickout(ctx, token)
+_ = stputil.KickoutByLoginID(ctx, "1000")
+_ = stputil.KickoutByDevice(ctx, "1000", "web")
+_ = stputil.ReplaceByLoginID(ctx, "1000")
+_ = stputil.ReplaceByDevice(ctx, "1000", "app")
+_ = stputil.RenewTimeout(ctx, token, 24*time.Hour)
+
+_ = isLogin
+_ = loginID
+_ = tokenInfo
+_ = tempToken
+_ = device
+_ = deviceID
+_ = createTime
+_ = ttl
 ```
 
 ### 🛡️ Permission Management
 
 ```go
-// Set permissions
-stputil.SetPermissions(1000, []string{
+// Add permissions
+_ = stputil.AddPermissions(ctx, "1000", []string{
     "user:read",
     "user:write",
-    "admin:*",  // Wildcard: matches all admin permissions
+    "admin:*",
 })
 
-// Check single permission
-hasPermission := stputil.HasPermission(1000, "user:read")
-hasPermission := stputil.HasPermission(1000, "admin:delete")  // Wildcard match
+// Check permissions
+hasPermission := stputil.HasPermission(ctx, "1000", "user:read")
+hasPermission = stputil.HasPermission(ctx, "1000", "admin:delete")
 
-// Check multiple permissions
-hasAll := stputil.HasPermissionsAnd(1000, []string{"user:read", "user:write"})  // AND logic
-hasAny := stputil.HasPermissionsOr(1000, []string{"admin", "super"})           // OR logic
+// Multiple permission checks
+hasAll := stputil.HasPermissionsAnd(ctx, "1000", []string{"user:read", "user:write"})
+hasAny := stputil.HasPermissionsOr(ctx, "1000", []string{"admin:*", "super:*"})
+
+// Query / remove permissions
+perms, _ := stputil.GetPermissions(ctx, "1000")
+_ = stputil.RemovePermissions(ctx, "1000", []string{"user:write"})
+
+// Check by token
+hasByToken := stputil.HasPermissionByToken(ctx, token, "user:read")
+
+_ = hasPermission
+_ = hasAll
+_ = hasAny
+_ = perms
+_ = hasByToken
 ```
 
 ### 👥 Role Management
 
 ```go
-// Set roles
-stputil.SetRoles(1000, []string{"admin", "manager-example"})
+// Add roles
+_ = stputil.AddRoles(ctx, "1000", []string{"admin", "manager"})
 
-// Check role
-hasRole := stputil.HasRole(1000, "admin")
+// Check roles
+hasRole := stputil.HasRole(ctx, "1000", "admin")
 
-// Check multiple roles
-hasAll := stputil.HasRolesAnd(1000, []string{"admin", "manager-example"})
-hasAny := stputil.HasRolesOr(1000, []string{"admin", "super"})
+// Multiple role checks
+hasAll := stputil.HasRolesAnd(ctx, "1000", []string{"admin", "manager"})
+hasAny := stputil.HasRolesOr(ctx, "1000", []string{"admin", "super-admin"})
+
+// Query / remove roles
+roles, _ := stputil.GetRoles(ctx, "1000")
+_ = stputil.RemoveRoles(ctx, "1000", []string{"manager"})
+
+// Check by token
+hasRoleByToken := stputil.HasRoleByToken(ctx, token, "admin")
+
+_ = hasRole
+_ = hasAll
+_ = hasAny
+_ = roles
+_ = hasRoleByToken
 ```
 
 ### 💾 Session Management
 
 ```go
 // Get session
-sess, _ := stputil.GetSession(1000)
+sess, _ := stputil.GetSession(ctx, "1000")
+
+// Or get session by token
+sessByToken, _ := stputil.GetSessionByToken(ctx, token)
 
 // Set data
 sess.Set("nickname", "John")
 sess.Set("age", 25)
 
-// Get data
+// Read data
 nickname := sess.GetString("nickname")
 age := sess.GetInt("age")
 
-// Delete data
+// Delete field
 sess.Delete("nickname")
 
-// Delete session
-stputil.DeleteSession(1000)
+// Get token list / terminal list of current account
+tokenList, _ := stputil.GetTokenValueListByLoginID(ctx, "1000", true)
+terminalList, _ := stputil.GetTerminalListByLoginID(ctx, "1000")
+
+// Search token / session
+tokenKeys, _ := stputil.SearchTokenValue(ctx, "1000", 0, 20)
+sessionKeys, _ := stputil.SearchSessionId(ctx, "1000", 0, 20)
+
+_ = age
+_ = nickname
+_ = sessByToken
+_ = tokenList
+_ = terminalList
+_ = tokenKeys
+_ = sessionKeys
 ```
 
-### 🚫 Account Management
+### 🚫 Account Disable
 
 ```go
 // Disable for 1 hour
-stputil.Disable(1000, 1*time.Hour)
+_ = stputil.Disable(ctx, "1000", 1*time.Hour, "manual disable")
 
-// Permanent disable
-stputil.Disable(1000, 0)
+// Restore
+_ = stputil.Untie(ctx, "1000")
 
-// Enable account
-stputil.Untie(1000)
+// Check whether disabled
+isDisabled := stputil.IsDisable(ctx, "1000")
 
-// Check if disabled
-isDisabled := stputil.IsDisable(1000)
+// Get disable info and TTL
+disableInfo, _ := stputil.GetDisableInfo(ctx, "1000")
+ttl, _ := stputil.GetDisableTTL(ctx, "1000")
 
-// Get remaining disable time
-remainingTime, _ := stputil.GetDisableTime(1000)
+// Service-level disable
+_ = stputil.DisableService(ctx, "1000", "comment", 30*time.Minute)
+_ = stputil.DisableServiceLevelWithReason(ctx, "1000", "post", 2, time.Hour, "risk control")
+serviceInfo, _ := stputil.GetDisableServiceInfo(ctx, "1000", "post")
+serviceTTL, _ := stputil.GetDisableServiceTTL(ctx, "1000", "post")
+
+_ = isDisabled
+_ = disableInfo
+_ = ttl
+_ = serviceInfo
+_ = serviceTTL
 ```
 
 ## 🌐 Framework Integration
 
 ### 🌟 Gin Integration (Single Import)
 
-**New way: Import only `integrations/gin` to use all features!**
+**The recommended approach now is to use `integrations/gin` directly and access builder, middleware, and context capability through the `satoken` alias.**
 
 ```go
 import (
+    "context"
+
+    "github.com/click33/sa-token-go/com/storage/memory"
+    satoken "github.com/click33/sa-token-go/integrations/gin"
     "github.com/gin-gonic/gin"
-    sagin "github.com/click33/sa-token-go/integrations/gin"  // Only this import needed!
-    "github.com/click33/sa-token-go/storage/memory"
 )
 
 func main() {
-    // Initialize (all features in sagin package)
-    storage := memory.NewStorage()
-    config := sagin.DefaultConfig()
-    manager := sagin.NewManager(storage, config)
-    sagin.SetManager(manager)
-    
+    ctx := context.Background()
+
+    mgr := satoken.NewDefaultBuilder().
+        SetStorage(memory.NewStorage()).
+        Timeout(7200).
+        ActiveTimeout(1800).
+        MaxLoginCount(3).
+        Build()
+
+    satoken.SetManager(mgr)
+
     r := gin.Default()
-    
-    // Login endpoint
+    r.Use(satoken.RegisterSaTokenContextMiddleware(ctx))
+
     r.POST("/login", func(c *gin.Context) {
-        userID := c.PostForm("user_id")
-        token, _ := sagin.Login(userID)
+        token, _ := satoken.Login(c.Request.Context(), "1000")
         c.JSON(200, gin.H{"token": token})
     })
-    
-    // Use annotation-style decorators (like Java)
-    r.GET("/public", sagin.Ignore(), publicHandler)                  // Public access
-    r.GET("/user", sagin.CheckLogin(), userHandler)                  // Login required
-    r.GET("/admin", sagin.CheckPermission("admin:*"), adminHandler)  // Permission required
-    r.GET("/manager-example", sagin.CheckRole("manager-example"), managerHandler)    // Role required
-    r.GET("/sensitive", sagin.CheckDisable(), sensitiveHandler)      // Check if disabled
-    
+
+    user := r.Group("/user")
+    user.Use(satoken.AuthMiddleware(ctx))
+    user.GET("/info", func(c *gin.Context) {
+        saCtx, ok := satoken.GetSaTokenContext(c)
+        if !ok {
+            c.JSON(500, gin.H{"message": "failed to get context"})
+            return
+        }
+
+        loginID, _ := saCtx.GetLoginID(c.Request.Context())
+        c.JSON(200, gin.H{"loginId": loginID})
+    })
+
     r.Run(":8080")
 }
 ```
 
-### 🎯 Annotation Decorators
+### 🎯 Annotation-Style Middleware
 
-**Supported annotations:**
+All integration packages now provide **annotation-style checking middleware** with a unified naming convention:
 
-| Annotation | Description | Example |
-|------------|-------------|---------|
-| `@SaIgnore` | Ignore authentication | `sagin.Ignore()` |
-| `@SaCheckLogin` | Check login | `sagin.CheckLogin()` |
-| `@SaCheckRole` | Check role | `sagin.CheckRole("admin")` |
-| `@SaCheckPermission` | Check permission | `sagin.CheckPermission("admin:*")` |
-| `@SaCheckDisable` | Check if disabled | `sagin.CheckDisable()` |
+| Capability | Function |
+|---|---|
+| Ignore auth | `IgnoreMiddleware(...)` |
+| Check login | `CheckLoginMiddleware(...)` |
+| Check role | `CheckRoleMiddleware(...)` |
+| Check permission | `CheckPermissionMiddleware(...)` |
+| Check disable | `CheckDisableMiddleware(...)` |
+| Combined check | `CheckAllMiddleware(...)` |
 
-**Usage example:**
+**Gin example:**
 
 ```go
-import sagin "github.com/click33/sa-token-go/integrations/gin"
+annotation := r.Group("/api/annotation")
 
-func main() {
-    r := gin.Default()
+annotation.GET("/profile",
+    satoken.CheckLoginMiddleware(ctx, handleProfile, handleAuthFail))
 
-    // Public access - ignore authentication
-    r.GET("/public", sagin.Ignore(), publicHandler)
+annotation.GET("/admin-data",
+    satoken.CheckRoleMiddleware(ctx, []string{"admin"}, handleAdminData, handleAuthFail))
 
-    // Login required
-    r.GET("/user/info", sagin.CheckLogin(), userInfoHandler)
+annotation.GET("/sensitive",
+    satoken.CheckPermissionMiddleware(ctx, []string{"data:read"}, handleSensitiveData, handleAuthFail))
 
-    // Admin permission required
-    r.GET("/admin", sagin.CheckPermission("admin:*"), adminHandler)
-
-    // Any of multiple permissions (OR logic)
-    r.GET("/user-or-admin",
-        sagin.CheckPermission("user:read", "admin:*"),
-        userOrAdminHandler)
-
-    // Admin role required
-    r.GET("/manager-example", sagin.CheckRole("admin"), managerHandler)
-
-    // Check if account is disabled
-    r.GET("/sensitive", sagin.CheckDisable(), sensitiveHandler)
-
-    r.Run(":8080")
-}
+annotation.GET("/super",
+    satoken.CheckAllMiddleware(ctx, []string{"super-admin"}, []string{"all:access"}, handleSuperData, handleAuthFail))
 ```
 
 ### 🌟 GoFrame Integration (Single Import)
 
-**GoFrame framework integration with full feature support!**
-
 ```go
 import (
+    "context"
+
+    "github.com/click33/sa-token-go/com/storage/memory"
+    satoken "github.com/click33/sa-token-go/integrations/gf"
     "github.com/gogf/gf/v2/frame/g"
     "github.com/gogf/gf/v2/net/ghttp"
-    sagf "github.com/click33/sa-token-go/integrations/gf"  // Only this import needed!
-    "github.com/click33/sa-token-go/storage/memory"
 )
 
 func main() {
-    // Initialize (all features in sagf package)
-    storage := memory.NewStorage()
-    config := sagf.DefaultConfig()
-    manager := sagf.NewManager(storage, config)
-    sagf.SetManager(manager)
-    
+    ctx := context.Background()
+
+    mgr := satoken.NewDefaultBuilder().
+        SetStorage(memory.NewStorage()).
+        Timeout(7200).
+        Build()
+
+    satoken.SetManager(mgr)
+
     s := g.Server()
-    
-    // Login endpoint
-    s.BindHandler("POST:/login", func(r *ghttp.Request) {
-        userID := r.Get("user_id").String()
-        token, _ := sagf.Login(userID)
-        r.Response.WriteJson(g.Map{"token": token})
+    s.Use(satoken.RegisterSaTokenContextMiddleware(ctx))
+
+    s.Group("/api/user", func(group *ghttp.RouterGroup) {
+        group.Middleware(satoken.AuthMiddleware(ctx))
+        group.GET("/info", handleUserInfo)
     })
-    
-    // Use annotation-style decorators (like Java)
-    s.BindHandler("GET:/public", sagf.Ignore(), publicHandler)                  // Public access
-    s.BindHandler("GET:/user", sagf.CheckLogin(), userHandler)                  // Login required
-    s.BindHandler("GET:/admin", sagf.CheckPermission("admin:*"), adminHandler)  // Permission required
-    s.BindHandler("GET:/manager-example", sagf.CheckRole("manager-example"), managerHandler)    // Role required
-    s.BindHandler("GET:/sensitive", sagf.CheckDisable(), sensitiveHandler)      // Check if disabled
-    
-    s.SetPort(8080)
+
+    s.Group("/api/annotation", func(group *ghttp.RouterGroup) {
+        group.GET("/profile", satoken.CheckLoginMiddleware(ctx, handleProfile, handleAuthFail))
+    })
+
     s.Run()
 }
 ```
 
 ### 🔌 Other Framework Integrations
 
-**Echo / Fiber / Chi / Kratos** also support annotation decorators:
+The current repository already provides these integration packages and matching examples:
+
+- `integrations/echo` with `examples/echo`
+- `integrations/fiber` with `examples/fiber`
+- `integrations/chi` with `examples/chi`
+- `integrations/gin` with `examples/gin`
+- `integrations/gf` with `examples/gf`
+- `integrations/hertz` with `examples/hertz`
+- `integrations/kratos` with `examples/kratos`
+
+These integration packages have been aligned to the same `SaToken` naming style, including:
+
+- `RegisterSaTokenContextMiddleware`
+- `AuthMiddleware`
+- `RoleMiddleware`
+- `PermissionMiddleware`
+- `CheckLoginMiddleware`
+- `CheckRoleMiddleware`
+- `CheckPermissionMiddleware`
+- `CheckAllMiddleware`
+
+Common frameworks now follow a largely unified usage style, for example:
 
 ```go
 // Echo
-import saecho "github.com/click33/sa-token-go/integrations/echo"
-e.GET("/user", saecho.CheckLogin(), handler)
+e.GET("/profile", saecho.CheckLoginMiddleware(ctx, handleProfile, handleAuthFail))
 
 // Fiber
-import safiber "github.com/click33/sa-token-go/integrations/fiber"
-app.Get("/user", safiber.CheckLogin(), handler)
+app.Get("/profile", safiber.CheckLoginMiddleware(ctx, handleProfile, handleAuthFail))
 
 // Chi
-import sachi "github.com/click33/sa-token-go/integrations/chi"
-r.Get("/user", sachi.CheckLogin(), handler)
+r.With(sachi.AuthMiddleware()).Get("/profile", handleProfile)
+
+// Hertz
+h.GET("/profile", sahertz.CheckLoginMiddleware(ctx, handleProfile, handleAuthFail))
 
 // Kratos
-import sakratos "github.com/click33/sa-token-go/integrations/kratos"
-// Use Plugin.Server() as middleware
+srv := http.NewServer(
+    http.Middleware(
+        sakratos.RegisterSaTokenContextMiddleware(),
+        sakratos.CheckLoginMiddleware(handleAuthFail),
+    ),
+)
 ```
 
-## 🎨 Advanced Features
+## 🚀 Advanced Features
 
 ### 🎨 Token Styles
 
-Sa-Token-Go supports 9 token generation styles:
+The current code supports 9 token styles:
 
 | Style | Format Example | Length | Use Case |
-|-------|---------------|--------|----------|
-| **UUID** | `550e8400-e29b-41d4-...` | 36 | General purpose |
-| **Simple** | `aB3dE5fG7hI9jK1l` | 16 | Compact tokens |
-| **Random32/64/128** | Random string | 32/64/128 | High security |
-| **JWT** | `eyJhbGciOiJIUzI1...` | Variable | Stateless auth |
-| **Hash** 🆕 | `a3f5d8b2c1e4f6a9...` | 64 | SHA256 hash |
-| **Timestamp** 🆕 | `1700000000123_user1000_...` | Variable | Time traceable |
-| **Tik** 🆕 | `7Kx9mN2pQr4` | 11 | Short ID (like TikTok) |
+|---|---|---|---|
+| `TokenStyleUUID` | `550e8400-e29b-41d4-...` | 36 | General purpose |
+| `TokenStyleSimple` | `aB3dE5fG7hI9jK1l` | 16 | Compact token |
+| `TokenStyleRandom32` | Random string | 32 | Higher security |
+| `TokenStyleRandom64` | Random string | 64 | Recommended default |
+| `TokenStyleRandom128` | Random string | 128 | High-security scenarios |
+| `TokenStyleJWT` | `eyJhbGciOiJIUzI1...` | Variable | Stateless authentication |
+| `TokenStyleHash` | `a3f5d8b2c1e4f6a9...` | 64 | SHA256 hash |
+| `TokenStyleTimestamp` | `1700000000123_user1000_...` | Variable | Easier creation-time tracing |
+| `TokenStyleTik` | `7Kx9mN2pQr4` | 11 | Short token scenarios |
 
-**JWT Token Support:**
+**JWT token example:**
 
 ```go
-// Use JWT Token
-stputil.SetManager(
-    core.NewBuilder().
-        Storage(memory.NewStorage()).
-        TokenStyle(core.TokenStyleJWT).          // Use JWT
-        JwtSecretKey("your-256-bit-secret").     // JWT secret
-        Timeout(3600).                           // 1 hour expiration
-        Build(),
-)
+mgr := builder.NewBuilder().
+    SetStorage(memory.NewStorage()).
+    TokenStyle(adapter.TokenStyleJWT).
+    JwtSecretKey("your-256-bit-secret").
+    Timeout(3600).
+    Build()
 
-// Login to get JWT Token
-token, _ := stputil.Login(1000)
-// Format: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+stputil.SetManager(mgr)
+token, _ := stputil.Login(ctx, "1000")
 ```
 
-[👉 View Token Style Examples](examples/token-styles/)
+If you want to quickly experience usage styles under different frameworks, you can directly refer to the complete examples under `examples/*`.
 
 ### 🔒 Security Features
 
-#### 🔐 Nonce Anti-Replay Attack
+#### 🔐 Nonce Anti-Replay
 
 ```go
-// Generate nonce
-nonce, _ := stputil.GenerateNonce()
-
-// Verify nonce (one-time use)
-valid := stputil.VerifyNonce(nonce)  // true
-valid = stputil.VerifyNonce(nonce)   // false (prevents replay)
+nonce, _ := stputil.GenerateNonce(ctx)
+valid := stputil.VerifyNonce(ctx, nonce) // true
+valid = stputil.VerifyNonce(ctx, nonce)  // false
+_ = valid
 ```
 
-#### 🔄 Refresh Token Mechanism
+#### 🔄 OAuth2 / Refresh Token
 
 ```go
-// Login to get access token and refresh token
-tokenInfo, _ := stputil.LoginWithRefreshToken(1000, "web")
-fmt.Println("Access Token:", tokenInfo.AccessToken)
-fmt.Println("Refresh Token:", tokenInfo.RefreshToken)
+import "github.com/click33/sa-token-go/core/oauth2"
 
-// Refresh access token
-newInfo, _ := stputil.RefreshAccessToken(tokenInfo.RefreshToken)
-```
-
-#### 🔑 OAuth2 Authorization Code Flow
-
-```go
-// Create OAuth2 server
-oauth2Server := stputil.GetOAuth2Server()
-
-// Register client
-oauth2Server.RegisterClient(&core.OAuth2Client{
+_ = stputil.RegisterOAuth2Client(&oauth2.Client{
     ClientID:     "webapp",
     ClientSecret: "secret123",
     RedirectURIs: []string{"http://localhost:8080/callback"},
-    GrantTypes:   []core.OAuth2GrantType{core.GrantTypeAuthorizationCode},
+    GrantTypes:   []oauth2.GrantType{oauth2.GrantTypeAuthorizationCode, oauth2.GrantTypeRefreshToken},
     Scopes:       []string{"read", "write"},
 })
 
-// Generate authorization code
-authCode, _ := oauth2Server.GenerateAuthorizationCode(
-    "webapp", "http://localhost:8080/callback", "user123", []string{"read"},
+authCode, _ := stputil.GenerateOAuth2AuthorizationCode(
+    ctx,
+    "webapp",
+    "1000",
+    "http://localhost:8080/callback",
+    []string{"read"},
 )
 
-// Exchange authorization code for access token
-accessToken, _ := oauth2Server.ExchangeCodeForToken(
-    authCode.Code, "webapp", "secret123", "http://localhost:8080/callback",
-)
-```
-
-[👉 View Complete OAuth2 Example](examples/oauth2-example/)
-
-### 🎧 Event System
-
-Listen to authentication and authorization events for audit logging, security monitoring, etc:
-
-```go
-storage := memory.NewStorage()
-
-manager := core.NewBuilder().
-    Storage(storage).
-    Build()
-
-// Listen to login events
-manager.RegisterFunc(core.EventLogin, func(data *core.EventData) {
-    fmt.Printf("[LOGIN] User: %s, Token: %s\n", data.LoginID, data.Token)
-})
-
-// Listen to logout events
-manager.RegisterFunc(core.EventLogout, func(data *core.EventData) {
-    fmt.Printf("[LOGOUT] User: %s\n", data.LoginID)
-})
-
-// Advanced: priority and sync execution
-manager.RegisterWithConfig(core.EventLogin,
-    core.ListenerFunc(auditLogger),
-    core.ListenerConfig{
-        Priority: 100,   // High priority
-        Async:    false, // Sync execution
-    },
+accessToken, _ := stputil.ExchangeOAuth2CodeForToken(
+    ctx,
+    authCode.Code,
+    "webapp",
+    "secret123",
+    "http://localhost:8080/callback",
 )
 
-// Listen to all events (wildcard)
-manager.RegisterFunc(core.EventAll, func(data *core.EventData) {
-    log.Printf("[%s] %s", data.Event, data.LoginID)
-})
+newToken, _ := stputil.RefreshOAuth2AccessToken(
+    ctx,
+    "webapp",
+    accessToken.RefreshToken,
+    "secret123",
+)
 
-// Access advanced controls via the underlying EventManager
-manager.GetEventManager().SetPanicHandler(customPanicHandler)
-
-// Use the manager-example globally
-stputil.SetManager(manager)
+_ = newToken
 ```
 
-**Available events:**
+### 🎧 Event Listener
 
-- `EventLogin` - User login
-- `EventLogout` - User logout  
-- `EventKickout` - Force logout
-- `EventDisable` - Account ban
-- `EventPermissionCheck` - Permission check
-- `EventRoleCheck` - Role check
-- `EventAll` - All events (wildcard)
+The current codebase already includes event-listener capability in `core/listener` and `manager`, with support for:
 
-[→ View Event System Documentation](docs/guide/listener.md)
+- Registering listeners by event type
+- Priority control
+- Async / sync execution
+- Global filters
+- Trigger stats and panic handling
 
-## 📦 Project Structure
+Built-in events include:
 
-```
+- `EventLogin`
+- `EventLogout`
+- `EventKickout`
+- `EventReplace`
+- `EventDisable`
+- `EventUntie`
+- `EventRenew`
+- `EventCreateSession`
+- `EventDestroySession`
+- `EventPermissionCheck`
+- `EventRoleCheck`
+- `EventDisableService`
+- `EventUntieService`
+- `EventAll`
+
+For detailed registration and listener configuration, see:
+
+- [Event Listener Guide](docs/guide/listener.md)
+
+## 🏗️ Architecture Overview
+
+The overall structure of `sa-token-go` can be summarized in 4 layers:
+
+- `com/*`: replaceable component layer for storage, codec, logging, pool, token generator, and similar foundational implementations
+- `core/*`: core capability layer for config, context, manager, event listener, nonce, OAuth2, and other core logic
+- `stputil`: global utility entry that exposes common authentication, permission, role, session, and disable capabilities
+- `integrations/*`: framework integration layer for Gin, GoFrame, Echo, Fiber, Chi, Hertz, Kratos, and more
+
+For more detailed design notes, see:
+
+- [Architecture Design](docs/design/architecture.md)
+
+## 📁 Project Structure
+
+```text
 sa-token-go/
-├── core/                    # Core module
-│   ├── adapter/            # Adapter interfaces
-│   ├── builder/            # Builder pattern
-│   ├── config/             # Configuration
-│   ├── context/            # Context
-│   ├── listener/           # Event listener
-│   ├── manager/            # Authentication manager
-│   ├── oauth2/             # OAuth2 implementation 🆕
-│   ├── security/           # Security features (Nonce, RefreshToken) 🆕
-│   ├── session/            # Session management
-│   ├── token/              # Token generator
-│   └── utils/              # Utility functions
-│
-├── stputil/                # Global utility
-│
-├── storage/                # Storage modules
-│   ├── memory/             # Memory storage
-│   └── redis/              # Redis storage
-│
-├── integrations/           # Framework integrations
-│   ├── gin/                # Gin integration (with annotations)
+├── com/                    # Replaceable component modules
+│   ├── codec/              # Codec implementations
+│   │   ├── base64/         # Base64 codec
+│   │   ├── json/           # Standard JSON codec
+│   │   ├── jsonv2/         # JSON v2 codec
+│   │   └── msgpack/        # MsgPack codec
+│   ├── generator/          # Token generator implementations
+│   │   └── sgenerator/     # Default token generator
+│   ├── log/                # Logging implementations
+│   │   ├── gf/             # GoFrame log adapter
+│   │   ├── nop/            # No-op logger
+│   │   └── slog/           # slog adapter
+│   ├── pool/               # Goroutine pool implementations
+│   │   └── ants/           # ants pool adapter
+│   └── storage/            # Storage implementations
+│       ├── memory/         # In-memory storage
+│       └── redis/          # Redis storage
+├── core/                   # Core capability modules
+│   ├── adapter/            # Core adapter interfaces and constants
+│   ├── banner/             # Startup banner printing
+│   ├── builder/            # Builder
+│   ├── config/             # Config definitions
+│   ├── context/            # SaTokenContext wrappers
+│   ├── listener/           # Event listener system
+│   ├── manager/            # Core auth manager implementation
+│   ├── nonce/              # Nonce anti-replay implementation
+│   ├── oauth2/             # OAuth2 implementation
+│   ├── serror/             # Error definitions
+│   └── utils/              # Common utilities
+├── stputil/                # Global authentication utility entry
+├── integrations/           # Web framework integration layer
+│   ├── chi/                # Chi integration
 │   ├── echo/               # Echo integration
 │   ├── fiber/              # Fiber integration
-│   └── chi/                # Chi integration
-│
+│   ├── gf/                 # GoFrame integration
+│   ├── gin/                # Gin integration
+│   ├── hertz/              # Hertz integration
+│   └── kratos/             # Kratos integration
 ├── examples/               # Example projects
-│   ├── quick-start/        # Quick start
-│   ├── token-styles/       # Token style demos 🆕
-│   ├── security-features/  # Security features demos 🆕
-│   ├── oauth2-example/     # Complete OAuth2 example 🆕
-│   ├── annotation/         # Annotation usage
-│   ├── jwt-example/        # JWT example
-│   ├── redis-example/      # Redis example
-│   ├── listener-example/   # Event listener example
-│   └── gin/echo/fiber/chi/ # Framework integration examples
-│
-└── docs/                   # Documentation
-    ├── tutorial/           # Tutorials
-    ├── guide/              # Usage guides
-    ├── api/                # API documentation
-    └── design/             # Design documents
+│   ├── chi/                # Chi example
+│   ├── echo/               # Echo example
+│   ├── fiber/              # Fiber example
+│   ├── gf/                 # GoFrame example
+│   ├── gin/                # Gin example
+│   ├── hertz/              # Hertz example
+│   ├── kratos/             # Kratos example
+│   └── quick_start/        # Quick Start example
+└── docs/                   # Documentation directory
 ```
 
 ## 📚 Documentation & Examples
 
-### 📖 Documentation
+### 📖 Guides
 
-- [Quick Start](docs/tutorial/quick-start.md) - Get started in 5 minutes
-- [Authentication](docs/guide/authentication.md) - Authentication guide
-- [Permission](docs/guide/permission.md) - Permission system
-- [Annotations](docs/guide/annotation.md) - Decorator pattern guide
-- [Event Listener](docs/guide/listener.md) - Event system guide
-- [JWT Integration](docs/guide/jwt.md) - JWT token guide
-- [Redis Storage](docs/guide/redis-storage.md) - Redis storage configuration
-- [Nonce Anti-Replay](docs/guide/nonce.md) - Nonce anti-replay attack
-- [Refresh Token](docs/guide/refresh-token.md) - Refresh token mechanism
-- [OAuth2](docs/guide/oauth2.md) - OAuth2 authorization guide
+- [Quick Start](docs/tutorial/quick-start.md) - Initialize in 5 minutes
+- [Authentication](docs/guide/authentication.md) - Login, logout, kickout, and replace
+- [Permission](docs/guide/permission.md) - Permissions, roles, and combined checks
+- [Annotation](docs/guide/annotation.md) - Annotation-style middleware across frameworks
+- [Event Listener](docs/guide/listener.md) - Event system and listener capability
+- [JWT Usage](docs/guide/jwt.md) - JWT-style token details
+- [Redis Storage](docs/guide/redis-storage.md) - Redis storage and production configuration
+- [Nonce Anti-Replay](docs/guide/nonce.md) - Nonce generation and verification
+- [Refresh Token](docs/guide/refresh-token.md) - Refresh token overview
+- [OAuth2](docs/guide/oauth2.md) - OAuth2 authorization code flow
+- [Single Import](docs/guide/single-import.md) - `integrations/*` single-package import style
 
-### 📋 API Reference
+### 📘 API Documentation
 
 - [StpUtil API](docs/api/stputil.md) - Complete global utility API reference
 
-### 🏗️ Design Documentation
+### 🧠 Design Documents
 
-- [Architecture Design](docs/design/architecture.md) - System architecture and data flow
-- [Auto-Renewal Design](docs/design/auto-renew.md) - Asynchronous renewal mechanism
-- [Modular Design](docs/design/modular.md) - Module organization strategy
+- [Architecture Design](docs/design/architecture.md) - Module relationships and main call flow
+- [Auto Renew Design](docs/design/auto-renew.md) - Auto-renew mechanism
+- [Modular Design](docs/design/modular.md) - Multi-module split and dependency strategy
 
-### 💡 Example Projects
+### 🧪 Example Projects
 
 | Example | Description | Path |
-|---------|-------------|------|
-| ⚡ Quick Start | Builder+StpUtil minimal usage | [examples/quick-start/](examples/quick-start/) |
-| 🎨 Token Styles | 9 token style demonstrations | [examples/token-styles/](examples/token-styles/) |
-| 🔒 Security Features | Nonce/RefreshToken/OAuth2 | [examples/security-features/](examples/security-features/) |
-| 🔐 OAuth2 Example | Complete OAuth2 implementation | [examples/oauth2-example/](examples/oauth2-example/) |
-| 📝 Annotations | Annotation usage example | [examples/annotation/](examples/annotation/) |
-| 🔑 JWT Example | JWT token usage | [examples/jwt-example/](examples/jwt-example/) |
-| 💾 Redis Example | Redis storage example | [examples/redis-example/](examples/redis-example/) |
-| 🎧 Event Listener | Event system usage | [examples/listener-example/](examples/listener-example/) |
-| 🌐 Gin Integration | Complete Gin integration | [examples/gin/](examples/gin/) |
-| 🌐 Echo Integration | Echo framework integration | [examples/echo/](examples/echo/) |
-| 🌐 Fiber Integration | Fiber framework integration | [examples/fiber/](examples/fiber/) |
-| 🌐 Chi Integration | Chi framework integration | [examples/chi/](examples/chi/) |
-| 🌐 GoFrame Integration | GoFrame framework integration | [examples/gf/](examples/gf/) |
+|---|---|---|
+| Quick Start | Basic quick start example | [examples/quick_start/](examples/quick_start/) |
+| Gin | Gin integration example | [examples/gin/](examples/gin/) |
+| GoFrame | GoFrame integration example | [examples/gf/](examples/gf/) |
+| Echo | Echo integration example | [examples/echo/](examples/echo/) |
+| Fiber | Fiber integration example | [examples/fiber/](examples/fiber/) |
+| Chi | Chi integration example | [examples/chi/](examples/chi/) |
+| Hertz | Hertz integration example | [examples/hertz/](examples/hertz/) |
+| Kratos | Kratos integration example | [examples/kratos/](examples/kratos/) |
 
 ### 💾 Storage Options
 
-- [Memory Storage](storage/memory/) - For development environment
-- [Redis Storage](storage/redis/) - For production environment
+- [Memory Storage](com/storage/memory/)
+- [Redis Storage](com/storage/redis/)
 
 ## 📄 License
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+Apache License 2.0
 
 ## 🙏 Acknowledgments
 
-- Inspired by [sa-token](https://github.com/dromara/sa-token) - A powerful Java authentication framework
-- Built with ❤️ using Go
+Implemented with inspiration from [sa-token](https://github.com/dromara/sa-token).
 
 ### Contributors
 
-Special thanks to the following contributors for their valuable contributions:
+Special thanks to the following contributors:
 
 - [@qprodn](https://github.com/qprodn)
 - [@Zany2](https://github.com/Zany2)
@@ -639,8 +748,9 @@ Special thanks to the following contributors for their valuable contributions:
 
 ## 📞 Support
 
-- 📧 Email: <support@sa-token-go.dev>
 - 💬 Issues: [GitHub Issues](https://github.com/click33/sa-token-go/issues)
-- 📖 Documentation: [docs/](docs/)
+- 📖 Docs entry: [docs/](docs/)
 
----
+### WeChat Group
+
+![sa-token-go WeChat group QR code](docs/wechat.JPG)

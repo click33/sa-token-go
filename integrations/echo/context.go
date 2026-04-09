@@ -1,35 +1,57 @@
 package echo
 
 import (
+	"bytes"
 	"io"
 	"net/http"
 
 	"github.com/click33/sa-token-go/core/adapter"
-	"github.com/labstack/echo/v4"
+	echo4 "github.com/labstack/echo/v4"
 )
 
-// EchoContext Echo request context adapter | Echo请求上下文适配器
+// EchoContext adapts Echo request context to SaToken request context Echo 请求上下文适配到 SaToken 请求上下文
 type EchoContext struct {
-	c       echo.Context
+	c       echo4.Context
 	aborted bool
 }
 
-// NewEchoContext creates an Echo context adapter | 创建Echo上下文适配器
-func NewEchoContext(c echo.Context) adapter.RequestContext {
+// NewEchoContext creates Echo request context adapter 创建 Echo 请求上下文适配器
+func NewEchoContext(c echo4.Context) adapter.RequestContext {
 	return &EchoContext{c: c}
 }
 
-// GetHeader gets request header | 获取请求头
+// Get implements adapter.RequestContext Get 实现 adapter.RequestContext 接口
+func (e *EchoContext) Get(key string) (interface{}, bool) {
+	value := e.c.Get(key)
+	return value, value != nil
+}
+
+// GetHeaders implements adapter.RequestContext GetHeaders 实现 adapter.RequestContext 接口
+func (e *EchoContext) GetHeaders() map[string][]string {
+	return e.c.Request().Header
+}
+
+// GetHeader implements adapter.RequestContext GetHeader 实现 adapter.RequestContext 接口
 func (e *EchoContext) GetHeader(key string) string {
 	return e.c.Request().Header.Get(key)
 }
 
-// GetQuery gets query parameter | 获取查询参数
+// GetQuery implements adapter.RequestContext GetQuery 实现 adapter.RequestContext 接口
 func (e *EchoContext) GetQuery(key string) string {
 	return e.c.QueryParam(key)
 }
 
-// GetCookie gets cookie | 获取Cookie
+// GetQueryAll implements adapter.RequestContext GetQueryAll 实现 adapter.RequestContext 接口
+func (e *EchoContext) GetQueryAll() map[string][]string {
+	return e.c.QueryParams()
+}
+
+// GetPostForm implements adapter.RequestContext GetPostForm 实现 adapter.RequestContext 接口
+func (e *EchoContext) GetPostForm(key string) string {
+	return e.c.FormValue(key)
+}
+
+// GetCookie implements adapter.RequestContext GetCookie 实现 adapter.RequestContext 接口
 func (e *EchoContext) GetCookie(key string) string {
 	cookie, err := e.c.Cookie(key)
 	if err != nil {
@@ -38,111 +60,87 @@ func (e *EchoContext) GetCookie(key string) string {
 	return cookie.Value
 }
 
-// SetHeader sets response header | 设置响应头
-func (e *EchoContext) SetHeader(key, value string) {
-	e.c.Response().Header().Set(key, value)
+// GetBody implements adapter.RequestContext GetBody 实现 adapter.RequestContext 接口
+func (e *EchoContext) GetBody() ([]byte, error) {
+	body, err := io.ReadAll(e.c.Request().Body)
+	if err != nil {
+		return nil, err
+	}
+	e.c.Request().Body = io.NopCloser(bytes.NewReader(body))
+	return body, nil
 }
 
-// SetCookie sets cookie | 设置Cookie
-func (e *EchoContext) SetCookie(name, value string, maxAge int, path, domain string, secure, httpOnly bool) {
-	cookie := new(http.Cookie)
-	cookie.Name = name
-	cookie.Value = value
-	cookie.MaxAge = maxAge
-	cookie.Path = path
-	cookie.Domain = domain
-	cookie.Secure = secure
-	cookie.HttpOnly = httpOnly
-	cookie.SameSite = http.SameSiteLaxMode
-	e.c.SetCookie(cookie)
-}
-
-// GetClientIP gets client IP address | 获取客户端IP地址
+// GetClientIP implements adapter.RequestContext GetClientIP 实现 adapter.RequestContext 接口
 func (e *EchoContext) GetClientIP() string {
 	return e.c.RealIP()
 }
 
-// GetMethod gets request method | 获取请求方法
+// GetMethod implements adapter.RequestContext GetMethod 实现 adapter.RequestContext 接口
 func (e *EchoContext) GetMethod() string {
 	return e.c.Request().Method
 }
 
-// GetPath gets request path | 获取请求路径
+// GetPath implements adapter.RequestContext GetPath 实现 adapter.RequestContext 接口
 func (e *EchoContext) GetPath() string {
 	return e.c.Request().URL.Path
 }
 
-// Set sets context value | 设置上下文值
-func (e *EchoContext) Set(key string, value interface{}) {
-	e.c.Set(key, value)
-}
-
-// Get gets context value | 获取上下文值
-func (e *EchoContext) Get(key string) (interface{}, bool) {
-	value := e.c.Get(key)
-	return value, value != nil
-}
-
-// ============ Additional Required Methods | 额外必需的方法 ============
-
-// GetHeaders implements adapter.RequestContext.
-func (e *EchoContext) GetHeaders() map[string][]string {
-	headers := make(map[string][]string)
-	for key, values := range e.c.Request().Header {
-		headers[key] = values
-	}
-	return headers
-}
-
-// GetQueryAll implements adapter.RequestContext.
-func (e *EchoContext) GetQueryAll() map[string][]string {
-	query := e.c.Request().URL.Query()
-	params := make(map[string][]string)
-	for key, values := range query {
-		params[key] = values
-	}
-	return params
-}
-
-// GetPostForm implements adapter.RequestContext.
-func (e *EchoContext) GetPostForm(key string) string {
-	return e.c.FormValue(key)
-}
-
-// GetBody implements adapter.RequestContext.
-func (e *EchoContext) GetBody() ([]byte, error) {
-	body := e.c.Request().Body
-	if body == nil {
-		return nil, nil
-	}
-	defer body.Close()
-	return io.ReadAll(body)
-}
-
-// GetURL implements adapter.RequestContext.
+// GetURL implements adapter.RequestContext GetURL 实现 adapter.RequestContext 接口
 func (e *EchoContext) GetURL() string {
 	return e.c.Request().URL.String()
 }
 
-// GetUserAgent implements adapter.RequestContext.
+// GetUserAgent implements adapter.RequestContext GetUserAgent 实现 adapter.RequestContext 接口
 func (e *EchoContext) GetUserAgent() string {
 	return e.c.Request().UserAgent()
 }
 
-// SetCookieWithOptions implements adapter.RequestContext.
+// IsTLS implements adapter.RequestContext IsTLS 实现 adapter.RequestContext 接口
+func (e *EchoContext) IsTLS() bool {
+	return e.c.Request().TLS != nil
+}
+
+// SetStatusCode implements adapter.RequestContext SetStatusCode 实现 adapter.RequestContext 接口
+func (e *EchoContext) SetStatusCode(code int) {
+	e.c.Response().WriteHeader(code)
+}
+
+// SetHeader implements adapter.RequestContext SetHeader 实现 adapter.RequestContext 接口
+func (e *EchoContext) SetHeader(key, value string) {
+	e.c.Response().Header().Set(key, value)
+}
+
+// Write implements adapter.RequestContext Write 实现 adapter.RequestContext 接口
+func (e *EchoContext) Write(data []byte) (int, error) {
+	return e.c.Response().Write(data)
+}
+
+// SetCookie implements adapter.RequestContext SetCookie 实现 adapter.RequestContext 接口
+func (e *EchoContext) SetCookie(name, value string, maxAge int, path, domain string, secure, httpOnly bool) {
+	e.c.SetCookie(&http.Cookie{
+		Name:     name,
+		Value:    value,
+		MaxAge:   maxAge,
+		Path:     path,
+		Domain:   domain,
+		Secure:   secure,
+		HttpOnly: httpOnly,
+		SameSite: http.SameSiteLaxMode,
+	})
+}
+
+// SetCookieWithOptions implements adapter.RequestContext SetCookieWithOptions 实现 adapter.RequestContext 接口
 func (e *EchoContext) SetCookieWithOptions(options *adapter.CookieOptions) {
 	cookie := &http.Cookie{
 		Name:     options.Name,
 		Value:    options.Value,
+		MaxAge:   options.MaxAge,
 		Path:     options.Path,
 		Domain:   options.Domain,
-		MaxAge:   options.MaxAge,
 		Secure:   options.Secure,
 		HttpOnly: options.HttpOnly,
-		SameSite: http.SameSiteLaxMode, // Default to Lax
 	}
-	
-	// Set SameSite attribute
+
 	switch options.SameSite {
 	case "Strict":
 		cookie.SameSite = http.SameSiteStrictMode
@@ -150,24 +148,28 @@ func (e *EchoContext) SetCookieWithOptions(options *adapter.CookieOptions) {
 		cookie.SameSite = http.SameSiteLaxMode
 	case "None":
 		cookie.SameSite = http.SameSiteNoneMode
+	default:
+		cookie.SameSite = http.SameSiteLaxMode
 	}
-	
+
 	e.c.SetCookie(cookie)
 }
 
-// GetString implements adapter.RequestContext.
-func (e *EchoContext) GetString(key string) string {
-	value := e.c.Get(key)
-	if value == nil {
-		return ""
-	}
-	if str, ok := value.(string); ok {
-		return str
-	}
-	return ""
+// Set implements adapter.RequestContext Set 实现 adapter.RequestContext 接口
+func (e *EchoContext) Set(key string, value interface{}) {
+	e.c.Set(key, value)
 }
 
-// MustGet implements adapter.RequestContext.
+// GetString implements adapter.RequestContext GetString 实现 adapter.RequestContext 接口
+func (e *EchoContext) GetString(key string) string {
+	value, ok := e.c.Get(key).(string)
+	if !ok {
+		return ""
+	}
+	return value
+}
+
+// MustGet implements adapter.RequestContext MustGet 实现 adapter.RequestContext 接口
 func (e *EchoContext) MustGet(key string) any {
 	value := e.c.Get(key)
 	if value == nil {
@@ -176,12 +178,12 @@ func (e *EchoContext) MustGet(key string) any {
 	return value
 }
 
-// Abort implements adapter.RequestContext.
+// Abort implements adapter.RequestContext Abort 实现 adapter.RequestContext 接口
 func (e *EchoContext) Abort() {
 	e.aborted = true
 }
 
-// IsAborted implements adapter.RequestContext.
+// IsAborted implements adapter.RequestContext IsAborted 实现 adapter.RequestContext 接口
 func (e *EchoContext) IsAborted() bool {
 	return e.aborted
 }

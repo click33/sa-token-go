@@ -1,33 +1,45 @@
-// @Author daixk 2025/12/5 9:42:00
 package oauth2
 
 import (
 	"time"
 )
 
-// Constants for OAuth2 | OAuth2常量
 const (
-	DefaultCodeExpiration  = 10 * time.Minute    // Authorization code expiration | 授权码过期时间
-	DefaultTokenExpiration = 2 * time.Hour       // Access token expiration | 访问令牌过期时间
-	DefaultRefreshTTL      = 30 * 24 * time.Hour // Refresh token expiration | 刷新令牌过期时间
+	// DefaultCodeExpiration stores code expiration DefaultCodeExpiration 存储授权码过期时间
+	DefaultCodeExpiration = 10 * time.Minute
+	// DefaultTokenExpiration stores token expiration DefaultTokenExpiration 存储访问令牌过期时间
+	DefaultTokenExpiration = 2 * time.Hour
+	// DefaultRefreshTTL stores refresh expiration DefaultRefreshTTL 存储刷新令牌过期时间
+	DefaultRefreshTTL = 30 * 24 * time.Hour
 
-	CodeLength         = 32 // Authorization code byte length | 授权码字节长度
-	AccessTokenLength  = 32 // Access token byte length | 访问令牌字节长度
-	RefreshTokenLength = 32 // Refresh token byte length | 刷新令牌字节长度
+	// CodeLength stores code byte length CodeLength 存储授权码字节长度
+	CodeLength = 32
+	// AccessTokenLength stores access token byte length AccessTokenLength 存储访问令牌字节长度
+	AccessTokenLength = 32
+	// RefreshTokenLength stores refresh token byte length RefreshTokenLength 存储刷新令牌字节长度
+	RefreshTokenLength = 32
 
-	CodeKeySuffix    = "oauth2:code:"    // Code key suffix after prefix | 授权码键后缀
-	TokenKeySuffix   = "oauth2:token:"   // Token key suffix after prefix | 令牌键后缀
-	RefreshKeySuffix = "oauth2:refresh:" // Refresh key suffix after prefix | 刷新令牌键后缀
+	// CodeKeySuffix stores code key suffix CodeKeySuffix 存储授权码键后缀
+	CodeKeySuffix = "oauth2:code:"
+	// TokenKeySuffix stores token key suffix TokenKeySuffix 存储令牌键后缀
+	TokenKeySuffix = "oauth2:token:"
+	// RefreshKeySuffix stores refresh key suffix RefreshKeySuffix 存储刷新令牌键后缀
+	RefreshKeySuffix = "oauth2:refresh:"
 
-	TokenTypeBearer = "Bearer" // Token type | 令牌类型
+	// TokenTypeBearer stores bearer token type TokenTypeBearer 存储 Bearer 令牌类型
+	TokenTypeBearer = "Bearer"
 )
 
-// GrantType OAuth2 grant type | OAuth2授权类型
+// GrantType defines oauth2 grant type GrantType 定义 OAuth2 授权类型
 type GrantType string
 
 const (
-	GrantTypeAuthorizationCode GrantType = "authorization_code" // Authorization code flow | 授权码模式
-	GrantTypeRefreshToken      GrantType = "refresh_token"      // Refresh token flow | 刷新令牌模式
-	GrantTypeClientCredentials GrantType = "client_credentials" // Client credentials flow | 客户端凭证模式
-	GrantTypePassword          GrantType = "password"           // Password flow | 密码模式
+	// GrantTypeAuthorizationCode stores authorization code mode GrantTypeAuthorizationCode 存储授权码模式
+	GrantTypeAuthorizationCode GrantType = "authorization_code"
+	// GrantTypeRefreshToken stores refresh token mode GrantTypeRefreshToken 存储刷新令牌模式
+	GrantTypeRefreshToken GrantType = "refresh_token"
+	// GrantTypeClientCredentials stores client credentials mode GrantTypeClientCredentials 存储客户端凭证模式
+	GrantTypeClientCredentials GrantType = "client_credentials"
+	// GrantTypePassword stores password mode GrantTypePassword 存储密码模式
+	GrantTypePassword GrantType = "password"
 )

@@ -2,169 +2,154 @@ package fiber
 
 import (
 	"github.com/click33/sa-token-go/core/adapter"
-	"github.com/gofiber/fiber/v2"
-	"time"
+	gofiber "github.com/gofiber/fiber/v2"
 )
 
-// FiberContext Fiber request context adapter | Fiber请求上下文适配器
+// FiberContext adapts Fiber request context to SaToken request context FiberContext 将 Fiber 请求上下文适配为 SaToken 请求上下文。
 type FiberContext struct {
-	c       *fiber.Ctx
+	c       *gofiber.Ctx
 	aborted bool
 }
 
-// NewFiberContext creates a Fiber context adapter | 创建Fiber上下文适配器
-func NewFiberContext(c *fiber.Ctx) adapter.RequestContext {
+// NewFiberContext creates a Fiber request context adapter NewFiberContext 创建 Fiber 请求上下文适配器。
+func NewFiberContext(c *gofiber.Ctx) adapter.RequestContext {
 	return &FiberContext{c: c}
 }
 
-// GetHeader gets request header | 获取请求头
-func (f *FiberContext) GetHeader(key string) string {
-	return f.c.Get(key)
-}
-
-// GetQuery gets query parameter | 获取查询参数
-func (f *FiberContext) GetQuery(key string) string {
-	return f.c.Query(key)
-}
-
-// GetCookie gets cookie | 获取Cookie
-func (f *FiberContext) GetCookie(key string) string {
-	return f.c.Cookies(key)
-}
-
-// SetHeader sets response header | 设置响应头
-func (f *FiberContext) SetHeader(key, value string) {
-	f.c.Set(key, value)
-}
-
-// SetCookie sets cookie | 设置Cookie
-func (f *FiberContext) SetCookie(name, value string, maxAge int, path, domain string, secure, httpOnly bool) {
-	cookie := &fiber.Cookie{
-		Name:     name,
-		Value:    value,
-		Path:     path,
-		Domain:   domain,
-		MaxAge:   maxAge,
-		Secure:   secure,
-		HTTPOnly: httpOnly,
-		SameSite: "Lax",
-	}
-	if maxAge > 0 {
-		cookie.Expires = time.Now().Add(time.Duration(maxAge) * time.Second)
-	}
-	f.c.Cookie(cookie)
-}
-
-// GetClientIP gets client IP address | 获取客户端IP地址
-func (f *FiberContext) GetClientIP() string {
-	return f.c.IP()
-}
-
-// GetMethod gets request method | 获取请求方法
-func (f *FiberContext) GetMethod() string {
-	return f.c.Method()
-}
-
-// GetPath gets request path | 获取请求路径
-func (f *FiberContext) GetPath() string {
-	return f.c.Path()
-}
-
-// Set sets context value | 设置上下文值
-func (f *FiberContext) Set(key string, value interface{}) {
-	f.c.Locals(key, value)
-}
-
-// Get gets context value | 获取上下文值
+// Get implements adapter.RequestContext Get 实现 adapter.RequestContext 接口。
 func (f *FiberContext) Get(key string) (interface{}, bool) {
 	value := f.c.Locals(key)
 	return value, value != nil
 }
 
-// ============ Additional Required Methods | 额外必需的方法 ============
-
-// GetHeaders implements adapter.RequestContext.
+// GetHeaders implements adapter.RequestContext GetHeaders 实现 adapter.RequestContext 接口。
 func (f *FiberContext) GetHeaders() map[string][]string {
-	headers := make(map[string][]string)
-	f.c.Request().Header.VisitAll(func(key, value []byte) {
-		headers[string(key)] = []string{string(value)}
-	})
-	return headers
+	return f.c.GetReqHeaders()
 }
 
-// GetQueryAll implements adapter.RequestContext.
+// GetHeader implements adapter.RequestContext GetHeader 实现 adapter.RequestContext 接口。
+func (f *FiberContext) GetHeader(key string) string {
+	return f.c.Get(key)
+}
+
+// GetQuery implements adapter.RequestContext GetQuery 实现 adapter.RequestContext 接口。
+func (f *FiberContext) GetQuery(key string) string {
+	return f.c.Query(key)
+}
+
+// GetQueryAll implements adapter.RequestContext GetQueryAll 实现 adapter.RequestContext 接口。
 func (f *FiberContext) GetQueryAll() map[string][]string {
-	query := f.c.Request().URI().QueryArgs()
-	params := make(map[string][]string)
-	query.VisitAll(func(key, value []byte) {
-		params[string(key)] = []string{string(value)}
-	})
-	return params
+	values := f.c.Queries()
+	result := make(map[string][]string, len(values))
+	for key, value := range values {
+		result[key] = []string{value}
+	}
+	return result
 }
 
-// GetPostForm implements adapter.RequestContext.
+// GetPostForm implements adapter.RequestContext GetPostForm 实现 adapter.RequestContext 接口。
 func (f *FiberContext) GetPostForm(key string) string {
 	return f.c.FormValue(key)
 }
 
-// GetBody implements adapter.RequestContext.
+// GetCookie implements adapter.RequestContext GetCookie 实现 adapter.RequestContext 接口。
+func (f *FiberContext) GetCookie(key string) string {
+	return f.c.Cookies(key)
+}
+
+// GetBody implements adapter.RequestContext GetBody 实现 adapter.RequestContext 接口。
 func (f *FiberContext) GetBody() ([]byte, error) {
 	return f.c.Body(), nil
 }
 
-// GetURL implements adapter.RequestContext.
-func (f *FiberContext) GetURL() string {
-	return string(f.c.Request().URI().FullURI())
+// GetClientIP implements adapter.RequestContext GetClientIP 实现 adapter.RequestContext 接口。
+func (f *FiberContext) GetClientIP() string {
+	return f.c.IP()
 }
 
-// GetUserAgent implements adapter.RequestContext.
+// GetMethod implements adapter.RequestContext GetMethod 实现 adapter.RequestContext 接口。
+func (f *FiberContext) GetMethod() string {
+	return f.c.Method()
+}
+
+// GetPath implements adapter.RequestContext GetPath 实现 adapter.RequestContext 接口。
+func (f *FiberContext) GetPath() string {
+	return f.c.Path()
+}
+
+// GetURL implements adapter.RequestContext GetURL 实现 adapter.RequestContext 接口。
+func (f *FiberContext) GetURL() string {
+	return f.c.OriginalURL()
+}
+
+// GetUserAgent implements adapter.RequestContext GetUserAgent 实现 adapter.RequestContext 接口。
 func (f *FiberContext) GetUserAgent() string {
 	return f.c.Get("User-Agent")
 }
 
-// SetCookieWithOptions implements adapter.RequestContext.
+// IsTLS implements adapter.RequestContext IsTLS 实现 adapter.RequestContext 接口。
+func (f *FiberContext) IsTLS() bool {
+	return f.c.Secure()
+}
+
+// SetStatusCode implements adapter.RequestContext SetStatusCode 实现 adapter.RequestContext 接口。
+func (f *FiberContext) SetStatusCode(code int) {
+	f.c.Status(code)
+}
+
+// SetHeader implements adapter.RequestContext SetHeader 实现 adapter.RequestContext 接口。
+func (f *FiberContext) SetHeader(key, value string) {
+	f.c.Set(key, value)
+}
+
+// Write implements adapter.RequestContext Write 实现 adapter.RequestContext 接口。
+func (f *FiberContext) Write(data []byte) (int, error) {
+	return f.c.Write(data)
+}
+
+// SetCookie implements adapter.RequestContext SetCookie 实现 adapter.RequestContext 接口。
+func (f *FiberContext) SetCookie(name, value string, maxAge int, path, domain string, secure, httpOnly bool) {
+	f.c.Cookie(&gofiber.Cookie{
+		Name:     name,
+		Value:    value,
+		MaxAge:   maxAge,
+		Path:     path,
+		Domain:   domain,
+		Secure:   secure,
+		HTTPOnly: httpOnly,
+		SameSite: "Lax",
+	})
+}
+
+// SetCookieWithOptions implements adapter.RequestContext SetCookieWithOptions 实现 adapter.RequestContext 接口。
 func (f *FiberContext) SetCookieWithOptions(options *adapter.CookieOptions) {
-	cookie := &fiber.Cookie{
+	f.c.Cookie(&gofiber.Cookie{
 		Name:     options.Name,
 		Value:    options.Value,
+		MaxAge:   options.MaxAge,
 		Path:     options.Path,
 		Domain:   options.Domain,
-		MaxAge:   options.MaxAge,
 		Secure:   options.Secure,
 		HTTPOnly: options.HttpOnly,
-		SameSite: "Lax", // Default to Lax
-	}
-	
-	// Set SameSite attribute
-	switch options.SameSite {
-	case "Strict":
-		cookie.SameSite = "Strict"
-	case "Lax":
-		cookie.SameSite = "Lax"
-	case "None":
-		cookie.SameSite = "None"
-	}
-	
-	if options.MaxAge > 0 {
-		cookie.Expires = time.Now().Add(time.Duration(options.MaxAge) * time.Second)
-	}
-	
-	f.c.Cookie(cookie)
+		SameSite: options.SameSite,
+	})
 }
 
-// GetString implements adapter.RequestContext.
+// Set implements adapter.RequestContext Set 实现 adapter.RequestContext 接口。
+func (f *FiberContext) Set(key string, value interface{}) {
+	f.c.Locals(key, value)
+}
+
+// GetString implements adapter.RequestContext GetString 实现 adapter.RequestContext 接口。
 func (f *FiberContext) GetString(key string) string {
-	value := f.c.Locals(key)
-	if value == nil {
+	value, ok := f.c.Locals(key).(string)
+	if !ok {
 		return ""
 	}
-	if str, ok := value.(string); ok {
-		return str
-	}
-	return ""
+	return value
 }
 
-// MustGet implements adapter.RequestContext.
+// MustGet implements adapter.RequestContext MustGet 实现 adapter.RequestContext 接口。
 func (f *FiberContext) MustGet(key string) any {
 	value := f.c.Locals(key)
 	if value == nil {
@@ -173,12 +158,12 @@ func (f *FiberContext) MustGet(key string) any {
 	return value
 }
 
-// Abort implements adapter.RequestContext.
+// Abort implements adapter.RequestContext Abort 实现 adapter.RequestContext 接口。
 func (f *FiberContext) Abort() {
 	f.aborted = true
 }
 
-// IsAborted implements adapter.RequestContext.
+// IsAborted implements adapter.RequestContext IsAborted 实现 adapter.RequestContext 接口。
 func (f *FiberContext) IsAborted() bool {
 	return f.aborted
 }

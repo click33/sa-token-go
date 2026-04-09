@@ -1,39 +1,42 @@
-// @Author daixk 2025/12/4 17:58:00
 package manager
 
-import (
-	"time"
-)
-
-// Constants for storage keys and log values | 存储键和默认值常量
 const (
-	DefaultDevice   = "default"       // Default device type | 默认设备类型
-	DefaultNonceTTL = 5 * time.Minute // Default nonce expiration time | 默认随机令牌有效期
+	// DisableKeyPrefix stores disable key prefix DisableKeyPrefix 存储禁用状态存储前缀
+	DisableKeyPrefix = "disable:"
+	// DisableServiceKeyPrefix stores service disable prefix DisableServiceKeyPrefix 存储分类禁用状态存储前缀
+	DisableServiceKeyPrefix = "disable:service:"
+	// SessionKeyPrefix stores session key prefix SessionKeyPrefix 存储会话存储前缀
+	SessionKeyPrefix = "session:"
+	// RenewKeyPrefix stores renew key prefix RenewKeyPrefix 存储 Token 续期存储前缀
+	RenewKeyPrefix = "renew:"
+	// ActivePrefix stores active key prefix ActivePrefix 存储活跃时间存储前缀
+	ActivePrefix = "active:"
 
-	// Key prefixes | 键前缀
-	TokenKeyPrefix        = "token:"   // Token storage prefix | Token 存储前缀
-	AccountKeyPrefix      = "account:" // Account storage prefix | 账号存储前缀
-	DisableKeyPrefix      = "disable:" // Disable state prefix | 禁用状态存储前缀
-	RenewKeyPrefix        = "renew:"   // Token renew prefix | Token 续期存储前缀
-	TokenValueListLastKey = ":*"
+	// SessionKeyLoginID stores session login id key SessionKeyLoginID 存储登录 ID 键名
+	SessionKeyLoginID = "loginId"
+	// SessionKeyDevice stores session device key SessionKeyDevice 存储设备类型键名
+	SessionKeyDevice = "device"
+	// SessionKeyLoginTime stores session login time key SessionKeyLoginTime 存储登录时间键名
+	SessionKeyLoginTime = "loginTime"
+	// SessionKeyPermissions stores permissions key SessionKeyPermissions 存储权限列表键名
+	SessionKeyPermissions = "permissions"
+	// SessionKeyRoles stores roles key SessionKeyRoles 存储角色列表键名
+	SessionKeyRoles = "roles"
 
-	// Session keys | Session 键
-	SessionKeyLoginID     = "loginId"     // Login ID | 登录 ID
-	SessionKeyDevice      = "device"      // Device type | 设备类型
-	SessionKeyLoginTime   = "loginTime"   // Login time | 登录时间
-	SessionKeyPermissions = "permissions" // Permissions list | 权限列表
-	SessionKeyRoles       = "roles"       // Roles list | 角色列表
-
-	// Wildcard for permissions | 权限通配符
-	PermissionWildcard  = "*" // Global permission wildcard | 全局权限通配符
-	PermissionSeparator = ":" // Permission segment separator | 权限段分隔符
+	// PermissionWildcard stores permission wildcard PermissionWildcard 存储全局权限通配符
+	PermissionWildcard = "*"
+	// PermissionSeparator stores permission separator PermissionSeparator 存储权限段分隔符
+	PermissionSeparator = ":"
 )
 
-// TokenState 表示 Token 的逻辑状态
+// TokenState defines token logical state TokenState 定义 Token 逻辑状态
 type TokenState string
 
 const (
-	TokenStateLogout   TokenState = "LOGOUT"      // Logout state | 主动登出
-	TokenStateKickout  TokenState = "KICK_OUT"    // Kickout state | 被踢下线
-	TokenStateReplaced TokenState = "BE_REPLACED" // Replaced state | 被顶下线
+	// TokenStateLogout indicates logout state TokenStateLogout 表示主动登出状态
+	TokenStateLogout TokenState = "LOGOUT"
+	// TokenStateKickOut indicates kickout state TokenStateKickOut 表示被踢下线状态
+	TokenStateKickOut TokenState = "KICK_OUT"
+	// TokenStateReplaced indicates replaced state TokenStateReplaced 表示被顶下线状态
+	TokenStateReplaced TokenState = "REPLACED"
 )

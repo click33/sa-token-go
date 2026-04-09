@@ -1,44 +1,31 @@
-// @Author daixk 2025/12/5 15:52:00
 package adapter
 
-// TokenStyle Token generation style | Token生成风格
+// Generator defines token generator interface Generator 定义 Token 生成接口
+type Generator interface {
+	// Generate creates a token Generate 生成 Token
+	Generate(loginId, device, deviceId string) (string, error)
+}
+
+// TokenStyle defines token generation style TokenStyle 定义 Token 生成风格
 type TokenStyle string
 
 const (
-	// TokenStyleUUID UUID style | UUID风格
+	// TokenStyleUUID uses UUID style TokenStyleUUID 使用 UUID 风格
 	TokenStyleUUID TokenStyle = "uuid"
-	// TokenStyleSimple Simple random string | 简单随机字符串
+	// TokenStyleSimple uses simple random string style TokenStyleSimple 使用简单随机字符串风格
 	TokenStyleSimple TokenStyle = "simple"
-	// TokenStyleRandom32 32-bit random string | 32位随机字符串
+	// TokenStyleRandom32 uses 32-char random string style TokenStyleRandom32 使用 32 位随机字符串风格
 	TokenStyleRandom32 TokenStyle = "random32"
-	// TokenStyleRandom64 64-bit random string | 64位随机字符串
+	// TokenStyleRandom64 uses 64-char random string style TokenStyleRandom64 使用 64 位随机字符串风格
 	TokenStyleRandom64 TokenStyle = "random64"
-	// TokenStyleRandom128 128-bit random string | 128位随机字符串
+	// TokenStyleRandom128 uses 128-char random string style TokenStyleRandom128 使用 128 位随机字符串风格
 	TokenStyleRandom128 TokenStyle = "random128"
-	// TokenStyleJWT JWT style | JWT风格
+	// TokenStyleJWT uses JWT style TokenStyleJWT 使用 JWT 风格
 	TokenStyleJWT TokenStyle = "jwt"
-	// TokenStyleHash SHA256 hash-based style | SHA256哈希风格
+	// TokenStyleHash uses SHA256 hash style TokenStyleHash 使用 SHA256 哈希风格
 	TokenStyleHash TokenStyle = "hash"
-	// TokenStyleTimestamp Timestamp-based style | 时间戳风格
+	// TokenStyleTimestamp uses timestamp style TokenStyleTimestamp 使用时间戳风格
 	TokenStyleTimestamp TokenStyle = "timestamp"
-	// TokenStyleTik Short ID style (like TikTok) | Tik风格短ID（类似抖音）
+	// TokenStyleTik uses Tik short ID style TokenStyleTik 使用 Tik 短 ID 风格
 	TokenStyleTik TokenStyle = "tik"
 )
-
-// IsValid checks if the TokenStyle is valid | 检查TokenStyle是否有效
-func (ts TokenStyle) IsValid() bool {
-	switch ts {
-	case TokenStyleUUID, TokenStyleSimple, TokenStyleRandom32,
-		TokenStyleRandom64, TokenStyleRandom128, TokenStyleJWT,
-		TokenStyleHash, TokenStyleTimestamp, TokenStyleTik:
-		return true
-	default:
-		return false
-	}
-}
-
-// Generator token generation interface | Token生成接口
-type Generator interface {
-	// Generate generates token based on implementation | 生成Token（由实现决定具体规则）
-	Generate(loginID, device string) (string, error)
-}
