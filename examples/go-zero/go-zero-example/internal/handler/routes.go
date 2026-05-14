@@ -26,8 +26,14 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		},
 	)
 
+	// 受保护路由：先做 Token 拦截，再做登录校验，便于业务直接读取解析后的 token
+	authMiddlewares := []rest.Middleware{
+		serverCtx.Plugin.TokenInterceptor(),
+		serverCtx.Plugin.AuthMiddleware(),
+	}
+
 	server.AddRoutes(
-		rest.WithMiddleware(serverCtx.Plugin.TokenInterceptor(),
+		rest.WithMiddlewares(authMiddlewares,
 			rest.Route{
 				Method:  http.MethodGet,
 				Path:    "/api/token",
@@ -37,7 +43,7 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	)
 
 	server.AddRoutes(
-		rest.WithMiddleware(serverCtx.Plugin.AuthMiddleware(),
+		rest.WithMiddlewares(authMiddlewares,
 			rest.Route{
 				Method:  http.MethodGet,
 				Path:    "/api/user",
@@ -47,7 +53,7 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	)
 
 	server.AddRoutes(
-		rest.WithMiddleware(serverCtx.Plugin.PermissionRequired("admin:*"),
+		rest.WithMiddlewares(append(authMiddlewares, serverCtx.Plugin.PermissionRequired("admin:*")),
 			rest.Route{
 				Method:  http.MethodGet,
 				Path:    "/api/admin",
