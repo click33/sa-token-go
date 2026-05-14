@@ -41,19 +41,19 @@
 
 ```bash
 # 只导入框架集成包（自动包含 core + stputil）
-go get github.com/sa-tokens/sa-token-go/integrations/gin@latest   # Gin框架
+go get github.com/sa-tokens/sa-token-go/integrations/gin@latest    # Gin框架
 # 或
-go get github.com/sa-tokens/sa-token-go/integrations/echo@latest  # Echo框架
+go get github.com/sa-tokens/sa-token-go/integrations/echo@latest   # Echo框架
 # 或
-go get github.com/sa-tokens/sa-token-go/integrations/fiber@latest # Fiber框架
+go get github.com/sa-tokens/sa-token-go/integrations/fiber@latest  # Fiber框架
 # 或
-go get github.com/sa-tokens/sa-token-go/integrations/chi@latest   # Chi框架
+go get github.com/sa-tokens/sa-token-go/integrations/chi@latest    # Chi框架
 # 或
-go get github.com/sa-tokens/sa-token-go/integrations/gf@latest    # GoFrame框架
+go get github.com/sa-tokens/sa-token-go/integrations/gf@latest     # GoFrame框架
 # 或
-go get github.com/sa-tokens/sa-token-go/integrations/kratos@latest# Kratos框架
+go get github.com/sa-tokens/sa-token-go/integrations/kratos@latest # Kratos框架
 # 或
-go get github.com/sa-tokens/sa-token-go/integrations/hertz@latest # Hertz框架
+go get github.com/sa-tokens/sa-token-go/integrations/hertz@latest  # Hertz框架
 
 # 存储模块（选一个）
 go get github.com/sa-tokens/sa-token-go/storage/memory@latest # 内存存储（开发）
@@ -72,13 +72,13 @@ go get github.com/sa-tokens/sa-token-go/storage/memory@latest # 内存存储（�
 go get github.com/sa-tokens/sa-token-go/storage/redis@latest  # Redis存储（生产）
 
 # 框架集成（可选）
-go get github.com/sa-tokens/sa-token-go/integrations/gin@latest   # Gin框架
-go get github.com/sa-tokens/sa-token-go/integrations/echo@latest  # Echo框架
-go get github.com/sa-tokens/sa-token-go/integrations/fiber@latest # Fiber框架
-go get github.com/sa-tokens/sa-token-go/integrations/chi@latest   # Chi框架
-go get github.com/sa-tokens/sa-token-go/integrations/gf@latest    # GoFrame框架
-go get github.com/sa-tokens/sa-token-go/integrations/kratos@latest# Kratos框架
-go get github.com/sa-tokens/sa-token-go/integrations/hertz@latest # Hertz框架
+go get github.com/sa-tokens/sa-token-go/integrations/gin@latest    # Gin框架
+go get github.com/sa-tokens/sa-token-go/integrations/echo@latest   # Echo框架
+go get github.com/sa-tokens/sa-token-go/integrations/fiber@latest  # Fiber框架
+go get github.com/sa-tokens/sa-token-go/integrations/chi@latest    # Chi框架
+go get github.com/sa-tokens/sa-token-go/integrations/gf@latest     # GoFrame框架
+go get github.com/sa-tokens/sa-token-go/integrations/kratos@latest # Kratos框架
+go get github.com/sa-tokens/sa-token-go/integrations/hertz@latest  # Hertz框架
 ```
 
 ### ⚡ 超简洁使用（一行初始化）

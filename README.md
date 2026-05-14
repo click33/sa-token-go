@@ -35,19 +35,19 @@ A lightweight, high-performance Go authentication and authorization framework, i
 
 ```bash
 # Import only the framework integration (includes core + stputil automatically)
-go get github.com/sa-tokens/sa-token-go/integrations/gin@latest   # Gin framework
+go get github.com/sa-tokens/sa-token-go/integrations/gin@latest    # Gin framework
 # or
-go get github.com/sa-tokens/sa-token-go/integrations/echo@latest  # Echo framework
+go get github.com/sa-tokens/sa-token-go/integrations/echo@latest   # Echo framework
 # or
-go get github.com/sa-tokens/sa-token-go/integrations/fiber@latest # Fiber framework
+go get github.com/sa-tokens/sa-token-go/integrations/fiber@latest  # Fiber framework
 # or
-go get github.com/sa-tokens/sa-token-go/integrations/chi@latest   # Chi framework
+go get github.com/sa-tokens/sa-token-go/integrations/chi@latest    # Chi framework
 # or
-go get github.com/sa-tokens/sa-token-go/integrations/gf@latest    # GoFrame framework
+go get github.com/sa-tokens/sa-token-go/integrations/gf@latest     # GoFrame framework
 # or
-go get github.com/sa-tokens/sa-token-go/integrations/kratos@latest    # Kratos framework
+go get github.com/sa-tokens/sa-token-go/integrations/kratos@latest   # Kratos framework
 # or
-go get github.com/sa-tokens/sa-token-go/integrations/hertz@latest # Hertz framework
+go get github.com/sa-tokens/sa-token-go/integrations/hertz@latest  # Hertz framework
 ```
 
 # Storage module (choose one)
@@ -67,13 +67,13 @@ go get github.com/sa-tokens/sa-token-go/storage/memory@latest # Memory storage (
 go get github.com/sa-tokens/sa-token-go/storage/redis@latest  # Redis storage (prod)
 
 # Framework integration (optional)
-go get github.com/sa-tokens/sa-token-go/integrations/gin@latest   # Gin framework
-go get github.com/sa-tokens/sa-token-go/integrations/echo@latest  # Echo framework
-go get github.com/sa-tokens/sa-token-go/integrations/fiber@latest # Fiber framework
-go get github.com/sa-tokens/sa-token-go/integrations/chi@latest   # Chi framework
-go get github.com/sa-tokens/sa-token-go/integrations/gf@latest    # GoFrame framework
-go get github.com/sa-tokens/sa-token-go/integrations/kratos@latest# Kratos framework
-go get github.com/sa-tokens/sa-token-go/integrations/hertz@latest # Hertz framework
+go get github.com/sa-tokens/sa-token-go/integrations/gin@latest    # Gin framework
+go get github.com/sa-tokens/sa-token-go/integrations/echo@latest   # Echo framework
+go get github.com/sa-tokens/sa-token-go/integrations/fiber@latest  # Fiber framework
+go get github.com/sa-tokens/sa-token-go/integrations/chi@latest    # Chi framework
+go get github.com/sa-tokens/sa-token-go/integrations/gf@latest     # GoFrame framework
+go get github.com/sa-tokens/sa-token-go/integrations/kratos@latest # Kratos framework
+go get github.com/sa-tokens/sa-token-go/integrations/hertz@latest  # Hertz framework
 ```
 
 ### ⚡ Minimal Usage (One-line Initialization)
