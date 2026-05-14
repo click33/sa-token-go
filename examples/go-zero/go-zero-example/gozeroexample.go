@@ -1,0 +1,31 @@
+package main
+
+import (
+	"flag"
+	"fmt"
+
+	"github.com/click33/sa-token-go/examples/go-zero/go-zero-example/internal/config"
+	"github.com/click33/sa-token-go/examples/go-zero/go-zero-example/internal/handler"
+	"github.com/click33/sa-token-go/examples/go-zero/go-zero-example/internal/svc"
+
+	"github.com/zeromicro/go-zero/core/conf"
+	"github.com/zeromicro/go-zero/rest"
+)
+
+var configFile = flag.String("f", "etc/gozeroexample-api.yaml", "the config file")
+
+func main() {
+	flag.Parse()
+
+	var c config.Config
+	conf.MustLoad(*configFile, &c)
+
+	server := rest.MustNewServer(c.RestConf)
+	defer server.Stop()
+
+	ctx := svc.NewServiceContext(c)
+	handler.RegisterHandlers(server, ctx)
+
+	fmt.Printf("Starting server at %s:%d...\n", c.Host, c.Port)
+	server.Start()
+}

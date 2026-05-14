@@ -1,0 +1,46 @@
+syntax = "v1"
+
+info (
+	title:   "sa-token-go + go-zero Example"
+	desc:    "演示 sa-token-go 与 go-zero 集成的示例 API"
+	version: "1.0"
+)
+
+type (
+	LoginRequest {
+		Username string `json:"username"`
+		Password string `json:"password"`
+		Device   string `json:"device,optional"`
+	}
+
+	LoginResponse {
+		Token string `json:"token"`
+	}
+
+	UserInfoResponse {
+		LoginID     string   `json:"loginId"`
+		Permissions []string `json:"permissions"`
+		Roles       []string `json:"roles"`
+	}
+
+	MessageResponse {
+		Message string `json:"message"`
+	}
+)
+
+@server(
+	prefix: /api
+)
+service go-zero-example {
+	@doc "用户登录"
+	@handler Login
+	post /login (LoginRequest) returns (LoginResponse)
+
+	@doc "用户登出"
+	@handler Logout
+	post /logout returns (MessageResponse)
+
+	@doc "获取当前用户信息"
+	@handler UserInfo
+	get /user/info returns (UserInfoResponse)
+}
