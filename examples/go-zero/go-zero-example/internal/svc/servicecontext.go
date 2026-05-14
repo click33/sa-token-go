@@ -2,9 +2,9 @@ package svc
 
 import (
 	"github.com/click33/sa-token-go/core"
+	"github.com/click33/sa-token-go/examples/go-zero/go-zero-example/internal/config"
 	sazero "github.com/click33/sa-token-go/integrations/go-zero"
 	"github.com/click33/sa-token-go/storage/memory"
-	"github.com/click33/sa-token-go/examples/go-zero/go-zero-example/internal/config"
 )
 
 type ServiceContext struct {
@@ -18,7 +18,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	cfg := core.DefaultConfig()
 	cfg.TokenName = c.TokenName
-	cfg.Timeout = c.Timeout
+	cfg.Timeout = c.TokenTimeout
 
 	manager := core.NewManager(storage, cfg)
 	sazero.SetManager(manager)

@@ -49,6 +49,7 @@ func (p *Plugin) AuthMiddleware() rest.Middleware {
 			}
 
 			ctx.Set("satoken", saCtx)
+			r = ctx.(*GoZeroContext).Request()
 			next(w, r)
 		}
 	}
@@ -99,6 +100,7 @@ func (p *Plugin) PermissionRequired(permission string) rest.Middleware {
 			}
 
 			ctx.Set("satoken", saCtx)
+			r = ctx.(*GoZeroContext).Request()
 			next(w, r)
 		}
 	}
@@ -122,6 +124,7 @@ func (p *Plugin) RoleRequired(role string) rest.Middleware {
 			}
 
 			ctx.Set("satoken", saCtx)
+			r = ctx.(*GoZeroContext).Request()
 			next(w, r)
 		}
 	}
@@ -232,7 +235,19 @@ func writeErrorResponse(w http.ResponseWriter, err error) {
 	var message string
 	var httpStatus int
 
-	if errors.As(err, &saErr) {
+	if errors.Is(err, core.ErrNotLogin) {
+		code = core.CodeNotLogin
+		message = "user not logged in"
+		httpStatus = http.StatusUnauthorized
+	} else if errors.Is(err, core.ErrPermissionDenied) {
+		code = core.CodePermissionDenied
+		message = "permission denied"
+		httpStatus = http.StatusForbidden
+	} else if errors.Is(err, core.ErrRoleDenied) {
+		code = core.CodePermissionDenied
+		message = "role denied"
+		httpStatus = http.StatusForbidden
+	} else if errors.As(err, &saErr) {
 		code = saErr.Code
 		message = saErr.Message
 		httpStatus = getHTTPStatusFromCode(code)

@@ -6,8 +6,8 @@ import (
 
 	"github.com/zeromicro/go-zero/rest"
 
-	sazero "github.com/click33/sa-token-go/integrations/go-zero"
 	"github.com/click33/sa-token-go/examples/go-zero/go-zero-example/internal/svc"
+	sazero "github.com/click33/sa-token-go/integrations/go-zero"
 )
 
 func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {

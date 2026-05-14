@@ -25,6 +25,11 @@ func NewGoZeroContext(w http.ResponseWriter, r *http.Request) adapter.RequestCon
 	}
 }
 
+// Request returns the underlying request with updated context | 返回携带更新后上下文的请求
+func (c *GoZeroContext) Request() *http.Request {
+	return c.r
+}
+
 // GetHeader gets request header | 获取请求头
 func (c *GoZeroContext) GetHeader(key string) string {
 	return c.r.Header.Get(key)
