@@ -4,6 +4,7 @@ use (
 	./core
 	./examples/go-zero/go-zero-example
 	./examples/hertz/herz-example
+	./examples/iris/iris-example
 	./examples/kratos/kratos-example
 	./examples/multi-certification
 	./integrations/chi
