@@ -53,6 +53,16 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	)
 
 	server.AddRoutes(
+		rest.WithMiddlewares(authMiddlewares,
+			rest.Route{
+				Method:  http.MethodPost,
+				Path:    "/logout",
+				Handler: LogoutHandler(serverCtx),
+			},
+		),
+	)
+
+	server.AddRoutes(
 		rest.WithMiddlewares(append(authMiddlewares, serverCtx.Plugin.PermissionRequired("admin:*")),
 			rest.Route{
 				Method:  http.MethodGet,

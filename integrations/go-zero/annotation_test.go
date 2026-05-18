@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -258,4 +259,34 @@ func TestIgnoreMiddleware(t *testing.T) {
 	handler(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestParseTag_LoginAndRole(t *testing.T) {
+	ann := ParseTag("sa_check_login,sa_check_role=Admin|User")
+	assert.True(t, ann.CheckLogin)
+	assert.Equal(t, []string{"Admin", "User"}, ann.CheckRole)
+}
+
+func TestValidate_MultipleChecksInvalid(t *testing.T) {
+	ann := &Annotation{CheckLogin: true, CheckRole: []string{"Admin"}}
+	assert.False(t, ann.Validate())
+}
+
+func TestCheckDisable_DisabledReturnsErrsMessage(t *testing.T) {
+	mgr := setupTestManager()
+	token := mockLogin("user1")
+	// DisableLevel does not revoke tokens (unlike Disable); session stays valid for CheckDisable path.
+	// DisableLevel 不会吊销 token（与 Disable 不同），便于测试封禁中间件分支。
+	err := mgr.DisableLevel("user1", "login", 1, time.Hour)
+	assert.NoError(t, err)
+	assert.True(t, stputil.IsLogin(token))
+
+	handler := GetHandler(okHandler(), &Annotation{CheckDisable: true})
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/test", nil)
+	req.Header.Set("Authorization", token)
+	handler(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	assert.Contains(t, w.Body.String(), "account disabled")
 }

@@ -1,68 +1,61 @@
 package gozero
 
 import (
-	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"github.com/click33/sa-token-go/core"
 	"github.com/zeromicro/go-zero/rest"
 )
 
-// Plugin go-zero plugin for Sa-Token | go-zero插件
+// Plugin provides Sa-Token middleware and handlers for go-zero rest server.
+// Plugin 为 go-zero rest 服务提供 Sa-Token 中间件与处理器。
 type Plugin struct {
 	manager *core.Manager
 }
 
-// NewPlugin creates a go-zero plugin | 创建go-zero插件
+// NewPlugin creates a Plugin with the given Manager.
+// NewPlugin 使用指定 Manager 创建 Plugin。
 func NewPlugin(manager *core.Manager) *Plugin {
-	return &Plugin{
-		manager: manager,
-	}
+	return &Plugin{manager: manager}
 }
 
-const satokenTokenCtxKey = "satoken_token"
-
-// TokenInterceptor parses token and injects into context for downstream handlers | 解析token并注入上下文，供后续Handler使用
+// TokenInterceptor parses token and stores it on request context (no login check).
+// TokenInterceptor 解析 token 并写入 context，不做登录校验。
 func (p *Plugin) TokenInterceptor() rest.Middleware {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			ctx := NewGoZeroContext(w, r)
-			tok := core.ReadTokenFromRequest(ctx, p.manager)
-			r = r.WithContext(context.WithValue(r.Context(), satokenTokenCtxKey, tok))
-			next(w, r)
+			rc := NewGoZeroContext(w, r)
+			tok := core.ReadTokenFromRequest(rc, p.manager)
+			next(w, attachTokenToRequest(r, tok))
 		}
 	}
 }
 
-// AuthMiddleware authentication middleware | 认证中间件
+// AuthMiddleware requires a valid login session.
+// AuthMiddleware 要求有效登录会话。
 func (p *Plugin) AuthMiddleware() rest.Middleware {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			ctx := NewGoZeroContext(w, r)
-			saCtx := core.NewContext(ctx, p.manager)
-
+			rc := NewGoZeroContext(w, r)
+			saCtx := core.NewContext(rc, p.manager)
 			if err := saCtx.CheckLogin(); err != nil {
 				writeErrorResponse(w, err)
 				return
 			}
-
-			ctx.Set("satoken", saCtx)
-			r = ctx.(*GoZeroContext).Request()
-			next(w, r)
+			next(w, attachSaTokenToRequest(w, r, saCtx, ""))
 		}
 	}
 }
 
-// PathAuthMiddleware path-based authentication middleware | 基于路径的鉴权中间件
+// PathAuthMiddleware applies path-based auth rules from config.
+// PathAuthMiddleware 按 PathAuthConfig 做路径级鉴权。
 func (p *Plugin) PathAuthMiddleware(config *core.PathAuthConfig) rest.Middleware {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			path := r.URL.Path
-			ctx := NewGoZeroContext(w, r)
-			token := core.ReadTokenFromRequest(ctx, p.manager)
-
+			rc := NewGoZeroContext(w, r)
+			token := core.ReadTokenFromRequest(rc, p.manager)
 			result := core.ProcessAuth(path, token, config, p.manager)
 
 			if result.ShouldReject() {
@@ -71,133 +64,146 @@ func (p *Plugin) PathAuthMiddleware(config *core.PathAuthConfig) rest.Middleware
 			}
 
 			if result.IsValid && result.TokenInfo != nil {
-				ctx := NewGoZeroContext(w, r)
-				saCtx := core.NewContext(ctx, p.manager)
-				ctx.Set("satoken", saCtx)
-				ctx.Set("loginID", result.LoginID())
+				rc2 := NewGoZeroContext(w, r)
+				saCtx := core.NewContext(rc2, p.manager)
+				r = attachSaTokenToRequest(w, r, saCtx, result.LoginID())
 			}
-
 			next(w, r)
 		}
 	}
 }
 
-// PermissionRequired permission validation middleware | 权限验证中间件
+// PermissionRequired middleware checks login and a single permission.
+// PermissionRequired 中间件校验登录与单项权限。
 func (p *Plugin) PermissionRequired(permission string) rest.Middleware {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			ctx := NewGoZeroContext(w, r)
-			saCtx := core.NewContext(ctx, p.manager)
-
+			rc := NewGoZeroContext(w, r)
+			saCtx := core.NewContext(rc, p.manager)
 			if err := saCtx.CheckLogin(); err != nil {
 				writeErrorResponse(w, err)
 				return
 			}
-
 			if !saCtx.HasPermission(permission) {
 				writeErrorResponse(w, core.NewPermissionDeniedError(permission))
 				return
 			}
-
-			ctx.Set("satoken", saCtx)
-			r = ctx.(*GoZeroContext).Request()
-			next(w, r)
+			next(w, attachSaTokenToRequest(w, r, saCtx, ""))
 		}
 	}
 }
 
-// RoleRequired role validation middleware | 角色验证中间件
+// RoleRequired middleware checks login and a single role.
+// RoleRequired 中间件校验登录与单项角色。
 func (p *Plugin) RoleRequired(role string) rest.Middleware {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			ctx := NewGoZeroContext(w, r)
-			saCtx := core.NewContext(ctx, p.manager)
-
+			rc := NewGoZeroContext(w, r)
+			saCtx := core.NewContext(rc, p.manager)
 			if err := saCtx.CheckLogin(); err != nil {
 				writeErrorResponse(w, err)
 				return
 			}
-
 			if !saCtx.HasRole(role) {
 				writeErrorResponse(w, core.NewRoleDeniedError(role))
 				return
 			}
-
-			ctx.Set("satoken", saCtx)
-			r = ctx.(*GoZeroContext).Request()
-			next(w, r)
+			next(w, attachSaTokenToRequest(w, r, saCtx, ""))
 		}
 	}
 }
 
-// LoginHandler login handler | 登录处理器
+// LoginHandler is an example login endpoint; validate password in your user service before production.
+// LoginHandler 为示例登录接口；生产环境须在用户服务校验密码。
 func (p *Plugin) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
 		Device   string `json:"device"`
 	}
-
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeErrorResponse(w, core.NewError(core.CodeBadRequest, "invalid request parameters", err))
+		writeErrorResponse(w, core.NewError(core.CodeBadRequest, core.ErrInvalidConfig.Error(), err))
 		return
 	}
+	if req.Username == "" {
+		writeErrorResponse(w, core.NewError(core.CodeInvalidParameter, core.ErrInvalidLoginID.Error(), core.ErrInvalidLoginID))
+		return
+	}
+	// TODO: validate username/password via user service | TODO: 调用用户服务校验账号密码
 
 	device := req.Device
 	if device == "" {
 		device = "default"
 	}
-
 	token, err := p.manager.Login(req.Username, device)
 	if err != nil {
-		writeErrorResponse(w, core.NewError(core.CodeServerError, "login failed", err))
+		writeErrorResponse(w, err)
 		return
 	}
 
-	writeSuccessResponse(w, map[string]interface{}{
-		"token": token,
-	})
+	cfg := p.manager.GetConfig()
+	if cfg.IsReadCookie {
+		maxAge := int(cfg.Timeout)
+		if maxAge < 0 {
+			maxAge = 0
+		}
+		rc := NewGoZeroContext(w, r)
+		rc.SetCookie(cfg.TokenName, token, maxAge,
+			cfg.CookieConfig.Path, cfg.CookieConfig.Domain,
+			cfg.CookieConfig.Secure, cfg.CookieConfig.HttpOnly)
+	}
+	writeSuccessResponse(w, map[string]interface{}{"token": token})
 }
 
-// LogoutHandler logout handler | 登出处理器
+// LogoutHandler logs out by loginID (aligned with Gin integration).
+// LogoutHandler 按 loginID 登出（与 Gin 集成语义一致）。
 func (p *Plugin) LogoutHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := NewGoZeroContext(w, r)
-	token := core.ReadTokenFromRequest(ctx, p.manager)
-
-	if token == "" {
-		writeErrorResponse(w, core.NewNotLoginError())
-		return
-	}
-
-	if err := p.manager.LogoutByToken(token); err != nil {
-		writeErrorResponse(w, err)
-		return
-	}
-
-	writeSuccessResponse(w, map[string]interface{}{
-		"message": "logged out successfully",
-	})
-}
-
-// UserInfoHandler user info handler | 用户信息处理器
-func (p *Plugin) UserInfoHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := NewGoZeroContext(w, r)
-	saCtx := core.NewContext(ctx, p.manager)
-
-	if err := saCtx.CheckLogin(); err != nil {
-		writeErrorResponse(w, err)
-		return
-	}
-
+	rc := NewGoZeroContext(w, r)
+	saCtx := core.NewContext(rc, p.manager)
 	loginID, err := saCtx.GetLoginID()
 	if err != nil {
 		writeErrorResponse(w, err)
 		return
 	}
+	if err := p.manager.Logout(loginID); err != nil {
+		writeErrorResponse(w, core.NewError(core.CodeServerError, core.ErrStorageUnavailable.Error(), err))
+		return
+	}
+	writeSuccessResponse(w, map[string]interface{}{"message": "logout successful"})
+}
 
+// LogoutByTokenHandler logs out by token string.
+// LogoutByTokenHandler 按 token 字符串登出。
+func (p *Plugin) LogoutByTokenHandler(w http.ResponseWriter, r *http.Request) {
+	rc := NewGoZeroContext(w, r)
+	token := core.ReadTokenFromRequest(rc, p.manager)
+	if token == "" {
+		writeErrorResponse(w, core.NewNotLoginError())
+		return
+	}
+	if err := p.manager.LogoutByToken(token); err != nil {
+		writeErrorResponse(w, err)
+		return
+	}
+	writeSuccessResponse(w, map[string]interface{}{"message": "logout successful"})
+}
+
+// UserInfoHandler returns loginId, roles and permissions for current session.
+// UserInfoHandler 返回当前会话的 loginId、角色与权限。
+func (p *Plugin) UserInfoHandler(w http.ResponseWriter, r *http.Request) {
+	rc := NewGoZeroContext(w, r)
+	saCtx := core.NewContext(rc, p.manager)
+	if err := saCtx.CheckLogin(); err != nil {
+		writeErrorResponse(w, err)
+		return
+	}
+	loginID, err := saCtx.GetLoginID()
+	if err != nil {
+		writeErrorResponse(w, err)
+		return
+	}
 	permissions, _ := p.manager.GetPermissions(loginID)
 	roles, _ := p.manager.GetRoles(loginID)
-
 	writeSuccessResponse(w, map[string]interface{}{
 		"loginId":     loginID,
 		"permissions": permissions,
@@ -205,12 +211,13 @@ func (p *Plugin) UserInfoHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GetTokenFromCtx reads token injected by TokenInterceptor from request context | 从请求context读取TokenInterceptor注入的token
+// GetTokenFromCtx returns token stored by TokenInterceptor.
+// GetTokenFromCtx 返回 TokenInterceptor 写入的 token。
 func GetTokenFromCtx(r *http.Request) string {
 	if r == nil {
 		return ""
 	}
-	if v := r.Context().Value(satokenTokenCtxKey); v != nil {
+	if v := r.Context().Value(ctxKeyToken); v != nil {
 		if s, ok := v.(string); ok {
 			return s
 		}
@@ -218,78 +225,30 @@ func GetTokenFromCtx(r *http.Request) string {
 	return ""
 }
 
-// GetSaToken retrieves Sa-Token context from request | 从请求获取Sa-Token上下文
+// GetSaToken returns SaTokenContext from request context.
+// GetSaToken 从 request context 获取 SaTokenContext。
 func GetSaToken(r *http.Request) (*core.SaTokenContext, bool) {
-	saToken := r.Context().Value("satoken")
-	if saToken == nil {
+	if r == nil {
 		return nil, false
 	}
-	ctx, ok := saToken.(*core.SaTokenContext)
-	return ctx, ok
-}
-
-// writeErrorResponse writes a standardized error response | 写入标准化错误响应
-func writeErrorResponse(w http.ResponseWriter, err error) {
-	var saErr *core.SaTokenError
-	var code int
-	var message string
-	var httpStatus int
-
-	if errors.Is(err, core.ErrNotLogin) {
-		code = core.CodeNotLogin
-		message = "user not logged in"
-		httpStatus = http.StatusUnauthorized
-	} else if errors.Is(err, core.ErrPermissionDenied) {
-		code = core.CodePermissionDenied
-		message = "permission denied"
-		httpStatus = http.StatusForbidden
-	} else if errors.Is(err, core.ErrRoleDenied) {
-		code = core.CodePermissionDenied
-		message = "role denied"
-		httpStatus = http.StatusForbidden
-	} else if errors.As(err, &saErr) {
-		code = saErr.Code
-		message = saErr.Message
-		httpStatus = getHTTPStatusFromCode(code)
-	} else {
-		code = core.CodeServerError
-		message = err.Error()
-		httpStatus = http.StatusInternalServerError
+	if v := r.Context().Value(ctxKeySaToken); v != nil {
+		if sa, ok := v.(*core.SaTokenContext); ok {
+			return sa, true
+		}
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(httpStatus)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"code":    code,
-		"message": message,
-		"error":   err.Error(),
-	})
+	return nil, false
 }
 
-// writeSuccessResponse writes a standardized success response | 写入标准化成功响应
-func writeSuccessResponse(w http.ResponseWriter, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"code":    core.CodeSuccess,
-		"message": "success",
-		"data":    data,
-	})
-}
-
-// getHTTPStatusFromCode converts Sa-Token error code to HTTP status | 将Sa-Token错误码转换为HTTP状态码
-func getHTTPStatusFromCode(code int) int {
-	switch code {
-	case core.CodeNotLogin:
-		return http.StatusUnauthorized
-	case core.CodePermissionDenied:
-		return http.StatusForbidden
-	case core.CodeBadRequest:
-		return http.StatusBadRequest
-	case core.CodeNotFound:
-		return http.StatusNotFound
-	case core.CodeServerError:
-		return http.StatusInternalServerError
-	default:
-		return http.StatusInternalServerError
+// GetLoginIDFromCtx returns loginID from PathAuthMiddleware.
+// GetLoginIDFromCtx 返回 PathAuthMiddleware 写入的 loginID。
+func GetLoginIDFromCtx(r *http.Request) (string, bool) {
+	if r == nil {
+		return "", false
 	}
+	if v := r.Context().Value(ctxKeyLoginID); v != nil {
+		if s, ok := v.(string); ok && s != "" {
+			return s, true
+		}
+	}
+	return "", false
 }

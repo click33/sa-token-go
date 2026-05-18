@@ -161,6 +161,20 @@ func (c *GoZeroContext) Set(key string, value interface{}) {
 	c.r = c.r.WithContext(c.ctx)
 }
 
+// SetKey stores a value using typed ctxKey (preferred for Sa-Token internal keys).
+// SetKey 使用类型安全的 ctxKey 存值（Sa-Token 内部键推荐使用）。
+func (c *GoZeroContext) SetKey(key ctxKey, value interface{}) {
+	c.ctx = context.WithValue(c.ctx, key, value)
+	c.r = c.r.WithContext(c.ctx)
+}
+
+// GetKey gets a value by typed ctxKey.
+// GetKey 按类型安全的 ctxKey 取值。
+func (c *GoZeroContext) GetKey(key ctxKey) (interface{}, bool) {
+	v := c.ctx.Value(key)
+	return v, v != nil
+}
+
 // Get gets context value | 获取上下文值
 func (c *GoZeroContext) Get(key string) (interface{}, bool) {
 	value := c.ctx.Value(key)
@@ -188,7 +202,8 @@ func (c *GoZeroContext) MustGet(key string) any {
 	return value
 }
 
-// Abort aborts the request | 中断请求
+// Abort marks adapter state only; go-zero middleware must return to stop the chain.
+// Abort 仅标记状态；go-zero 须在中间件内 return 终止，无法像 Gin 一样 Abort 后续节点。
 func (c *GoZeroContext) Abort() {
 	c.aborted = true
 }
