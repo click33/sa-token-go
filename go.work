@@ -13,6 +13,7 @@ use (
 	./integrations/gin
 	./integrations/go-zero
 	./integrations/hertz
+	./integrations/iris
 	./integrations/kratos
 	./plugins/sso
 	./storage/memory
