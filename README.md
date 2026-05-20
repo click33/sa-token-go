@@ -48,6 +48,8 @@ go get github.com/sa-tokens/sa-token-go/integrations/gf@latest     # GoFrame fra
 go get github.com/sa-tokens/sa-token-go/integrations/kratos@latest   # Kratos framework
 # or
 go get github.com/sa-tokens/sa-token-go/integrations/hertz@latest  # Hertz framework
+# or
+go get github.com/sa-tokens/sa-token-go/integrations/iris@latest   # Iris framework
 ```
 
 # Storage module (choose one)
@@ -74,6 +76,7 @@ go get github.com/sa-tokens/sa-token-go/integrations/chi@latest    # Chi framewo
 go get github.com/sa-tokens/sa-token-go/integrations/gf@latest     # GoFrame framework
 go get github.com/sa-tokens/sa-token-go/integrations/kratos@latest # Kratos framework
 go get github.com/sa-tokens/sa-token-go/integrations/hertz@latest  # Hertz framework
+go get github.com/sa-tokens/sa-token-go/integrations/iris@latest   # Iris framework
 ```
 
 ### ⚡ Minimal Usage (One-line Initialization)
@@ -507,7 +510,7 @@ func main() {
 
 ### 🔌 Other Framework Integrations
 
-**Echo / Fiber / Chi / Kratos** also support annotation decorators:
+**Echo / Fiber / Chi / Kratos / Hertz / Iris** also support annotation decorators:
 
 ```go
 // Echo
@@ -529,6 +532,10 @@ import sakratos "github.com/sa-tokens/sa-token-go/integrations/kratos"
 // Hertz
 import sahertz "github.com/sa-tokens/sa-token-go/integrations/hertz"
 h.GET("/user", sahertz.CheckLogin(), handler)
+
+// Iris
+import sairis "github.com/sa-tokens/sa-token-go/integrations/iris"
+app.Get("/user", sairis.CheckLogin(), handler)
 ```
 
 All integration plugins now provide:
@@ -709,7 +716,8 @@ sa-token-go/
 │   ├── chi/                # Chi integration
 │   ├── gf/                 # GoFrame integration
 │   ├── kratos/             # Kratos integration
-│   └── hertz/              # Hertz integration
+│   ├── hertz/              # Hertz integration
+│   └── iris/               # Iris integration
 │
 ├── examples/               # Example projects
 │   ├── quick-start/        # Quick start
@@ -775,6 +783,7 @@ sa-token-go/
 | 🌐 GoFrame Integration | GoFrame framework integration | [examples/gf/](examples/gf/) |
 | 🌐 Kratos Integration | Kratos framework integration | [examples/kratos/kratos-example/](examples/kratos/kratos-example/) |
 | 🌐 Hertz Integration | Hertz framework integration | [examples/hertz/herz-example/](examples/hertz/herz-example/) |
+| 🌐 Iris Integration | Iris framework integration | [examples/iris/iris-example/](examples/iris/iris-example/) |
 
 ### 💾 Storage Options
 

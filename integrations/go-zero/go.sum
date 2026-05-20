@@ -8,8 +8,6 @@ github.com/click33/sa-token-go/core v0.2.0 h1:B87kLQq3Ef5B1ZhCte2ZYlyXLpvtGOSB+z
 github.com/click33/sa-token-go/core v0.2.0/go.mod h1:ISJ8j06TBNz1YkPmRyO/Y1EkkBHCuNBhQK6lMtUhPEs=
 github.com/click33/sa-token-go/storage/memory v0.2.0 h1:UU/jfw5OOM6ZCVcvCwDrQJh0BLxWlDOdH3GrsIyurIg=
 github.com/click33/sa-token-go/storage/memory v0.2.0/go.mod h1:P/ghJ9b7llzFxROGbY+FDaiEmPf7i62WxbOMFUY6S/4=
-github.com/click33/sa-token-go/stputil v0.2.0 h1:rl+AisDuLpZuNYPaBm3oUUbDxTye1I85t3kEfnZDvZs=
-github.com/click33/sa-token-go/stputil v0.2.0/go.mod h1:gwFcMNvf1YcFKE52d0T/D9DylIW6PLsJYcHCzxbOPoQ=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/fatih/color v1.18.0 h1:S8gINlzdQ840/4pfAwic/ZE0djQEH3wM94VfqLTZcOM=

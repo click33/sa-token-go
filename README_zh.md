@@ -54,6 +54,8 @@ go get github.com/sa-tokens/sa-token-go/integrations/gf@latest     # GoFrame框�
 go get github.com/sa-tokens/sa-token-go/integrations/kratos@latest # Kratos框架
 # 或
 go get github.com/sa-tokens/sa-token-go/integrations/hertz@latest  # Hertz框架
+# 或
+go get github.com/sa-tokens/sa-token-go/integrations/iris@latest   # Iris框架
 
 # 存储模块（选一个）
 go get github.com/sa-tokens/sa-token-go/storage/memory@latest # 内存存储（开发）
@@ -79,6 +81,7 @@ go get github.com/sa-tokens/sa-token-go/integrations/chi@latest    # Chi框架
 go get github.com/sa-tokens/sa-token-go/integrations/gf@latest     # GoFrame框架
 go get github.com/sa-tokens/sa-token-go/integrations/kratos@latest # Kratos框架
 go get github.com/sa-tokens/sa-token-go/integrations/hertz@latest  # Hertz框架
+go get github.com/sa-tokens/sa-token-go/integrations/iris@latest   # Iris框架
 ```
 
 ### ⚡ 超简洁使用（一行初始化）
@@ -512,7 +515,7 @@ func main() {
 
 ### 🔌 其他框架集成
 
-**Echo / Fiber / Chi / Kratos** 同样支持注解装饰器：
+**Echo / Fiber / Chi / Kratos / Hertz / Iris** 同样支持注解装饰器：
 
 ```go
 // Echo
@@ -534,6 +537,10 @@ import sakratos "github.com/sa-tokens/sa-token-go/integrations/kratos"
 // Hertz
 import sahertz "github.com/sa-tokens/sa-token-go/integrations/hertz"
 h.GET("/user", sahertz.CheckLogin(), handler)
+
+// Iris
+import sairis "github.com/sa-tokens/sa-token-go/integrations/iris"
+app.Get("/user", sairis.CheckLogin(), handler)
 ```
 
 所有集成插件已统一提供：
@@ -721,7 +728,8 @@ sa-token-go/
 │   ├── chi/                # Chi集成
 │   ├── gf/                 # GoFrame集成
 │   ├── kratos/             # Kratos集成
-│   └── hertz/              # Hertz集成
+│   ├── hertz/              # Hertz集成
+│   └── iris/               # Iris集成
 │
 ├── examples/               # 示例项目
 │   ├── quick-start/        # 快速开始
@@ -787,6 +795,7 @@ sa-token-go/
 | 🌐 GoFrame集成 | GoFrame框架集成 | [examples/gf/](examples/gf/) |
 | 🌐 Kratos集成 | Kratos框架集成 | [examples/kratos/kratos-example/](examples/kratos/kratos-example/) |
 | 🌐 Hertz集成 | Hertz框架集成 | [examples/hertz/herz-example/](examples/hertz/herz-example/) |
+| 🌐 Iris集成 | Iris框架集成 | [examples/iris/iris-example/](examples/iris/iris-example/) |
 
 ### 💾 存储方案
 
