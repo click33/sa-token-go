@@ -38,6 +38,7 @@ github.com/click33/sa-token-go/integrations/hertz v0.1.9/go.mod h1:jVNjwaX1wyWK4
 github.com/click33/sa-token-go/integrations/hertz v0.2.0/go.mod h1:v/fOFb1yrG0XwPNSrQElreFEmIXQMVw/+73+1/C4ts8=
 github.com/click33/sa-token-go/integrations/kratos v0.1.9/go.mod h1:Nd9Q3t7zQ0+tiSeOWiqOTLJWtbIsUfZKfowrEyjMOMQ=
 github.com/click33/sa-token-go/integrations/kratos v0.2.0/go.mod h1:upUewhxvReVyXr6Y5bYuBRtvGbzZoNcppr8XhqbdpaI=
+github.com/click33/sa-token-go/stputil v0.2.0/go.mod h1:gwFcMNvf1YcFKE52d0T/D9DylIW6PLsJYcHCzxbOPoQ=
 github.com/cncf/xds/go v0.0.0-20260202195803-dba9d589def2 h1:aBangftG7EVZoUb69Os8IaYg++6uMOdKK83QtkkvJik=
 github.com/cncf/xds/go v0.0.0-20260202195803-dba9d589def2/go.mod h1:qwXFYgsP6T7XnJtbKlf1HP8AjxZZyzxMmc+Lq5GjlU4=
 github.com/coreos/go-semver v0.3.1 h1:yi21YpKnrx1gt5R+la8n5WgS0kCrsPp33dmEyHReZr4=

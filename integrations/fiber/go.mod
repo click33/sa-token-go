@@ -3,8 +3,8 @@ module github.com/click33/sa-token-go/integrations/fiber
 go 1.25.0
 
 require (
-	github.com/click33/sa-token-go/core v0.2.0
-	github.com/click33/sa-token-go/stputil v0.2.0
+	github.com/click33/sa-token-go/core v0.2.1
+	github.com/click33/sa-token-go/stputil v0.2.1
 	github.com/gofiber/fiber/v2 v2.52.13
 )
 

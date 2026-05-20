@@ -3,9 +3,9 @@ module github.com/click33/sa-token-go/examples/go-zero/go-zero-example
 go 1.25.0
 
 require (
-	github.com/click33/sa-token-go/core v0.2.0
-	github.com/click33/sa-token-go/integrations/go-zero v0.2.0
-	github.com/click33/sa-token-go/storage/memory v0.2.0
+	github.com/click33/sa-token-go/core v0.2.1
+	github.com/click33/sa-token-go/integrations/go-zero v0.2.1
+	github.com/click33/sa-token-go/storage/memory v0.2.1
 	github.com/zeromicro/go-zero v1.10.1
 )
 
@@ -13,7 +13,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/click33/sa-token-go/stputil v0.2.0 // indirect
+	github.com/click33/sa-token-go/stputil v0.2.1 // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect

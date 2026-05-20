@@ -2,3 +2,4 @@
 .cursor
 coverage.out
 coverage.html
+examples/iris/iris-example/iris-example

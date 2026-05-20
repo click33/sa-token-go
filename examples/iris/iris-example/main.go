@@ -32,6 +32,11 @@ func main() {
 
 	// 登录接口 | Login endpoint
 	app.Post("/login", func(c iris.Context) {
+		// SECURITY NOTICE: this demo endpoint does NOT validate username/password.
+		// You MUST replace it with real authentication in production, otherwise it
+		// behaves as passwordless login.
+		// 安全提示：本示例为演示用途，未做用户名/密码校验。
+		// 生产环境必须替换为真实的用户身份验证逻辑，否则等同无密码登录。
 		userID := c.PostValue("user_id")
 		if userID == "" {
 			c.StatusCode(iris.StatusBadRequest)

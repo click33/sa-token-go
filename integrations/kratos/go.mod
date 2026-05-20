@@ -3,9 +3,9 @@ module github.com/click33/sa-token-go/integrations/kratos
 go 1.25.0
 
 require (
-	github.com/click33/sa-token-go/core v0.2.0
-	github.com/click33/sa-token-go/storage/memory v0.2.0
-	github.com/click33/sa-token-go/stputil v0.2.0
+	github.com/click33/sa-token-go/core v0.2.1
+	github.com/click33/sa-token-go/storage/memory v0.2.1
+	github.com/click33/sa-token-go/stputil v0.2.1
 	github.com/go-kratos/kratos/v2 v2.9.2
 )
 

@@ -3,8 +3,8 @@ module github.com/click33/sa-token-go/examples/gin-example
 go 1.25.0
 
 require (
-	github.com/click33/sa-token-go/integrations/gin v0.2.0
-	github.com/click33/sa-token-go/storage/memory v0.2.0
+	github.com/click33/sa-token-go/integrations/gin v0.2.1
+	github.com/click33/sa-token-go/storage/memory v0.2.1
 	github.com/gin-gonic/gin v1.12.0
 	github.com/spf13/viper v1.21.0
 )
@@ -13,8 +13,8 @@ require (
 	github.com/bytedance/gopkg v0.1.4 // indirect
 	github.com/bytedance/sonic v1.15.1 // indirect
 	github.com/bytedance/sonic/loader v0.5.1 // indirect
-	github.com/click33/sa-token-go/core v0.2.0 // indirect
-	github.com/click33/sa-token-go/stputil v0.2.0 // indirect
+	github.com/click33/sa-token-go/core v0.2.1 // indirect
+	github.com/click33/sa-token-go/stputil v0.2.1 // indirect
 	github.com/cloudwego/base64x v0.1.7 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
