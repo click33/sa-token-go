@@ -16,6 +16,12 @@ github.com/andybalholm/brotli v1.1.0 h1:eLKJA0d02Lf0mVpIDgYnqXcUn0GqVmEFny3VuID1
 github.com/andybalholm/brotli v1.1.0/go.mod h1:sms7XGricyQI9K10gOSf56VKKWS4oLer58Q+mhRPtnY=
 github.com/aymerick/douceur v0.2.0 h1:Mv+mAeH1Q+n9Fr+oyamOlAkUNPWPlA8PPGR0QAaYuPk=
 github.com/aymerick/douceur v0.2.0/go.mod h1:wlT5vV2O3h55X9m7iVYN0TBM0NH/MmbLnd30/FjWUq4=
+github.com/click33/sa-token-go/core v0.2.1 h1:uhMh8CR9iVF9fzL8Ym8p4GXvOgUGqRrREA10MaPqZaE=
+github.com/click33/sa-token-go/core v0.2.1/go.mod h1:IwUk+DLFksGTQSZVLTIzSbyzoJeBC+M8ourbKU4hzIo=
+github.com/click33/sa-token-go/storage/memory v0.2.1 h1:U0JazCxZoM7THLq7brk6OS4qiY8mIdXCQEVFcDsXyZo=
+github.com/click33/sa-token-go/storage/memory v0.2.1/go.mod h1:f4EU+Ncb+hzBZonGyO2CQxkXhtSIppjs3UPLamhttEc=
+github.com/click33/sa-token-go/stputil v0.2.1 h1:tFMDkBhCTeO6YwFg4sCf0ShMI9iOXuF5OwUlZNTLjvc=
+github.com/click33/sa-token-go/stputil v0.2.1/go.mod h1:dvQnwtZ647TDwpcC1nzkoHxGW7xFwD8np+77dU6mrP0=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
