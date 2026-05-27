@@ -4,9 +4,9 @@ import (
 	"reflect"
 	"strings"
 
+	irisfw "github.com/kataras/iris/v12"
 	"github.com/sa-tokens/sa-token-go/core"
 	"github.com/sa-tokens/sa-token-go/stputil"
-	irisfw "github.com/kataras/iris/v12"
 )
 
 // Annotation tag constants, kept in sync with gin/hertz for cross-framework migration.

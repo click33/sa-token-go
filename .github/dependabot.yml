@@ -1,0 +1,30 @@
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directories:
+      - "/"
+      - "/core"
+      - "/stputil"
+      - "/storage/memory"
+      - "/storage/redis"
+      - "/plugins/sso"
+      - "/integrations/chi"
+      - "/integrations/echo"
+      - "/integrations/fiber"
+      - "/integrations/gf"
+      - "/integrations/gin"
+      - "/integrations/go-zero"
+      - "/integrations/hertz"
+      - "/integrations/iris"
+      - "/integrations/kratos"
+    schedule:
+      interval: weekly
+    groups:
+      go-deps:
+        patterns:
+          - "*"
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly

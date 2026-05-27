@@ -244,7 +244,7 @@ func DefaultConfig() *Config {
 		TokenPrefix:                "",
 		SafeAuthDefaultService:     "important",
 		RememberMeTimeout:          604800, // 7 days | 7天
-		SameTokenTimeout:           86400, // 24 hours | 24小时
+		SameTokenTimeout:           86400,  // 24 hours | 24小时
 		CheckSameToken:             false,
 		CookieConfig: &CookieConfig{
 			Domain:   "",

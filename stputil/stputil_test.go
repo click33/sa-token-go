@@ -127,5 +127,3 @@ func TestLoginWithRefreshToken_IsLogin(t *testing.T) {
 	assert.True(t, IsLogin(tokenInfo.AccessToken))
 	assert.NoError(t, CheckLogin(tokenInfo.AccessToken))
 }
-
-

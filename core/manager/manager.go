@@ -68,7 +68,7 @@ type TokenInfo struct {
 	LoginID      string `json:"loginId"`
 	Device       string `json:"device"`
 	CreateTime   int64  `json:"createTime"`
-	ActiveTime   int64  `json:"activeTime"`              // Last active time | 最后活跃时间
+	ActiveTime   int64  `json:"activeTime"` // Last active time | 最后活跃时间
 	Tag          string `json:"tag,omitempty"`
 	IsRememberMe bool   `json:"isRememberMe,omitempty"` // Remember-me mode | 记住我模式
 }

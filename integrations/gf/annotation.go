@@ -3,9 +3,9 @@ package gf
 import (
 	"strings"
 
+	"github.com/gogf/gf/v2/net/ghttp"
 	"github.com/sa-tokens/sa-token-go/core"
 	"github.com/sa-tokens/sa-token-go/stputil"
-	"github.com/gogf/gf/v2/net/ghttp"
 )
 
 // Annotation annotation structure | 注解结构体

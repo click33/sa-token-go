@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sa-tokens/sa-token-go/core/adapter"
 	"github.com/redis/go-redis/v9"
+	"github.com/sa-tokens/sa-token-go/core/adapter"
 )
 
 // Storage Redis存储实现

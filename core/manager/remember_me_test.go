@@ -12,7 +12,7 @@ import (
 func TestLoginRememberMe_Basic(t *testing.T) {
 	storage := memory.NewStorage()
 	cfg := config.DefaultConfig()
-	cfg.Timeout = 60 // 60s normal timeout
+	cfg.Timeout = 60             // 60s normal timeout
 	cfg.RememberMeTimeout = 3600 // 1h remember-me
 	mgr := NewManager(storage, cfg)
 

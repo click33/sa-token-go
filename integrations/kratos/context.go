@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/sa-tokens/sa-token-go/core/adapter"
 	"github.com/go-kratos/kratos/v2/transport"
 	khttp "github.com/go-kratos/kratos/v2/transport/http"
+	"github.com/sa-tokens/sa-token-go/core/adapter"
 )
 
 type KratosContext struct {

@@ -152,7 +152,7 @@ func (c *ChiContext) SetCookieWithOptions(options *adapter.CookieOptions) {
 		HttpOnly: options.HttpOnly,
 		SameSite: http.SameSiteLaxMode, // Default to Lax
 	}
-	
+
 	// Set SameSite attribute
 	switch options.SameSite {
 	case "Strict":
@@ -162,7 +162,7 @@ func (c *ChiContext) SetCookieWithOptions(options *adapter.CookieOptions) {
 	case "None":
 		cookie.SameSite = http.SameSiteNoneMode
 	}
-	
+
 	http.SetCookie(c.w, cookie)
 }
 

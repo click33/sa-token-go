@@ -3,12 +3,12 @@ package main
 import (
 	"log"
 
-	"github.com/sa-tokens/sa-token-go/core"
-	safiber "github.com/sa-tokens/sa-token-go/integrations/fiber"
-	"github.com/sa-tokens/sa-token-go/storage/memory"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/sa-tokens/sa-token-go/core"
+	safiber "github.com/sa-tokens/sa-token-go/integrations/fiber"
+	"github.com/sa-tokens/sa-token-go/storage/memory"
 )
 
 func main() {

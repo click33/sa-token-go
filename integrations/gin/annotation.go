@@ -4,9 +4,9 @@ import (
 	"reflect"
 	"strings"
 
+	ginfw "github.com/gin-gonic/gin"
 	"github.com/sa-tokens/sa-token-go/core"
 	"github.com/sa-tokens/sa-token-go/stputil"
-	ginfw "github.com/gin-gonic/gin"
 )
 
 // Annotation constants | 注解常量

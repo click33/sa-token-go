@@ -4,8 +4,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/sa-tokens/sa-token-go/core/adapter"
 	"github.com/labstack/echo/v4"
+	"github.com/sa-tokens/sa-token-go/core/adapter"
 )
 
 // EchoContext Echo request context adapter | Echo请求上下文适配器
@@ -141,7 +141,7 @@ func (e *EchoContext) SetCookieWithOptions(options *adapter.CookieOptions) {
 		HttpOnly: options.HttpOnly,
 		SameSite: http.SameSiteLaxMode, // Default to Lax
 	}
-	
+
 	// Set SameSite attribute
 	switch options.SameSite {
 	case "Strict":
@@ -151,7 +151,7 @@ func (e *EchoContext) SetCookieWithOptions(options *adapter.CookieOptions) {
 	case "None":
 		cookie.SameSite = http.SameSiteNoneMode
 	}
-	
+
 	e.c.SetCookie(cookie)
 }
 

@@ -3,9 +3,9 @@ package echo
 import (
 	"strings"
 
+	"github.com/labstack/echo/v4"
 	"github.com/sa-tokens/sa-token-go/core"
 	"github.com/sa-tokens/sa-token-go/stputil"
-	"github.com/labstack/echo/v4"
 )
 
 // Annotation annotation structure | 注解结构体

@@ -3,9 +3,9 @@ package main
 import (
 	"log"
 
+	"github.com/gin-gonic/gin"
 	sagin "github.com/sa-tokens/sa-token-go/integrations/gin"
 	"github.com/sa-tokens/sa-token-go/storage/memory"
-	"github.com/gin-gonic/gin"
 )
 
 func main() {

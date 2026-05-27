@@ -3,8 +3,8 @@
 package user
 
 import (
-	user "github.com/sa-tokens/sa-token-go/examples/hertz/herz-example/biz/handler/user"
 	"github.com/cloudwego/hertz/pkg/app/server"
+	user "github.com/sa-tokens/sa-token-go/examples/hertz/herz-example/biz/handler/user"
 )
 
 /*

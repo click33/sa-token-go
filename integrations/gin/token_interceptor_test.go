@@ -5,10 +5,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	"github.com/sa-tokens/sa-token-go/core"
 	"github.com/sa-tokens/sa-token-go/core/config"
 	"github.com/sa-tokens/sa-token-go/storage/memory"
-	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -3,9 +3,9 @@ package main
 import (
 	"log"
 
+	"github.com/kataras/iris/v12"
 	sairis "github.com/sa-tokens/sa-token-go/integrations/iris"
 	"github.com/sa-tokens/sa-token-go/storage/memory"
-	"github.com/kataras/iris/v12"
 )
 
 func main() {

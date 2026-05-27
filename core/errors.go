@@ -78,9 +78,9 @@ var (
 
 	ErrSameTokenInvalid = errs.ErrSameTokenInvalid
 
-	ErrApiKeyNotFound  = errs.ErrApiKeyNotFound
-	ErrApiKeyExpired   = errs.ErrApiKeyExpired
-	ErrApiKeyDisabled  = errs.ErrApiKeyDisabled
+	ErrApiKeyNotFound = errs.ErrApiKeyNotFound
+	ErrApiKeyExpired  = errs.ErrApiKeyExpired
+	ErrApiKeyDisabled = errs.ErrApiKeyDisabled
 
 	ErrSignatureInvalid = errs.ErrSignatureInvalid
 	ErrSignatureExpired = errs.ErrSignatureExpired

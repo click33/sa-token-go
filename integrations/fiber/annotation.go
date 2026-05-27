@@ -3,9 +3,9 @@ package fiber
 import (
 	"strings"
 
+	"github.com/gofiber/fiber/v2"
 	"github.com/sa-tokens/sa-token-go/core"
 	"github.com/sa-tokens/sa-token-go/stputil"
-	"github.com/gofiber/fiber/v2"
 )
 
 // Annotation annotation structure | 注解结构体

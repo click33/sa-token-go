@@ -5,11 +5,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	ginfw "github.com/gin-gonic/gin"
 	"github.com/sa-tokens/sa-token-go/core/config"
 	"github.com/sa-tokens/sa-token-go/core/manager"
 	"github.com/sa-tokens/sa-token-go/storage/memory"
 	"github.com/sa-tokens/sa-token-go/stputil"
-	ginfw "github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
 

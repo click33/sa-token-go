@@ -5,9 +5,9 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/sa-tokens/sa-token-go/core"
 	"github.com/sa-tokens/sa-token-go/stputil"
-	"github.com/cloudwego/hertz/pkg/app"
 )
 
 // Annotation constants | 注解常量

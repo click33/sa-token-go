@@ -99,16 +99,16 @@ var (
 
 // API Key
 var (
-	ErrApiKeyNotFound  = fmt.Errorf("api key not found")
-	ErrApiKeyExpired   = fmt.Errorf("api key expired")
-	ErrApiKeyDisabled  = fmt.Errorf("api key disabled")
+	ErrApiKeyNotFound = fmt.Errorf("api key not found")
+	ErrApiKeyExpired  = fmt.Errorf("api key expired")
+	ErrApiKeyDisabled = fmt.Errorf("api key disabled")
 )
 
 // Signature
 var (
-	ErrSignatureInvalid   = fmt.Errorf("signature invalid")
-	ErrSignatureExpired   = fmt.Errorf("signature expired: timestamp too old")
-	ErrNonceAlreadyUsed   = fmt.Errorf("nonce already used: replay detected")
+	ErrSignatureInvalid = fmt.Errorf("signature invalid")
+	ErrSignatureExpired = fmt.Errorf("signature expired: timestamp too old")
+	ErrNonceAlreadyUsed = fmt.Errorf("nonce already used: replay detected")
 )
 
 // Temp Token

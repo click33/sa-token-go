@@ -5,10 +5,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	irisfw "github.com/kataras/iris/v12"
 	"github.com/sa-tokens/sa-token-go/core"
 	"github.com/sa-tokens/sa-token-go/core/config"
 	"github.com/sa-tokens/sa-token-go/storage/memory"
-	irisfw "github.com/kataras/iris/v12"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

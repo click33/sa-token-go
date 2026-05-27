@@ -8,10 +8,10 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/sa-tokens/sa-token-go/core/config"
-	"github.com/sa-tokens/sa-token-go/core/utils"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/sa-tokens/sa-token-go/core/config"
+	"github.com/sa-tokens/sa-token-go/core/utils"
 )
 
 // Constants for token generation | Token生成常量

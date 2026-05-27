@@ -6,9 +6,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/sa-tokens/sa-token-go/core"
 	"github.com/go-kratos/kratos/v2/middleware"
 	"github.com/go-kratos/kratos/v2/transport"
+	"github.com/sa-tokens/sa-token-go/core"
 )
 
 // Plugin 认证引擎
