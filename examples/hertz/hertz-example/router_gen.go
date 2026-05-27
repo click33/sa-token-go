@@ -3,7 +3,7 @@
 package main
 
 import (
-	router "github.com/click33/sa-token-go/examples/hertz/herz-example/biz/router"
+	router "github.com/click33/sa-token-go/examples/hertz/hertz-example/biz/router"
 	"github.com/cloudwego/hertz/pkg/app/server"
 )
 

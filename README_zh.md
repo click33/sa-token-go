@@ -794,7 +794,7 @@ sa-token-go/
 | 🌐 Chi集成 | Chi框架集成 | [examples/chi/chi-example/](examples/chi/chi-example/) |
 | 🌐 GoFrame集成 | GoFrame框架集成 | [examples/gf/](examples/gf/) |
 | 🌐 Kratos集成 | Kratos框架集成 | [examples/kratos/kratos-example/](examples/kratos/kratos-example/) |
-| 🌐 Hertz集成 | Hertz框架集成 | [examples/hertz/herz-example/](examples/hertz/herz-example/) |
+| 🌐 Hertz集成 | Hertz框架集成 | [examples/hertz/hertz-example/](examples/hertz/hertz-example/) |
 | 🌐 Iris集成 | Iris框架集成 | [examples/iris/iris-example/](examples/iris/iris-example/) |
 
 ### 💾 存储方案

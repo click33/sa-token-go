@@ -1,4 +1,4 @@
-module github.com/click33/sa-token-go/examples/hertz/herz-example
+module github.com/click33/sa-token-go/examples/hertz/hertz-example
 
 go 1.25.4
 
@@ -34,4 +34,3 @@ require (
 )
 
 replace github.com/apache/thrift => github.com/apache/thrift v0.13.0
-

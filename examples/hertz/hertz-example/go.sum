@@ -7,6 +7,14 @@ github.com/bytedance/sonic v1.15.1 h1:nJD5PmM0vY7J8CT6MxoqbVAAMhkSmV2HgRAUrrpLoO
 github.com/bytedance/sonic v1.15.1/go.mod h1:mT2NbXunuaEbnZ+mRIX/vYqKISmgEuHFDI4UzmKx2SA=
 github.com/bytedance/sonic/loader v0.5.1 h1:Ygpfa9zwRCCKSlrp5bBP/b/Xzc3VxsAW+5NIYXrOOpI=
 github.com/bytedance/sonic/loader v0.5.1/go.mod h1:AR4NYCk5DdzZizZ5djGqQ92eEhCCcdf5x77udYiSJRo=
+github.com/click33/sa-token-go/core v0.2.1 h1:/BM5C5h5uN1JuGympGQrct42jDVkdKn4ANeMMa2b8eo=
+github.com/click33/sa-token-go/core v0.2.1/go.mod h1:IwUk+DLFksGTQSZVLTIzSbyzoJeBC+M8ourbKU4hzIo=
+github.com/click33/sa-token-go/integrations/hertz v0.2.1 h1:+Hr3nvKOIBPTGtdC1KjDWlkiZ3IAhbcx/m/NsEA7two=
+github.com/click33/sa-token-go/integrations/hertz v0.2.1/go.mod h1:MW1H6OM9bqBp4I/OSLaY1i4z54+wh9mfRQvRxqB8aJI=
+github.com/click33/sa-token-go/storage/memory v0.2.1 h1:71Nzjva8BI+EzrTaxNvjS4WLhKwdKCiJlpcOzkHtwt0=
+github.com/click33/sa-token-go/storage/memory v0.2.1/go.mod h1:jvpRF+HbX4E7kTusCZbnh2VsNWJYQAmLkrRpGMuyoWw=
+github.com/click33/sa-token-go/stputil v0.2.1 h1:5a9sJLJajbwAOLFy05RIyf7H35eYFy0R63Em/RKo3eI=
+github.com/click33/sa-token-go/stputil v0.2.1/go.mod h1:dvQnwtZ647TDwpcC1nzkoHxGW7xFwD8np+77dU6mrP0=
 github.com/cloudwego/base64x v0.1.7 h1:NppS+Fgzg5ovhn4NkUXaDT3x9jldgH5ToMCqzBSi2zI=
 github.com/cloudwego/base64x v0.1.7/go.mod h1:Cu1PV9zfrSf7ET2tIbWbbEy7jO7HHJ13q4X2SQ8aWYg=
 github.com/cloudwego/gopkg v0.1.4/go.mod h1:FQuXsRWRsSqJLsMVd5SYzp8/Z1y5gXKnVvRrWUOsCMI=
