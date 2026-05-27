@@ -69,6 +69,7 @@ type (
 	ApiKeyManager       = security.ApiKeyManager
 	TempTokenInfo       = security.TempTokenInfo
 	TempTokenManager    = security.TempTokenManager
+	SameTokenTemplate   = security.SameTokenTemplate
 )
 
 // Adapter interfaces | 适配器接口
@@ -229,4 +230,9 @@ func NewApiKeyManager(storage Storage, prefix string) *ApiKeyManager {
 // NewTempTokenManager Creates a new temp token manager | 创建新的临时Token管理器
 func NewTempTokenManager(storage Storage, prefix string) *TempTokenManager {
 	return security.NewTempTokenManager(storage, prefix)
+}
+
+// NewSameTokenTemplate Creates a new same-token template | 创建新的服务间调用令牌管理器
+func NewSameTokenTemplate(storage Storage, prefix string, timeout time.Duration) *SameTokenTemplate {
+	return security.NewSameTokenTemplate(storage, prefix, timeout)
 }

@@ -76,6 +76,8 @@ var (
 	ErrStorageUnavailable = errs.ErrStorageUnavailable
 	ErrInvalidConfig      = errs.ErrInvalidConfig
 
+	ErrSameTokenInvalid = errs.ErrSameTokenInvalid
+
 	ErrApiKeyNotFound  = errs.ErrApiKeyNotFound
 	ErrApiKeyExpired   = errs.ErrApiKeyExpired
 	ErrApiKeyDisabled  = errs.ErrApiKeyDisabled

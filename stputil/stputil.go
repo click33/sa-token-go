@@ -16,8 +16,9 @@ import (
 
 // Security type aliases | 安全模块类型别名
 type (
-	ApiKeyInfo    = security.ApiKeyInfo
-	TempTokenInfo = security.TempTokenInfo
+	ApiKeyInfo        = security.ApiKeyInfo
+	TempTokenInfo     = security.TempTokenInfo
+	SameTokenTemplate = security.SameTokenTemplate
 )
 
 // Global Manager instance | 全局Manager实例
@@ -661,4 +662,26 @@ func GetTempTokenInfo(token string) (*security.TempTokenInfo, error) {
 
 func DeleteTempToken(token string) error {
 	return globalLogic.DeleteTempToken(token)
+}
+
+// ============ Same-Token | 服务间调用令牌 ============
+
+// GetSameToken returns the current same-token | 获取服务间调用令牌
+func GetSameToken() (string, error) {
+	return globalLogic.GetSameToken()
+}
+
+// RefreshSameToken rotates the same-token | 刷新服务间调用令牌
+func RefreshSameToken() (string, error) {
+	return globalLogic.RefreshSameToken()
+}
+
+// CheckSameToken validates a same-token value | 验证服务间调用令牌
+func CheckSameToken(tokenValue string) error {
+	return globalLogic.CheckSameToken(tokenValue)
+}
+
+// IsSameTokenValid checks if a same-token is valid | 检查服务间调用令牌是否有效
+func IsSameTokenValid(tokenValue string) bool {
+	return globalLogic.IsSameTokenValid(tokenValue)
 }

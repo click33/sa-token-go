@@ -153,6 +153,12 @@ type Config struct {
 	// RememberMeTimeout Token timeout for remember-me login (seconds), -1 for never expire | 记住我模式下Token超时时间（秒），-1代表永不过期
 	RememberMeTimeout int64
 
+	// SameTokenTimeout same-token validity in seconds (default 86400 = 24h) | 服务间调用令牌有效期（秒）
+	SameTokenTimeout int64
+
+	// CheckSameToken enable same-token checking globally | 是否启用服务间调用令牌校验
+	CheckSameToken bool
+
 	// SsoServer optional SSO server plugin config | SSO 服务端子配置
 	SsoServer *SsoServerPluginConfig
 
@@ -238,6 +244,8 @@ func DefaultConfig() *Config {
 		TokenPrefix:                "",
 		SafeAuthDefaultService:     "important",
 		RememberMeTimeout:          604800, // 7 days | 7天
+		SameTokenTimeout:           86400, // 24 hours | 24小时
+		CheckSameToken:             false,
 		CookieConfig: &CookieConfig{
 			Domain:   "",
 			Path:     DefaultCookiePath,

@@ -118,6 +118,11 @@ var (
 	ErrTempTokenUsed     = fmt.Errorf("temp token already used")
 )
 
+// Same-Token | 服务间调用令牌
+var (
+	ErrSameTokenInvalid = fmt.Errorf("same-token invalid: service-to-service authentication failed")
+)
+
 // System | 系统
 var (
 	ErrStorageUnavailable = fmt.Errorf("storage unavailable: unable to connect to storage backend")

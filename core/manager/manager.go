@@ -87,6 +87,7 @@ type Manager struct {
 	apiKeyManager  *security.ApiKeyManager
 	signTemplate   *security.SignTemplate
 	tempTokenMgr   *security.TempTokenManager
+	sameTokenTmpl  *security.SameTokenTemplate
 }
 
 // NewManager Creates a new manager | 创建管理器
@@ -130,6 +131,7 @@ func NewManager(storage adapter.Storage, cfg *config.Config) *Manager {
 		apiKeyManager:  security.NewApiKeyManager(storage, prefix),
 		signTemplate:   security.NewSignTemplate(storage, prefix, DefaultNonceTTL),
 		tempTokenMgr:   security.NewTempTokenManager(storage, prefix),
+		sameTokenTmpl:  security.NewSameTokenTemplate(storage, prefix, time.Duration(cfg.SameTokenTimeout)*time.Second),
 	}
 }
 
@@ -1343,4 +1345,26 @@ func (m *Manager) GetTempTokenInfo(token string) (*security.TempTokenInfo, error
 // DeleteTempToken deletes a temp token | 删除临时Token
 func (m *Manager) DeleteTempToken(token string) error {
 	return m.tempTokenMgr.DeleteTempToken(token)
+}
+
+// ============ Same-Token | 服务间调用令牌 ============
+
+// GetSameToken returns the current same-token, creating one if needed | 获取服务间调用令牌（不存在则自动创建）
+func (m *Manager) GetSameToken() (string, error) {
+	return m.sameTokenTmpl.GetToken()
+}
+
+// RefreshSameToken rotates the same-token | 刷新服务间调用令牌
+func (m *Manager) RefreshSameToken() (string, error) {
+	return m.sameTokenTmpl.RefreshToken()
+}
+
+// CheckSameToken validates a same-token value | 验证服务间调用令牌
+func (m *Manager) CheckSameToken(tokenValue string) error {
+	return m.sameTokenTmpl.CheckToken(tokenValue)
+}
+
+// IsSameTokenValid checks if a same-token is valid | 检查服务间调用令牌是否有效
+func (m *Manager) IsSameTokenValid(tokenValue string) bool {
+	return m.sameTokenTmpl.IsValid(tokenValue)
 }

@@ -575,6 +575,28 @@ func (s *StpLogic) IsTrustDeviceID(loginID interface{}, deviceID string) bool {
 	return s.manager.IsTrustDeviceID(toString(loginID), deviceID)
 }
 
+// ============ Same-Token | 服务间调用令牌 ============
+
+// GetSameToken returns the current same-token | 获取服务间调用令牌
+func (s *StpLogic) GetSameToken() (string, error) {
+	return s.manager.GetSameToken()
+}
+
+// RefreshSameToken rotates the same-token | 刷新服务间调用令牌
+func (s *StpLogic) RefreshSameToken() (string, error) {
+	return s.manager.RefreshSameToken()
+}
+
+// CheckSameToken validates a same-token value | 验证服务间调用令牌
+func (s *StpLogic) CheckSameToken(tokenValue string) error {
+	return s.manager.CheckSameToken(tokenValue)
+}
+
+// IsSameTokenValid checks if a same-token is valid | 检查服务间调用令牌是否有效
+func (s *StpLogic) IsSameTokenValid(tokenValue string) bool {
+	return s.manager.IsSameTokenValid(tokenValue)
+}
+
 // CloseManager Closes the manager and releases all resources | 关闭管理器并释放所有资源
 func (s *StpLogic) CloseManager() {
 	s.manager.CloseManager()
