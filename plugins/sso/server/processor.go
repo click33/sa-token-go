@@ -3,8 +3,8 @@ package server
 import (
 	"net/url"
 
-	core "github.com/click33/sa-token-go/core"
-	"github.com/click33/sa-token-go/core/adapter"
+	core "github.com/sa-tokens/sa-token-go/core"
+	"github.com/sa-tokens/sa-token-go/core/adapter"
 )
 
 const (

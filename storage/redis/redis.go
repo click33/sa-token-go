@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/click33/sa-token-go/core/adapter"
+	"github.com/sa-tokens/sa-token-go/core/adapter"
 	"github.com/redis/go-redis/v9"
 )
 

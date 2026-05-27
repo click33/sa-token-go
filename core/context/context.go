@@ -3,9 +3,9 @@ package context
 import (
 	"strings"
 
-	"github.com/click33/sa-token-go/core/adapter"
-	"github.com/click33/sa-token-go/core/config"
-	"github.com/click33/sa-token-go/core/manager"
+	"github.com/sa-tokens/sa-token-go/core/adapter"
+	"github.com/sa-tokens/sa-token-go/core/config"
+	"github.com/sa-tokens/sa-token-go/core/manager"
 )
 
 const (

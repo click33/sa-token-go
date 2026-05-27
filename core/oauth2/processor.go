@@ -1,9 +1,9 @@
 package oauth2
 
 import (
-	"github.com/click33/sa-token-go/core/adapter"
-	"github.com/click33/sa-token-go/core/errs"
-	"github.com/click33/sa-token-go/core/oauth2/granttype"
+	"github.com/sa-tokens/sa-token-go/core/adapter"
+	"github.com/sa-tokens/sa-token-go/core/errs"
+	"github.com/sa-tokens/sa-token-go/core/oauth2/granttype"
 )
 
 // APIPaths configurable OAuth2 HTTP paths | OAuth2 路由路径

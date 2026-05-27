@@ -1,8 +1,8 @@
 package granttype
 
 import (
-	"github.com/click33/sa-token-go/core/adapter"
-	"github.com/click33/sa-token-go/core/errs"
+	"github.com/sa-tokens/sa-token-go/core/adapter"
+	"github.com/sa-tokens/sa-token-go/core/errs"
 )
 
 // ClientCredentialsHandler client_credentials grant | 客户端模式

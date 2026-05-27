@@ -1,10 +1,10 @@
-module github.com/click33/sa-token-go/integrations/chi
+module github.com/sa-tokens/sa-token-go/integrations/chi
 
 go 1.25.0
 
 require (
-	github.com/click33/sa-token-go/core v0.2.1
-	github.com/click33/sa-token-go/stputil v0.2.1
+	github.com/sa-tokens/sa-token-go/core v0.2.1
+	github.com/sa-tokens/sa-token-go/stputil v0.2.1
 )
 
 require (
@@ -14,3 +14,8 @@ require (
 	golang.org/x/sync v0.20.0 // indirect
 )
 
+replace github.com/sa-tokens/sa-token-go/core => ../../core
+
+replace github.com/sa-tokens/sa-token-go/stputil => ../../stputil
+
+replace github.com/sa-tokens/sa-token-go/storage/memory => ../../storage/memory

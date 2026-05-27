@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/click33/sa-token-go/core"
+	"github.com/sa-tokens/sa-token-go/core"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
 )

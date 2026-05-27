@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/click33/sa-token-go/core/config"
-	"github.com/click33/sa-token-go/core/version"
+	"github.com/sa-tokens/sa-token-go/core/config"
+	"github.com/sa-tokens/sa-token-go/core/version"
 )
 
 // captureOutput captures stdout output for testing

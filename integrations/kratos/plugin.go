@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/click33/sa-token-go/core"
+	"github.com/sa-tokens/sa-token-go/core"
 	"github.com/go-kratos/kratos/v2/middleware"
 	"github.com/go-kratos/kratos/v2/transport"
 )

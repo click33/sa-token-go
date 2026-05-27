@@ -5,9 +5,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/click33/sa-token-go/core"
-	"github.com/click33/sa-token-go/core/config"
-	"github.com/click33/sa-token-go/storage/memory"
+	"github.com/sa-tokens/sa-token-go/core"
+	"github.com/sa-tokens/sa-token-go/core/config"
+	"github.com/sa-tokens/sa-token-go/storage/memory"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )

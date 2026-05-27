@@ -3,9 +3,9 @@ package main
 import (
 	"log"
 
-	"github.com/click33/sa-token-go/core"
-	safiber "github.com/click33/sa-token-go/integrations/fiber"
-	"github.com/click33/sa-token-go/storage/memory"
+	"github.com/sa-tokens/sa-token-go/core"
+	safiber "github.com/sa-tokens/sa-token-go/integrations/fiber"
+	"github.com/sa-tokens/sa-token-go/storage/memory"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"

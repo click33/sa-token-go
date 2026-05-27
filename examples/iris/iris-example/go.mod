@@ -1,11 +1,11 @@
-module github.com/click33/sa-token-go/examples/iris/iris-example
+module github.com/sa-tokens/sa-token-go/examples/iris/iris-example
 
 go 1.25.0
 
 require (
-	github.com/click33/sa-token-go/integrations/iris v0.2.1
-	github.com/click33/sa-token-go/storage/memory v0.2.1
 	github.com/kataras/iris/v12 v12.2.11
+	github.com/sa-tokens/sa-token-go/integrations/iris v0.2.1
+	github.com/sa-tokens/sa-token-go/storage/memory v0.2.1
 )
 
 require (
@@ -16,8 +16,6 @@ require (
 	github.com/Shopify/goreferrer v0.0.0-20220729165902-8cddb4f5de06 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
-	github.com/click33/sa-token-go/core v0.2.1 // indirect
-	github.com/click33/sa-token-go/stputil v0.2.1 // indirect
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/flosch/pongo2/v4 v4.0.2 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
@@ -38,6 +36,8 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.26 // indirect
 	github.com/panjf2000/ants/v2 v2.12.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/sa-tokens/sa-token-go/core v0.2.1 // indirect
+	github.com/sa-tokens/sa-token-go/stputil v0.2.1 // indirect
 	github.com/schollz/closestmatch v2.1.0+incompatible // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/tdewolff/minify/v2 v2.20.19 // indirect
@@ -57,3 +57,11 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/sa-tokens/sa-token-go/storage/memory => ../../../storage/memory
+
+replace github.com/sa-tokens/sa-token-go/core => ../../../core
+
+replace github.com/sa-tokens/sa-token-go/stputil => ../../../stputil
+
+replace github.com/sa-tokens/sa-token-go/integrations/iris => ../../../integrations/iris

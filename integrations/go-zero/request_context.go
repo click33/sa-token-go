@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/click33/sa-token-go/core"
-	"github.com/click33/sa-token-go/core/adapter"
+	"github.com/sa-tokens/sa-token-go/core"
+	"github.com/sa-tokens/sa-token-go/core/adapter"
 )
 
 // attachSaTokenToRequest injects Sa-Token context and optional loginID into request context.

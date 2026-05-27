@@ -43,8 +43,8 @@ The event system allows you to:
 
 ```go
 import (
-    "github.com/click33/sa-token-go/core"
-    "github.com/click33/sa-token-go/storage/memory"
+    "github.com/sa-tokens/sa-token-go/core"
+    "github.com/sa-tokens/sa-token-go/storage/memory"
 )
 
 manager := core.NewBuilder().
@@ -71,9 +71,9 @@ package main
 
 import (
     "fmt"
-    "github.com/click33/sa-token-go/core"
-    "github.com/click33/sa-token-go/stputil"
-    "github.com/click33/sa-token-go/storage/memory"
+    "github.com/sa-tokens/sa-token-go/core"
+    "github.com/sa-tokens/sa-token-go/stputil"
+    "github.com/sa-tokens/sa-token-go/storage/memory"
 )
 
 func main() {

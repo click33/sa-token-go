@@ -3,7 +3,7 @@ package oauth2
 import (
 	"strings"
 
-	"github.com/click33/sa-token-go/core/adapter"
+	"github.com/sa-tokens/sa-token-go/core/adapter"
 )
 
 // firstNonEmptyParam prefers query then POST form | 优先 query 再取 form

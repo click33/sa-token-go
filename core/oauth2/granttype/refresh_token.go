@@ -1,8 +1,8 @@
 package granttype
 
 import (
-	"github.com/click33/sa-token-go/core/adapter"
-	"github.com/click33/sa-token-go/core/errs"
+	"github.com/sa-tokens/sa-token-go/core/adapter"
+	"github.com/sa-tokens/sa-token-go/core/errs"
 )
 
 // RefreshTokenHandler refresh_token grant | 刷新令牌模式

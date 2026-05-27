@@ -5,9 +5,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/click33/sa-token-go/core"
-	sachi "github.com/click33/sa-token-go/integrations/chi"
-	"github.com/click33/sa-token-go/storage/memory"
+	"github.com/sa-tokens/sa-token-go/core"
+	sachi "github.com/sa-tokens/sa-token-go/integrations/chi"
+	"github.com/sa-tokens/sa-token-go/storage/memory"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )

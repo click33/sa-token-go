@@ -1,10 +1,10 @@
-module github.com/click33/sa-token-go/storage/redis
+module github.com/sa-tokens/sa-token-go/storage/redis
 
 go 1.25.0
 
 require (
-	github.com/click33/sa-token-go/core v0.2.1
 	github.com/redis/go-redis/v9 v9.19.0
+	github.com/sa-tokens/sa-token-go/core v0.2.1
 )
 
 require (
@@ -13,3 +13,5 @@ require (
 	go.uber.org/atomic v1.11.0 // indirect
 	golang.org/x/sys v0.44.0 // indirect
 )
+
+replace github.com/sa-tokens/sa-token-go/core => ../../core

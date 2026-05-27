@@ -3,7 +3,7 @@ package gf
 import (
 	"net/http"
 
-	"github.com/click33/sa-token-go/core/adapter"
+	"github.com/sa-tokens/sa-token-go/core/adapter"
 	"github.com/gogf/gf/v2/net/ghttp"
 )
 

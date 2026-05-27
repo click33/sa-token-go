@@ -1,12 +1,12 @@
-module github.com/click33/sa-token-go/integrations/gin
+module github.com/sa-tokens/sa-token-go/integrations/gin
 
 go 1.25.0
 
 require (
-	github.com/click33/sa-token-go/core v0.2.1
-	github.com/click33/sa-token-go/storage/memory v0.2.1
-	github.com/click33/sa-token-go/stputil v0.2.1
 	github.com/gin-gonic/gin v1.12.0
+	github.com/sa-tokens/sa-token-go/core v0.2.1
+	github.com/sa-tokens/sa-token-go/storage/memory v0.2.1
+	github.com/sa-tokens/sa-token-go/stputil v0.2.1
 	github.com/stretchr/testify v1.11.1
 )
 
@@ -49,3 +49,8 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
+replace github.com/sa-tokens/sa-token-go/storage/memory => ../../storage/memory
+
+replace github.com/sa-tokens/sa-token-go/core => ../../core
+
+replace github.com/sa-tokens/sa-token-go/stputil => ../../stputil

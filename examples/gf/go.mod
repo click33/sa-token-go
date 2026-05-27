@@ -1,20 +1,17 @@
-module github.com/click33/sa-token-go/examples/gf-example
+module github.com/sa-tokens/sa-token-go/examples/gf-example
 
 go 1.25.0
 
-
 require (
-	github.com/click33/sa-token-go/integrations/gf v0.2.1
-	github.com/click33/sa-token-go/storage/memory v0.2.1
 	github.com/gogf/gf/v2 v2.10.2
+	github.com/sa-tokens/sa-token-go/integrations/gf v0.2.1
+	github.com/sa-tokens/sa-token-go/storage/memory v0.2.1
 )
 
 require (
 	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/clbanning/mxj/v2 v2.7.0 // indirect
-	github.com/click33/sa-token-go/core v0.2.1 // indirect
-	github.com/click33/sa-token-go/stputil v0.2.1 // indirect
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/emirpasic/gods/v2 v2.0.0-alpha // indirect
@@ -36,6 +33,8 @@ require (
 	github.com/olekukonko/ll v0.1.8 // indirect
 	github.com/olekukonko/tablewriter v1.1.4 // indirect
 	github.com/panjf2000/ants/v2 v2.12.0 // indirect
+	github.com/sa-tokens/sa-token-go/core v0.2.1 // indirect
+	github.com/sa-tokens/sa-token-go/stputil v0.2.1 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.43.0 // indirect
 	go.opentelemetry.io/otel/metric v1.43.0 // indirect
@@ -47,3 +46,11 @@ require (
 	golang.org/x/text v0.37.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/sa-tokens/sa-token-go/storage/memory => ../../storage/memory
+
+replace github.com/sa-tokens/sa-token-go/core => ../../core
+
+replace github.com/sa-tokens/sa-token-go/stputil => ../../stputil
+
+replace github.com/sa-tokens/sa-token-go/integrations/gf => ../../integrations/gf

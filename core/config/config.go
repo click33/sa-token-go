@@ -3,7 +3,7 @@ package config
 import (
 	"fmt"
 
-	"github.com/click33/sa-token-go/core/pool"
+	"github.com/sa-tokens/sa-token-go/core/pool"
 )
 
 // TokenStyle Token generation style | Token生成风格
@@ -150,6 +150,9 @@ type Config struct {
 	// SafeAuthDefaultService default second-level auth service tag | 二级认证默认 service
 	SafeAuthDefaultService string
 
+	// RememberMeTimeout Token timeout for remember-me login (seconds), -1 for never expire | 记住我模式下Token超时时间（秒），-1代表永不过期
+	RememberMeTimeout int64
+
 	// SsoServer optional SSO server plugin config | SSO 服务端子配置
 	SsoServer *SsoServerPluginConfig
 
@@ -234,6 +237,7 @@ func DefaultConfig() *Config {
 		OverflowLogoutMode:         "LOGOUT",
 		TokenPrefix:                "",
 		SafeAuthDefaultService:     "important",
+		RememberMeTimeout:          604800, // 7 days | 7天
 		CookieConfig: &CookieConfig{
 			Domain:   "",
 			Path:     DefaultCookiePath,

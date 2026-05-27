@@ -6,9 +6,9 @@ import (
 	"context"
 	"time"
 
-	user "github.com/click33/sa-token-go/examples/hertz/herz-example/biz/model/user"
-	sahertz "github.com/click33/sa-token-go/integrations/hertz"
-	"github.com/click33/sa-token-go/stputil"
+	user "github.com/sa-tokens/sa-token-go/examples/hertz/herz-example/biz/model/user"
+	sahertz "github.com/sa-tokens/sa-token-go/integrations/hertz"
+	"github.com/sa-tokens/sa-token-go/stputil"
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
 )

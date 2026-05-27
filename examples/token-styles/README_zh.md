@@ -87,9 +87,9 @@
 ### 安装
 
 ```bash
-go get github.com/click33/sa-token-go/core
-go get github.com/click33/sa-token-go/stputil
-go get github.com/click33/sa-token-go/storage/memory
+go get github.com/sa-tokens/sa-token-go/core
+go get github.com/sa-tokens/sa-token-go/stputil
+go get github.com/sa-tokens/sa-token-go/storage/memory
 ```
 
 ### 运行示例
@@ -151,9 +151,9 @@ Sa-Token-Go Token Styles Demo
 
 ```go
 import (
-    "github.com/click33/sa-token-go/core"
-    "github.com/click33/sa-token-go/stputil"
-    "github.com/click33/sa-token-go/storage/memory"
+    "github.com/sa-tokens/sa-token-go/core"
+    "github.com/sa-tokens/sa-token-go/stputil"
+    "github.com/sa-tokens/sa-token-go/storage/memory"
 )
 
 func init() {

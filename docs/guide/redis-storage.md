@@ -10,7 +10,7 @@ Redis storage is the recommended storage backend for production environments. It
 
 ```bash
 # Install Redis storage module
-go get github.com/click33/sa-token-go/storage/redis
+go get github.com/sa-tokens/sa-token-go/storage/redis
 
 # Install Redis client
 go get github.com/redis/go-redis/v9
@@ -24,9 +24,9 @@ go get github.com/redis/go-redis/v9
 package main
 
 import (
-    "github.com/click33/sa-token-go/core"
-    "github.com/click33/sa-token-go/stputil"
-    "github.com/click33/sa-token-go/storage/redis"
+    "github.com/sa-tokens/sa-token-go/core"
+    "github.com/sa-tokens/sa-token-go/stputil"
+    "github.com/sa-tokens/sa-token-go/storage/redis"
     goredis "github.com/redis/go-redis/v9"
 )
 
@@ -119,9 +119,9 @@ package main
 import (
     "time"
     
-    "github.com/click33/sa-token-go/core"
-    "github.com/click33/sa-token-go/stputil"
-    "github.com/click33/sa-token-go/storage/redis"
+    "github.com/sa-tokens/sa-token-go/core"
+    "github.com/sa-tokens/sa-token-go/stputil"
+    "github.com/sa-tokens/sa-token-go/storage/redis"
     goredis "github.com/redis/go-redis/v9"
 )
 
@@ -199,9 +199,9 @@ import (
     "os"
     "strconv"
     
-    "github.com/click33/sa-token-go/core"
-    "github.com/click33/sa-token-go/stputil"
-    "github.com/click33/sa-token-go/storage/redis"
+    "github.com/sa-tokens/sa-token-go/core"
+    "github.com/sa-tokens/sa-token-go/stputil"
+    "github.com/sa-tokens/sa-token-go/storage/redis"
     goredis "github.com/redis/go-redis/v9"
 )
 
@@ -598,10 +598,10 @@ import (
     "time"
 
     "github.com/gin-gonic/gin"
-    "github.com/click33/sa-token-go/core"
-    "github.com/click33/sa-token-go/stputil"
-    "github.com/click33/sa-token-go/storage/redis"
-    sagin "github.com/click33/sa-token-go/integrations/gin"
+    "github.com/sa-tokens/sa-token-go/core"
+    "github.com/sa-tokens/sa-token-go/stputil"
+    "github.com/sa-tokens/sa-token-go/storage/redis"
+    sagin "github.com/sa-tokens/sa-token-go/integrations/gin"
     goredis "github.com/redis/go-redis/v9"
 )
 

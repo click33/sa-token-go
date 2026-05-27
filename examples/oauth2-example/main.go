@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/click33/sa-token-go/core"
-	"github.com/click33/sa-token-go/storage/memory"
+	"github.com/sa-tokens/sa-token-go/core"
+	"github.com/sa-tokens/sa-token-go/storage/memory"
 	"github.com/gin-gonic/gin"
 )
 

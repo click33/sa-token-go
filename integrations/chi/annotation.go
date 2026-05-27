@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/click33/sa-token-go/core"
-	"github.com/click33/sa-token-go/stputil"
+	"github.com/sa-tokens/sa-token-go/core"
+	"github.com/sa-tokens/sa-token-go/stputil"
 )
 
 // Annotation annotation structure | 注解结构体

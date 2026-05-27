@@ -2,7 +2,7 @@ package router
 
 import (
 	"strings"
-	"github.com/click33/sa-token-go/core/manager"
+	"github.com/sa-tokens/sa-token-go/core/manager"
 )
 
 // MatchPath matches a path against a pattern (Ant-style wildcard) | 匹配路径与模式（Ant风格通配符）

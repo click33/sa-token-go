@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/click33/sa-token-go/core"
+	"github.com/sa-tokens/sa-token-go/core"
 	"github.com/gin-gonic/gin"
 )
 

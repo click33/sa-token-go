@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/click33/sa-token-go/core"
-	"github.com/click33/sa-token-go/storage/memory"
-	"github.com/click33/sa-token-go/stputil"
+	"github.com/sa-tokens/sa-token-go/core"
+	"github.com/sa-tokens/sa-token-go/storage/memory"
+	"github.com/sa-tokens/sa-token-go/stputil"
 )
 
 func main() {

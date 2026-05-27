@@ -1,6 +1,6 @@
 package stputil
 
-import "github.com/click33/sa-token-go/core/manager"
+import "github.com/sa-tokens/sa-token-go/core/manager"
 
 // StpInterface is an alias to manager.StpInterface | 权限数据源接口（与 manager 一致）
 type StpInterface = manager.StpInterface

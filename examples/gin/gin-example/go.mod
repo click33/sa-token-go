@@ -1,11 +1,11 @@
-module github.com/click33/sa-token-go/examples/gin-example
+module github.com/sa-tokens/sa-token-go/examples/gin-example
 
 go 1.25.0
 
 require (
-	github.com/click33/sa-token-go/integrations/gin v0.2.1
-	github.com/click33/sa-token-go/storage/memory v0.2.1
 	github.com/gin-gonic/gin v1.12.0
+	github.com/sa-tokens/sa-token-go/integrations/gin v0.2.1
+	github.com/sa-tokens/sa-token-go/storage/memory v0.2.1
 	github.com/spf13/viper v1.21.0
 )
 
@@ -13,8 +13,6 @@ require (
 	github.com/bytedance/gopkg v0.1.4 // indirect
 	github.com/bytedance/sonic v1.15.1 // indirect
 	github.com/bytedance/sonic/loader v0.5.1 // indirect
-	github.com/click33/sa-token-go/core v0.2.1 // indirect
-	github.com/click33/sa-token-go/stputil v0.2.1 // indirect
 	github.com/cloudwego/base64x v0.1.7 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
@@ -37,6 +35,8 @@ require (
 	github.com/pelletier/go-toml/v2 v2.3.1 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.59.1 // indirect
+	github.com/sa-tokens/sa-token-go/core v0.2.1 // indirect
+	github.com/sa-tokens/sa-token-go/stputil v0.2.1 // indirect
 	github.com/sagikazarmark/locafero v0.12.0 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
@@ -55,3 +55,10 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 )
 
+replace github.com/sa-tokens/sa-token-go/storage/memory => ../../../storage/memory
+
+replace github.com/sa-tokens/sa-token-go/core => ../../../core
+
+replace github.com/sa-tokens/sa-token-go/stputil => ../../../stputil
+
+replace github.com/sa-tokens/sa-token-go/integrations/gin => ../../../integrations/gin

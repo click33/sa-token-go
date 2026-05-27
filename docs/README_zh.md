@@ -68,7 +68,7 @@
 
 ## 🔗 外部资源
 
-- [GitHub仓库](https://github.com/click33/sa-token-go)
+- [GitHub仓库](https://github.com/sa-tokens/sa-token-go)
 - [Java版sa-token](https://github.com/dromara/sa-token)
 
 ---

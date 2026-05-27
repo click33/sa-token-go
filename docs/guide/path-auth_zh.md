@@ -53,9 +53,9 @@
 package main
 
 import (
-    "github.com/click33/sa-token-go/core"
-    "github.com/click33/sa-token-go/integrations/gin"
-    "github.com/click33/sa-token-go/storage/memory"
+    "github.com/sa-tokens/sa-token-go/core"
+    "github.com/sa-tokens/sa-token-go/integrations/gin"
+    "github.com/sa-tokens/sa-token-go/storage/memory"
 )
 
 func main() {
@@ -138,9 +138,9 @@ package main
 import (
     "net/http"
     
-    "github.com/click33/sa-token-go/core"
-    "github.com/click33/sa-token-go/integrations/gin"
-    "github.com/click33/sa-token-go/storage/memory"
+    "github.com/sa-tokens/sa-token-go/core"
+    "github.com/sa-tokens/sa-token-go/integrations/gin"
+    "github.com/sa-tokens/sa-token-go/storage/memory"
     "github.com/gin-gonic/gin"
 )
 
@@ -230,7 +230,7 @@ func getStatus(c *gin.Context) {
 如果您需要更多控制，可以在处理器中直接使用 `ProcessAuth`：
 
 ```go
-import "github.com/click33/sa-token-go/core"
+import "github.com/sa-tokens/sa-token-go/core"
 
 func customHandler(c *gin.Context) {
     path := c.Request.URL.Path
@@ -271,9 +271,9 @@ func customHandler(c *gin.Context) {
 package main
 
 import (
-    "github.com/click33/sa-token-go/core"
-    "github.com/click33/sa-token-go/integrations/gin"
-    "github.com/click33/sa-token-go/storage/memory"
+    "github.com/sa-tokens/sa-token-go/core"
+    "github.com/sa-tokens/sa-token-go/integrations/gin"
+    "github.com/sa-tokens/sa-token-go/storage/memory"
     "github.com/gin-gonic/gin"
 )
 
@@ -300,9 +300,9 @@ func main() {
 package main
 
 import (
-    "github.com/click33/sa-token-go/core"
-    "github.com/click33/sa-token-go/integrations/echo"
-    "github.com/click33/sa-token-go/storage/memory"
+    "github.com/sa-tokens/sa-token-go/core"
+    "github.com/sa-tokens/sa-token-go/integrations/echo"
+    "github.com/sa-tokens/sa-token-go/storage/memory"
     "github.com/labstack/echo/v4"
 )
 
@@ -329,9 +329,9 @@ func main() {
 package main
 
 import (
-    "github.com/click33/sa-token-go/core"
-    "github.com/click33/sa-token-go/integrations/fiber"
-    "github.com/click33/sa-token-go/storage/memory"
+    "github.com/sa-tokens/sa-token-go/core"
+    "github.com/sa-tokens/sa-token-go/integrations/fiber"
+    "github.com/sa-tokens/sa-token-go/storage/memory"
     "github.com/gofiber/fiber/v2"
 )
 
@@ -360,9 +360,9 @@ package main
 import (
     "net/http"
     
-    "github.com/click33/sa-token-go/core"
-    "github.com/click33/sa-token-go/integrations/chi"
-    "github.com/click33/sa-token-go/storage/memory"
+    "github.com/sa-tokens/sa-token-go/core"
+    "github.com/sa-tokens/sa-token-go/integrations/chi"
+    "github.com/sa-tokens/sa-token-go/storage/memory"
     "github.com/go-chi/chi/v5"
 )
 
@@ -389,9 +389,9 @@ func main() {
 package main
 
 import (
-    "github.com/click33/sa-token-go/core"
-    "github.com/click33/sa-token-go/integrations/gf"
-    "github.com/click33/sa-token-go/storage/memory"
+    "github.com/sa-tokens/sa-token-go/core"
+    "github.com/sa-tokens/sa-token-go/integrations/gf"
+    "github.com/sa-tokens/sa-token-go/storage/memory"
     "github.com/gogf/gf/v2/frame/g"
 )
 
@@ -418,9 +418,9 @@ func main() {
 package main
 
 import (
-    "github.com/click33/sa-token-go/core"
-    "github.com/click33/sa-token-go/integrations/kratos"
-    "github.com/click33/sa-token-go/storage/memory"
+    "github.com/sa-tokens/sa-token-go/core"
+    "github.com/sa-tokens/sa-token-go/integrations/kratos"
+    "github.com/sa-tokens/sa-token-go/storage/memory"
     "github.com/go-kratos/kratos/v2"
     "github.com/go-kratos/kratos/v2/transport/http"
 )

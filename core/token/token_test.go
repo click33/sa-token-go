@@ -3,7 +3,7 @@ package token
 import (
 	"testing"
 
-	"github.com/click33/sa-token-go/core/config"
+	"github.com/sa-tokens/sa-token-go/core/config"
 )
 
 func TestGenerateHash(t *testing.T) {

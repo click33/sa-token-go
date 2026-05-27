@@ -15,7 +15,7 @@
 ### 核心模块 (core)
 
 ```
-github.com/click33/sa-token-go/core
+github.com/sa-tokens/sa-token-go/core
 ```
 
 **职责**：
@@ -40,7 +40,7 @@ github.com/click33/sa-token-go/core
 #### Memory存储
 
 ```
-github.com/click33/sa-token-go/storage/memory
+github.com/sa-tokens/sa-token-go/storage/memory
 ```
 
 **依赖**：
@@ -54,7 +54,7 @@ github.com/click33/sa-token-go/storage/memory
 #### Redis存储
 
 ```
-github.com/click33/sa-token-go/storage/redis
+github.com/sa-tokens/sa-token-go/storage/redis
 ```
 
 **依赖**：
@@ -71,7 +71,7 @@ github.com/click33/sa-token-go/storage/redis
 #### Gin集成
 
 ```
-github.com/click33/sa-token-go/integrations/gin
+github.com/sa-tokens/sa-token-go/integrations/gin
 ```
 
 **依赖**：
@@ -105,8 +105,8 @@ github.com/click33/sa-token-go/integrations/gin
 ### 场景1：只用核心功能
 
 ```bash
-go get github.com/click33/sa-token-go/core
-go get github.com/click33/sa-token-go/storage/memory
+go get github.com/sa-tokens/sa-token-go/core
+go get github.com/sa-tokens/sa-token-go/storage/memory
 ```
 
 **依赖树**：
@@ -120,9 +120,9 @@ storage/memory (core)
 ### 场景2：使用Gin框架
 
 ```bash
-go get github.com/click33/sa-token-go/core
-go get github.com/click33/sa-token-go/storage/redis
-go get github.com/click33/sa-token-go/integrations/gin
+go get github.com/sa-tokens/sa-token-go/core
+go get github.com/sa-tokens/sa-token-go/storage/redis
+go get github.com/sa-tokens/sa-token-go/integrations/gin
 ```
 
 **依赖树**：
@@ -153,9 +153,9 @@ integrations/echo/go.mod
 
 ```go
 // storage/memory/go.mod
-require github.com/click33/sa-token-go/core v0.1.0
+require github.com/sa-tokens/sa-token-go/core v0.1.0
 
-replace github.com/click33/sa-token-go/core => ../../core
+replace github.com/sa-tokens/sa-token-go/core => ../../core
 ```
 
 **优势**：
@@ -213,7 +213,7 @@ integrations/gin     v0.1.0
 ### 添加新存储
 
 1. 创建目录：`storage/mysql/`
-2. 创建go.mod：`module github.com/click33/sa-token-go/storage/mysql`
+2. 创建go.mod：`module github.com/sa-tokens/sa-token-go/storage/mysql`
 3. 实现Storage接口
 4. 添加到go.work
 5. 编写文档和示例

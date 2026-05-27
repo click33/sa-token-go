@@ -3,7 +3,7 @@ package fiber
 import (
 	"errors"
 
-	"github.com/click33/sa-token-go/core"
+	"github.com/sa-tokens/sa-token-go/core"
 	"github.com/gofiber/fiber/v2"
 )
 

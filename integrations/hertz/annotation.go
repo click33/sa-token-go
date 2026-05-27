@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/click33/sa-token-go/core"
-	"github.com/click33/sa-token-go/stputil"
+	"github.com/sa-tokens/sa-token-go/core"
+	"github.com/sa-tokens/sa-token-go/stputil"
 	"github.com/cloudwego/hertz/pkg/app"
 )
 

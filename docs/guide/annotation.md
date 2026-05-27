@@ -19,7 +19,7 @@ Sa-Token-Go provides annotation-like decorators for Gin framework, similar to Ja
 ### CheckLogin
 
 ```go
-import sagin "github.com/click33/sa-token-go/integrations/gin"
+import sagin "github.com/sa-tokens/sa-token-go/integrations/gin"
 
 r := gin.Default()
 
@@ -82,10 +82,10 @@ package main
 
 import (
     "github.com/gin-gonic/gin"
-    "github.com/click33/sa-token-go/core"
-    "github.com/click33/sa-token-go/stputil"
-    "github.com/click33/sa-token-go/storage/memory"
-    sagin "github.com/click33/sa-token-go/integrations/gin"
+    "github.com/sa-tokens/sa-token-go/core"
+    "github.com/sa-tokens/sa-token-go/stputil"
+    "github.com/sa-tokens/sa-token-go/storage/memory"
+    sagin "github.com/sa-tokens/sa-token-go/integrations/gin"
 )
 
 func main() {
@@ -127,7 +127,7 @@ Annotations are currently only supported for Gin framework. For other frameworks
 
 ```go
 // Echo example
-import saecho "github.com/click33/sa-token-go/integrations/echo"
+import saecho "github.com/sa-tokens/sa-token-go/integrations/echo"
 
 e.GET("/user/info", userInfoHandler, saecho.NewPlugin(manager).AuthMiddleware())
 ```

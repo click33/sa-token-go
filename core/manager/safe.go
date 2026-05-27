@@ -3,7 +3,7 @@ package manager
 import (
 	"time"
 
-	"github.com/click33/sa-token-go/core/errs"
+	"github.com/sa-tokens/sa-token-go/core/errs"
 )
 
 // SafeKeyPrefix second-level auth storage namespace | 二级认证存储前缀

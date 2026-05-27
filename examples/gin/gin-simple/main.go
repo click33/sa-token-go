@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 
-	sagin "github.com/click33/sa-token-go/integrations/gin"
-	"github.com/click33/sa-token-go/storage/memory"
+	sagin "github.com/sa-tokens/sa-token-go/integrations/gin"
+	"github.com/sa-tokens/sa-token-go/storage/memory"
 	"github.com/gin-gonic/gin"
 )
 
