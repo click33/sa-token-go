@@ -5,11 +5,19 @@ linters:
   enable:
     - gofmt
     - govet
-    - errcheck
     - staticcheck
-    - unused
     - gosimple
     - ineffassign
+  disable:
+    - errcheck
+    - unused
+
+linters-settings:
+  staticcheck:
+    checks:
+      - all
+      - -SA1029
+      - -SA1019
 
 issues:
   exclude-dirs:

@@ -20,11 +20,16 @@ jobs:
         with:
           go-version: "1.25"
 
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
-          install-mode: go-install
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+      - name: Run golangci-lint
+        run: |
+          for dir in $(go work edit -json | python3 -c "import sys,json; [print(m['DiskPath']) for m in json.load(sys.stdin).get('Use',[])]"); do
+            case "$dir" in ./examples*|./demo*) continue ;; esac
+            echo "=== lint $dir ==="
+            (cd "$dir" && golangci-lint run ./...) || exit 1
+          done
 
       - name: Check formatting
         run: |

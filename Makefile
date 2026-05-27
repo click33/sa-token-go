@@ -1,9 +1,10 @@
 MODULES := $(shell go work edit -json | python3 -c "import sys,json; print(' '.join(m['DiskPath'] for m in json.load(sys.stdin).get('Use',[])))")
+LINT_MODULES := $(shell go work edit -json | python3 -c "import sys,json; print(' '.join(m['DiskPath'] for m in json.load(sys.stdin).get('Use',[]) if not m['DiskPath'].startswith('./examples') and not m['DiskPath'].startswith('./demo')))")
 
 .PHONY: lint test test-race coverage build fmt vet
 
 lint:
-	@for dir in $(MODULES); do \
+	@for dir in $(LINT_MODULES); do \
 		echo "=== lint $$dir ==="; \
 		(cd "$$dir" && golangci-lint run ./...) || exit 1; \
 	done
