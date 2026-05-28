@@ -50,9 +50,9 @@ OAuth2 是一个授权框架，允许第三方应用在用户授权下访问用�
 
 ```go
 import (
-    "github.com/click33/sa-token-go/core"
-    "github.com/click33/sa-token-go/stputil"
-    "github.com/click33/sa-token-go/storage/memory"
+    "github.com/sa-tokens/sa-token-go/core"
+    "github.com/sa-tokens/sa-token-go/stputil"
+    "github.com/sa-tokens/sa-token-go/storage/memory"
 )
 
 func init() {
@@ -453,7 +453,7 @@ errors := map[string]string{
 
 ```go
 import (
-    "github.com/click33/sa-token-go/storage/redis"
+    "github.com/sa-tokens/sa-token-go/storage/redis"
 )
 
 func init() {

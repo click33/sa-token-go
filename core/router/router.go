@@ -1,8 +1,8 @@
 package router
 
 import (
+	"github.com/sa-tokens/sa-token-go/core/manager"
 	"strings"
-	"github.com/click33/sa-token-go/core/manager"
 )
 
 // MatchPath matches a path against a pattern (Ant-style wildcard) | 匹配路径与模式（Ant风格通配符）
@@ -62,9 +62,9 @@ func NeedAuth(path string, include, exclude []string) bool {
 // Configure which paths require authentication and which are excluded | 配置哪些路径需要鉴权，哪些路径被排除
 type PathAuthConfig struct {
 	// Include paths that require authentication (include patterns) | 需要鉴权的路径（包含模式）
-	Include   []string
+	Include []string
 	// Exclude paths excluded from authentication (exclude patterns) | 排除鉴权的路径（排除模式）
-	Exclude   []string
+	Exclude []string
 	// Validator optional login ID validator function | 可选的登录ID验证函数
 	Validator func(loginID string) bool
 }
@@ -112,13 +112,13 @@ func (c *PathAuthConfig) ValidateLoginID(loginID string) bool {
 // AuthResult authentication result after processing | 处理后的鉴权结果
 type AuthResult struct {
 	// NeedAuth whether authentication is required for this path | 此路径是否需要鉴权
-	NeedAuth  bool
+	NeedAuth bool
 	// Token extracted token value | 提取的token值
-	Token     string
+	Token string
 	// TokenInfo token information if valid | 如果有效则包含token信息
 	TokenInfo *manager.TokenInfo
 	// IsValid whether the token is valid | token是否有效
-	IsValid   bool
+	IsValid bool
 }
 
 // ShouldReject checks if the request should be rejected | 检查请求是否应该被拒绝
@@ -139,7 +139,7 @@ func (r *AuthResult) LoginID() string {
 // and returns an AuthResult with all relevant information | 此函数检查路径是否需要鉴权，验证token，并返回包含所有相关信息的AuthResult
 func ProcessAuth(path, tokenStr string, config *PathAuthConfig, mgr *manager.Manager) *AuthResult {
 	needAuth := config.Check(path)
-	
+
 	token := tokenStr
 	isValid := false
 	var tokenInfo *manager.TokenInfo
@@ -180,13 +180,12 @@ func CheckPathAuth(handler PathAuthHandler) bool {
 	token := handler.GetToken()
 	manager := handler.GetManager()
 	config := handler.GetPathAuthConfig()
-	
+
 	if config == nil {
 		config = NewPathAuthConfig().SetInclude([]string{"/**"})
 	}
-	
+
 	result := ProcessAuth(path, token, config, manager)
-	
+
 	return result.ShouldReject()
 }
-

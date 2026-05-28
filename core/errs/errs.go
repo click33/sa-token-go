@@ -97,6 +97,32 @@ var (
 	ErrSsoClientNotRegistered  = fmt.Errorf("sso client is not registered")
 )
 
+// API Key
+var (
+	ErrApiKeyNotFound = fmt.Errorf("api key not found")
+	ErrApiKeyExpired  = fmt.Errorf("api key expired")
+	ErrApiKeyDisabled = fmt.Errorf("api key disabled")
+)
+
+// Signature
+var (
+	ErrSignatureInvalid = fmt.Errorf("signature invalid")
+	ErrSignatureExpired = fmt.Errorf("signature expired: timestamp too old")
+	ErrNonceAlreadyUsed = fmt.Errorf("nonce already used: replay detected")
+)
+
+// Temp Token
+var (
+	ErrTempTokenNotFound = fmt.Errorf("temp token not found")
+	ErrTempTokenExpired  = fmt.Errorf("temp token expired")
+	ErrTempTokenUsed     = fmt.Errorf("temp token already used")
+)
+
+// Same-Token | 服务间调用令牌
+var (
+	ErrSameTokenInvalid = fmt.Errorf("same-token invalid: service-to-service authentication failed")
+)
+
 // System | 系统
 var (
 	ErrStorageUnavailable = fmt.Errorf("storage unavailable: unable to connect to storage backend")

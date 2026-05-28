@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/click33/sa-token-go/core/session"
+	"github.com/sa-tokens/sa-token-go/core/session"
 )
 
 func sortKeywordItems(items []string, asc bool) {

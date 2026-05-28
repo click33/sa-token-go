@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/click33/sa-token-go/core/adapter"
-	"github.com/click33/sa-token-go/core/config"
-	"github.com/click33/sa-token-go/core/token"
-	"github.com/click33/sa-token-go/core/utils"
+	"github.com/sa-tokens/sa-token-go/core/adapter"
+	"github.com/sa-tokens/sa-token-go/core/config"
+	"github.com/sa-tokens/sa-token-go/core/token"
+	"github.com/sa-tokens/sa-token-go/core/utils"
 )
 
 // Refresh Token Implementation

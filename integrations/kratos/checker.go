@@ -2,7 +2,7 @@ package kratos
 
 import (
 	"context"
-	"github.com/click33/sa-token-go/core"
+	"github.com/sa-tokens/sa-token-go/core"
 )
 
 // Checker 检查器接口

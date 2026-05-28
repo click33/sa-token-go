@@ -2,7 +2,7 @@
 
 **English** | **[中文](README_zh.md)**
 
-[![Go Version](https://img.shields.io/badge/Go-%3E%3D1.21-blue)](https://img.shields.io)
+[![Go Version](https://img.shields.io/badge/Go-%3E%3D1.25-blue)](https://img.shields.io)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://opensource.org/licenses/Apache-2.0)
 
 A lightweight, high-performance Go authentication and authorization framework, inspired by [sa-token](https://github.com/dromara/sa-token).
@@ -35,47 +35,47 @@ A lightweight, high-performance Go authentication and authorization framework, i
 
 ```bash
 # Import only the framework integration (includes core + stputil automatically)
-go get github.com/click33/sa-token-go/integrations/gin@latest    # Gin framework
+go get github.com/sa-tokens/sa-token-go/integrations/gin@latest    # Gin framework
 # or
-go get github.com/click33/sa-token-go/integrations/echo@latest   # Echo framework
+go get github.com/sa-tokens/sa-token-go/integrations/echo@latest   # Echo framework
 # or
-go get github.com/click33/sa-token-go/integrations/fiber@latest  # Fiber framework
+go get github.com/sa-tokens/sa-token-go/integrations/fiber@latest  # Fiber framework
 # or
-go get github.com/click33/sa-token-go/integrations/chi@latest    # Chi framework
+go get github.com/sa-tokens/sa-token-go/integrations/chi@latest    # Chi framework
 # or
-go get github.com/click33/sa-token-go/integrations/gf@latest     # GoFrame framework
+go get github.com/sa-tokens/sa-token-go/integrations/gf@latest     # GoFrame framework
 # or
-go get github.com/click33/sa-token-go/integrations/kratos@latest   # Kratos framework
+go get github.com/sa-tokens/sa-token-go/integrations/kratos@latest   # Kratos framework
 # or
-go get github.com/click33/sa-token-go/integrations/hertz@latest  # Hertz framework
+go get github.com/sa-tokens/sa-token-go/integrations/hertz@latest  # Hertz framework
 # or
-go get github.com/click33/sa-token-go/integrations/iris@latest   # Iris framework
+go get github.com/sa-tokens/sa-token-go/integrations/iris@latest   # Iris framework
 
 # Storage module (choose one)
-go get github.com/click33/sa-token-go/storage/memory@latest # Memory storage (dev)
-go get github.com/click33/sa-token-go/storage/redis@latest  # Redis storage (prod)
+go get github.com/sa-tokens/sa-token-go/storage/memory@latest # Memory storage (dev)
+go get github.com/sa-tokens/sa-token-go/storage/redis@latest  # Redis storage (prod)
 ```
 
 #### Option 2: Separate Import
 
 ```bash
 # Core modules
-go get github.com/click33/sa-token-go/core@latest 
-go get github.com/click33/sa-token-go/stputil@latest 
+go get github.com/sa-tokens/sa-token-go/core@latest 
+go get github.com/sa-tokens/sa-token-go/stputil@latest 
 
 # Storage module (choose one)
-go get github.com/click33/sa-token-go/storage/memory@latest # Memory storage (dev)
-go get github.com/click33/sa-token-go/storage/redis@latest  # Redis storage (prod)
+go get github.com/sa-tokens/sa-token-go/storage/memory@latest # Memory storage (dev)
+go get github.com/sa-tokens/sa-token-go/storage/redis@latest  # Redis storage (prod)
 
 # Framework integration (optional)
-go get github.com/click33/sa-token-go/integrations/gin@latest    # Gin framework
-go get github.com/click33/sa-token-go/integrations/echo@latest   # Echo framework
-go get github.com/click33/sa-token-go/integrations/fiber@latest  # Fiber framework
-go get github.com/click33/sa-token-go/integrations/chi@latest    # Chi framework
-go get github.com/click33/sa-token-go/integrations/gf@latest     # GoFrame framework
-go get github.com/click33/sa-token-go/integrations/kratos@latest # Kratos framework
-go get github.com/click33/sa-token-go/integrations/hertz@latest  # Hertz framework
-go get github.com/click33/sa-token-go/integrations/iris@latest   # Iris framework
+go get github.com/sa-tokens/sa-token-go/integrations/gin@latest    # Gin framework
+go get github.com/sa-tokens/sa-token-go/integrations/echo@latest   # Echo framework
+go get github.com/sa-tokens/sa-token-go/integrations/fiber@latest  # Fiber framework
+go get github.com/sa-tokens/sa-token-go/integrations/chi@latest    # Chi framework
+go get github.com/sa-tokens/sa-token-go/integrations/gf@latest     # GoFrame framework
+go get github.com/sa-tokens/sa-token-go/integrations/kratos@latest # Kratos framework
+go get github.com/sa-tokens/sa-token-go/integrations/hertz@latest  # Hertz framework
+go get github.com/sa-tokens/sa-token-go/integrations/iris@latest   # Iris framework
 ```
 
 ### ⚡ Minimal Usage (One-line Initialization)
@@ -84,9 +84,9 @@ go get github.com/click33/sa-token-go/integrations/iris@latest   # Iris framewor
 package main
 
 import (
-    "github.com/click33/sa-token-go/core"
-    "github.com/click33/sa-token-go/stputil"
-    "github.com/click33/sa-token-go/storage/memory"
+    "github.com/sa-tokens/sa-token-go/core"
+    "github.com/sa-tokens/sa-token-go/stputil"
+    "github.com/sa-tokens/sa-token-go/storage/memory"
 )
 
 func init() {
@@ -113,7 +113,7 @@ func init() {
 /____/\__,_/   /_/  \____/_/|_|\___/_/ /_/      \____/\____/ 
                                                              
 :: Sa-Token-Go ::                                    (v0.2.1)
-:: Go Version ::                                     go1.21.0
+:: Go Version ::                                     go1.25.0
 :: GOOS/GOARCH ::                                    linux/amd64
 
 ┌─────────────────────────────────────────────────────────┐
@@ -303,9 +303,9 @@ package context
 import (
 	"strings"
 
-	"github.com/click33/sa-token-go/core/adapter"
-	"github.com/click33/sa-token-go/core/config"
-	"github.com/click33/sa-token-go/core/manager"
+	"github.com/sa-tokens/sa-token-go/core/adapter"
+	"github.com/sa-tokens/sa-token-go/core/config"
+	"github.com/sa-tokens/sa-token-go/core/manager"
 )
 
 const bearerPrefix = "Bearer "
@@ -381,8 +381,8 @@ func ReadTokenFromRequest(ctx adapter.RequestContext, mgr *manager.Manager) stri
 ```go
 import (
     "github.com/gin-gonic/gin"
-    sagin "github.com/click33/sa-token-go/integrations/gin"  // Only this import needed!
-    "github.com/click33/sa-token-go/storage/memory"
+    sagin "github.com/sa-tokens/sa-token-go/integrations/gin"  // Only this import needed!
+    "github.com/sa-tokens/sa-token-go/storage/memory"
 )
 
 func main() {
@@ -438,7 +438,7 @@ func main() {
 **Usage example:**
 
 ```go
-import sagin "github.com/click33/sa-token-go/integrations/gin"
+import sagin "github.com/sa-tokens/sa-token-go/integrations/gin"
 
 func main() {
     r := gin.Default()
@@ -475,8 +475,8 @@ func main() {
 import (
     "github.com/gogf/gf/v2/frame/g"
     "github.com/gogf/gf/v2/net/ghttp"
-    sagf "github.com/click33/sa-token-go/integrations/gf"  // Only this import needed!
-    "github.com/click33/sa-token-go/storage/memory"
+    sagf "github.com/sa-tokens/sa-token-go/integrations/gf"  // Only this import needed!
+    "github.com/sa-tokens/sa-token-go/storage/memory"
 )
 
 func main() {
@@ -513,27 +513,27 @@ func main() {
 
 ```go
 // Echo
-import saecho "github.com/click33/sa-token-go/integrations/echo"
+import saecho "github.com/sa-tokens/sa-token-go/integrations/echo"
 e.GET("/user", saecho.CheckLogin(), handler)
 
 // Fiber
-import safiber "github.com/click33/sa-token-go/integrations/fiber"
+import safiber "github.com/sa-tokens/sa-token-go/integrations/fiber"
 app.Get("/user", safiber.CheckLogin(), handler)
 
 // Chi
-import sachi "github.com/click33/sa-token-go/integrations/chi"
+import sachi "github.com/sa-tokens/sa-token-go/integrations/chi"
 r.Get("/user", sachi.CheckLogin(), handler)
 
 // Kratos
-import sakratos "github.com/click33/sa-token-go/integrations/kratos"
+import sakratos "github.com/sa-tokens/sa-token-go/integrations/kratos"
 // Use Plugin.Server() as middleware
 
 // Hertz
-import sahertz "github.com/click33/sa-token-go/integrations/hertz"
+import sahertz "github.com/sa-tokens/sa-token-go/integrations/hertz"
 h.GET("/user", sahertz.CheckLogin(), handler)
 
 // Iris
-import sairis "github.com/click33/sa-token-go/integrations/iris"
+import sairis "github.com/sa-tokens/sa-token-go/integrations/iris"
 app.Get("/user", sairis.CheckLogin(), handler)
 ```
 
@@ -781,7 +781,7 @@ sa-token-go/
 | 🌐 Chi Integration | Chi framework integration | [examples/chi/chi-example/](examples/chi/chi-example/) |
 | 🌐 GoFrame Integration | GoFrame framework integration | [examples/gf/](examples/gf/) |
 | 🌐 Kratos Integration | Kratos framework integration | [examples/kratos/kratos-example/](examples/kratos/kratos-example/) |
-| 🌐 Hertz Integration | Hertz framework integration | [examples/hertz/herz-example/](examples/hertz/herz-example/) |
+| 🌐 Hertz Integration | Hertz framework integration | [examples/hertz/hertz-example/](examples/hertz/hertz-example/) |
 | 🌐 Iris Integration | Iris framework integration | [examples/iris/iris-example/](examples/iris/iris-example/) |
 
 ### 💾 Storage Options

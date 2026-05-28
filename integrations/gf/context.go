@@ -3,8 +3,8 @@ package gf
 import (
 	"net/http"
 
-	"github.com/click33/sa-token-go/core/adapter"
 	"github.com/gogf/gf/v2/net/ghttp"
+	"github.com/sa-tokens/sa-token-go/core/adapter"
 )
 
 type GFContext struct {
@@ -123,7 +123,7 @@ func (g *GFContext) SetCookieWithOptions(options *adapter.CookieOptions) {
 		HttpOnly: options.HttpOnly,
 		SameSite: http.SameSite(0), // Default to SameSiteNone
 	}
-	
+
 	// Set SameSite attribute
 	switch options.SameSite {
 	case "Strict":
@@ -133,7 +133,7 @@ func (g *GFContext) SetCookieWithOptions(options *adapter.CookieOptions) {
 	case "None":
 		cookie.SameSite = http.SameSiteNoneMode
 	}
-	
+
 	g.c.Cookie.SetHttpCookie(cookie)
 }
 

@@ -5,8 +5,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/click33/sa-token-go/core/config"
-	"github.com/click33/sa-token-go/core/version"
+	"github.com/sa-tokens/sa-token-go/core/config"
+	"github.com/sa-tokens/sa-token-go/core/version"
 )
 
 // Banner startup banner | 启动横幅

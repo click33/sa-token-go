@@ -55,7 +55,7 @@
 - [chi-example](../examples/chi/chi-example/) - Chi 集成示例
 - [gf-example](../examples/gf/) - GoFrame 集成示例
 - [kratos-example](../examples/kratos/kratos-example/) - Kratos 集成示例
-- [hertz-example](../examples/hertz/herz-example/) - Hertz 集成示例
+- [hertz-example](../examples/hertz/hertz-example/) - Hertz 集成示例
 
 ### 🔄 集成能力更新说明
 
@@ -68,10 +68,10 @@
 
 ## 🔗 外部资源
 
-- [GitHub仓库](https://github.com/click33/sa-token-go)
+- [GitHub仓库](https://github.com/sa-tokens/sa-token-go)
 - [Java版sa-token](https://github.com/dromara/sa-token)
 
 ---
 
-**Sa-Token-Go v0.1.0**
+**Sa-Token-Go v0.2.1**
 

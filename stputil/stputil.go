@@ -6,12 +6,19 @@ import (
 	"sync"
 	"time"
 
-	core "github.com/click33/sa-token-go/core"
-	"github.com/click33/sa-token-go/core/adapter"
-	"github.com/click33/sa-token-go/core/manager"
-	"github.com/click33/sa-token-go/core/oauth2"
-	"github.com/click33/sa-token-go/core/security"
-	"github.com/click33/sa-token-go/core/session"
+	core "github.com/sa-tokens/sa-token-go/core"
+	"github.com/sa-tokens/sa-token-go/core/adapter"
+	"github.com/sa-tokens/sa-token-go/core/manager"
+	"github.com/sa-tokens/sa-token-go/core/oauth2"
+	"github.com/sa-tokens/sa-token-go/core/security"
+	"github.com/sa-tokens/sa-token-go/core/session"
+)
+
+// Security type aliases | 安全模块类型别名
+type (
+	ApiKeyInfo        = security.ApiKeyInfo
+	TempTokenInfo     = security.TempTokenInfo
+	SameTokenTemplate = security.SameTokenTemplate
 )
 
 // Global Manager instance | 全局Manager实例
@@ -528,6 +535,16 @@ func GetTokenInfoFromCtx(ctx context.Context) (*manager.TokenInfo, error) {
 	return GetTokenInfo(tv)
 }
 
+// LoginRememberMe performs login with remember-me mode | 记住我模式登录
+func LoginRememberMe(loginID interface{}, device ...string) (string, error) {
+	return globalLogic.LoginRememberMe(toString(loginID), device...)
+}
+
+// IsRememberMeLogin checks if token was created with remember-me | 检查是否为记住我模式登录
+func IsRememberMeLogin(tokenValue string) (bool, error) {
+	return globalLogic.IsRememberMeLogin(tokenValue)
+}
+
 // UpdateLastActiveToNow updates active time | 更新活跃时间
 func UpdateLastActiveToNow(tokenValue string) error {
 	return globalLogic.UpdateLastActiveToNow(tokenValue)
@@ -591,4 +608,80 @@ func GetLoginDeviceID(tokenValue string) (string, error) {
 
 func IsTrustDeviceID(loginID interface{}, deviceID string) bool {
 	return globalLogic.IsTrustDeviceID(toString(loginID), deviceID)
+}
+
+// ============ API Key | API Key 管理 ============
+
+func CreateApiKey(loginID, title string, expireSeconds int64, extra string) (*security.ApiKeyInfo, error) {
+	return globalLogic.CreateApiKey(loginID, title, expireSeconds, extra)
+}
+
+func GetApiKeyInfo(key string) (*security.ApiKeyInfo, error) {
+	return globalLogic.GetApiKeyInfo(key)
+}
+
+func VerifyApiKey(key string) (*security.ApiKeyInfo, error) {
+	return globalLogic.VerifyApiKey(key)
+}
+
+func DeleteApiKey(key string) error {
+	return globalLogic.DeleteApiKey(key)
+}
+
+func DisableApiKey(key string) error {
+	return globalLogic.DisableApiKey(key)
+}
+
+func EnableApiKey(key string) error {
+	return globalLogic.EnableApiKey(key)
+}
+
+// ============ Signature | 参数签名 ============
+
+func Sign(params map[string]string, secret string) string {
+	return globalLogic.Sign(params, secret)
+}
+
+func VerifySign(params map[string]string, secret, timestamp, nonce, signature string, maxAgeSeconds int64) error {
+	return globalLogic.VerifySign(params, secret, timestamp, nonce, signature, maxAgeSeconds)
+}
+
+// ============ Temp Token | 临时Token ============
+
+func CreateTempToken(loginID string, expireSeconds int64, extra string) (*security.TempTokenInfo, error) {
+	return globalLogic.CreateTempToken(loginID, expireSeconds, extra)
+}
+
+func VerifyTempToken(token string) (*security.TempTokenInfo, error) {
+	return globalLogic.VerifyTempToken(token)
+}
+
+func GetTempTokenInfo(token string) (*security.TempTokenInfo, error) {
+	return globalLogic.GetTempTokenInfo(token)
+}
+
+func DeleteTempToken(token string) error {
+	return globalLogic.DeleteTempToken(token)
+}
+
+// ============ Same-Token | 服务间调用令牌 ============
+
+// GetSameToken returns the current same-token | 获取服务间调用令牌
+func GetSameToken() (string, error) {
+	return globalLogic.GetSameToken()
+}
+
+// RefreshSameToken rotates the same-token | 刷新服务间调用令牌
+func RefreshSameToken() (string, error) {
+	return globalLogic.RefreshSameToken()
+}
+
+// CheckSameToken validates a same-token value | 验证服务间调用令牌
+func CheckSameToken(tokenValue string) error {
+	return globalLogic.CheckSameToken(tokenValue)
+}
+
+// IsSameTokenValid checks if a same-token is valid | 检查服务间调用令牌是否有效
+func IsSameTokenValid(tokenValue string) bool {
+	return globalLogic.IsSameTokenValid(tokenValue)
 }

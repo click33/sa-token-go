@@ -1,5 +1,7 @@
 .idea
 .cursor
+.DS_Store
 coverage.out
 coverage.html
+bin/
 examples/iris/iris-example/iris-example

@@ -19,10 +19,10 @@
 
 ```go
 import (
-    "github.com/click33/sa-token-go/core"
-    "github.com/click33/sa-token-go/stputil"
-    "github.com/click33/sa-token-go/integrations/gin"
-    "github.com/click33/sa-token-go/storage/memory"
+    "github.com/sa-tokens/sa-token-go/core"
+    "github.com/sa-tokens/sa-token-go/stputil"
+    "github.com/sa-tokens/sa-token-go/integrations/gin"
+    "github.com/sa-tokens/sa-token-go/storage/memory"
 )
 
 func main() {
@@ -44,8 +44,8 @@ func main() {
 
 ```go
 import (
-    sagin "github.com/click33/sa-token-go/integrations/gin"
-    "github.com/click33/sa-token-go/storage/memory"
+    sagin "github.com/sa-tokens/sa-token-go/integrations/gin"
+    "github.com/sa-tokens/sa-token-go/storage/memory"
 )
 
 func main() {
@@ -66,29 +66,29 @@ func main() {
 ### Gin 框架
 
 ```bash
-go get github.com/click33/sa-token-go/integrations/gin@v0.1.0
-go get github.com/click33/sa-token-go/storage/memory@v0.1.0
+go get github.com/sa-tokens/sa-token-go/integrations/gin@v0.1.0
+go get github.com/sa-tokens/sa-token-go/storage/memory@v0.1.0
 ```
 
 ### Echo 框架
 
 ```bash
-go get github.com/click33/sa-token-go/integrations/echo@v0.1.0
-go get github.com/click33/sa-token-go/storage/memory@v0.1.0
+go get github.com/sa-tokens/sa-token-go/integrations/echo@v0.1.0
+go get github.com/sa-tokens/sa-token-go/storage/memory@v0.1.0
 ```
 
 ### Fiber 框架
 
 ```bash
-go get github.com/click33/sa-token-go/integrations/fiber@v0.1.0
-go get github.com/click33/sa-token-go/storage/memory@v0.1.0
+go get github.com/sa-tokens/sa-token-go/integrations/fiber@v0.1.0
+go get github.com/sa-tokens/sa-token-go/storage/memory@v0.1.0
 ```
 
 ### Chi 框架
 
 ```bash
-go get github.com/click33/sa-token-go/integrations/chi@v0.1.0
-go get github.com/click33/sa-token-go/storage/memory@v0.1.0
+go get github.com/sa-tokens/sa-token-go/integrations/chi@v0.1.0
+go get github.com/sa-tokens/sa-token-go/storage/memory@v0.1.0
 ```
 
 ## 完整示例（Gin）
@@ -100,8 +100,8 @@ import (
     "log"
 
     "github.com/gin-gonic/gin"
-    sagin "github.com/click33/sa-token-go/integrations/gin"
-    "github.com/click33/sa-token-go/storage/memory"
+    sagin "github.com/sa-tokens/sa-token-go/integrations/gin"
+    "github.com/sa-tokens/sa-token-go/storage/memory"
 )
 
 func main() {
@@ -342,7 +342,7 @@ sagin.EventKickout
 
 ```go
 import (
-    saecho "github.com/click33/sa-token-go/integrations/echo"
+    saecho "github.com/sa-tokens/sa-token-go/integrations/echo"
     "github.com/labstack/echo/v4"
 )
 
@@ -366,7 +366,7 @@ func main() {
 
 ```go
 import (
-    safiber "github.com/click33/sa-token-go/integrations/fiber"
+    safiber "github.com/sa-tokens/sa-token-go/integrations/fiber"
     "github.com/gofiber/fiber/v2"
 )
 
@@ -390,7 +390,7 @@ func main() {
 
 ```go
 import (
-    sachi "github.com/click33/sa-token-go/integrations/chi"
+    sachi "github.com/sa-tokens/sa-token-go/integrations/chi"
     "github.com/go-chi/chi/v5"
 )
 
@@ -418,10 +418,10 @@ func main() {
 
 ```go
 import (
-    "github.com/click33/sa-token-go/core"
-    "github.com/click33/sa-token-go/stputil"
-    sagin "github.com/click33/sa-token-go/integrations/gin"  // 添加这个
-    "github.com/click33/sa-token-go/storage/memory"
+    "github.com/sa-tokens/sa-token-go/core"
+    "github.com/sa-tokens/sa-token-go/stputil"
+    sagin "github.com/sa-tokens/sa-token-go/integrations/gin"  // 添加这个
+    "github.com/sa-tokens/sa-token-go/storage/memory"
 )
 ```
 
@@ -440,11 +440,11 @@ config := sagin.DefaultConfig()
 ```go
 import (
     // 删除这些
-    // "github.com/click33/sa-token-go/core"
-    // "github.com/click33/sa-token-go/stputil"
+    // "github.com/sa-tokens/sa-token-go/core"
+    // "github.com/sa-tokens/sa-token-go/stputil"
     
-    sagin "github.com/click33/sa-token-go/integrations/gin"
-    "github.com/click33/sa-token-go/storage/memory"
+    sagin "github.com/sa-tokens/sa-token-go/integrations/gin"
+    "github.com/sa-tokens/sa-token-go/storage/memory"
 )
 ```
 

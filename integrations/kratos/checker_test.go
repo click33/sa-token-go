@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/click33/sa-token-go/core/config"
-	"github.com/click33/sa-token-go/core/manager"
-	"github.com/click33/sa-token-go/storage/memory"
+	"github.com/sa-tokens/sa-token-go/core/config"
+	"github.com/sa-tokens/sa-token-go/core/manager"
+	"github.com/sa-tokens/sa-token-go/storage/memory"
 )
 
 func TestLoginChecker(t *testing.T) {

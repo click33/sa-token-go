@@ -1,11 +1,11 @@
-module github.com/click33/sa-token-go/examples/oauth2-example
+module github.com/sa-tokens/sa-token-go/examples/oauth2-example
 
 go 1.25.0
 
 require (
-	github.com/click33/sa-token-go/core v0.2.1
-	github.com/click33/sa-token-go/storage/memory v0.2.1
 	github.com/gin-gonic/gin v1.12.0
+	github.com/sa-tokens/sa-token-go/core v0.2.1
+	github.com/sa-tokens/sa-token-go/storage/memory v0.2.1
 )
 
 require (
@@ -44,3 +44,6 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 )
 
+replace github.com/sa-tokens/sa-token-go/storage/memory => ../../storage/memory
+
+replace github.com/sa-tokens/sa-token-go/core => ../../core

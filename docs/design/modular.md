@@ -15,7 +15,7 @@ Split the project into multiple independent modules to achieve:
 ### Core Module (core)
 
 ```
-github.com/click33/sa-token-go/core
+github.com/sa-tokens/sa-token-go/core
 ```
 
 **Responsibilities**:
@@ -38,7 +38,7 @@ github.com/click33/sa-token-go/core
 ### StpUtil Module (stputil)
 
 ```
-github.com/click33/sa-token-go/stputil
+github.com/sa-tokens/sa-token-go/stputil
 ```
 
 **Responsibilities**:
@@ -59,7 +59,7 @@ github.com/click33/sa-token-go/stputil
 #### Memory Storage
 
 ```
-github.com/click33/sa-token-go/storage/memory
+github.com/sa-tokens/sa-token-go/storage/memory
 ```
 
 **Dependencies**:
@@ -73,7 +73,7 @@ github.com/click33/sa-token-go/storage/memory
 #### Redis Storage
 
 ```
-github.com/click33/sa-token-go/storage/redis
+github.com/sa-tokens/sa-token-go/storage/redis
 ```
 
 **Dependencies**:
@@ -90,7 +90,7 @@ github.com/click33/sa-token-go/storage/redis
 #### Gin Integration
 
 ```
-github.com/click33/sa-token-go/integrations/gin
+github.com/sa-tokens/sa-token-go/integrations/gin
 ```
 
 **Dependencies**:
@@ -127,9 +127,9 @@ Storage Implementation (memory/redis)
 ### Scenario 1: Core Functionality Only
 
 ```bash
-go get github.com/click33/sa-token-go/core
-go get github.com/click33/sa-token-go/stputil
-go get github.com/click33/sa-token-go/storage/memory
+go get github.com/sa-tokens/sa-token-go/core
+go get github.com/sa-tokens/sa-token-go/stputil
+go get github.com/sa-tokens/sa-token-go/storage/memory
 ```
 
 **Dependency Tree**:
@@ -144,10 +144,10 @@ storage/memory (core)
 ### Scenario 2: Using Gin Framework
 
 ```bash
-go get github.com/click33/sa-token-go/core
-go get github.com/click33/sa-token-go/stputil
-go get github.com/click33/sa-token-go/storage/redis
-go get github.com/click33/sa-token-go/integrations/gin
+go get github.com/sa-tokens/sa-token-go/core
+go get github.com/sa-tokens/sa-token-go/stputil
+go get github.com/sa-tokens/sa-token-go/storage/redis
+go get github.com/sa-tokens/sa-token-go/integrations/gin
 ```
 
 **Dependency Tree**:
@@ -180,9 +180,9 @@ integrations/echo/go.mod
 
 ```go
 // storage/memory/go.mod
-require github.com/click33/sa-token-go/core v0.1.0
+require github.com/sa-tokens/sa-token-go/core v0.1.0
 
-replace github.com/click33/sa-token-go/core => ../../core
+replace github.com/sa-tokens/sa-token-go/core => ../../core
 ```
 
 **Advantages**:
@@ -242,7 +242,7 @@ integrations/gin     v0.1.0
 ### Adding New Storage
 
 1. Create directory: `storage/mysql/`
-2. Create go.mod: `module github.com/click33/sa-token-go/storage/mysql`
+2. Create go.mod: `module github.com/sa-tokens/sa-token-go/storage/mysql`
 3. Implement Storage interface
 4. Add to go.work
 5. Write documentation and examples

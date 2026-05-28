@@ -1,0 +1,25 @@
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - gofmt
+    - govet
+    - staticcheck
+    - gosimple
+    - ineffassign
+  disable:
+    - errcheck
+    - unused
+
+linters-settings:
+  staticcheck:
+    checks:
+      - all
+      - -SA1029
+      - -SA1019
+
+issues:
+  exclude-dirs:
+    - examples
+    - demo

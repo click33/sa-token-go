@@ -3,8 +3,8 @@
 package user
 
 import (
-	sahertz "github.com/click33/sa-token-go/integrations/hertz"
 	"github.com/cloudwego/hertz/pkg/app"
+	sahertz "github.com/sa-tokens/sa-token-go/integrations/hertz"
 )
 
 func rootMw() []app.HandlerFunc {

@@ -5,11 +5,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/click33/sa-token-go/core/config"
-	"github.com/click33/sa-token-go/core/manager"
-	"github.com/click33/sa-token-go/storage/memory"
-	"github.com/click33/sa-token-go/stputil"
 	ginfw "github.com/gin-gonic/gin"
+	"github.com/sa-tokens/sa-token-go/core/config"
+	"github.com/sa-tokens/sa-token-go/core/manager"
+	"github.com/sa-tokens/sa-token-go/storage/memory"
+	"github.com/sa-tokens/sa-token-go/stputil"
 	"github.com/stretchr/testify/assert"
 )
 

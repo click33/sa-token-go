@@ -3,8 +3,8 @@ package hertz
 import (
 	"time"
 
-	"github.com/click33/sa-token-go/core"
-	"github.com/click33/sa-token-go/stputil"
+	"github.com/sa-tokens/sa-token-go/core"
+	"github.com/sa-tokens/sa-token-go/stputil"
 )
 
 // ============ Re-export core types | 重新导出核心类型 ============

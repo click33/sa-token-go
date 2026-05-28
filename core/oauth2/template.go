@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/click33/sa-token-go/core/adapter"
-	"github.com/click33/sa-token-go/core/errs"
+	"github.com/sa-tokens/sa-token-go/core/adapter"
+	"github.com/sa-tokens/sa-token-go/core/errs"
 )
 
 // OAuth2Template protocol helpers | OAuth2 模板（授权码等协议步骤）

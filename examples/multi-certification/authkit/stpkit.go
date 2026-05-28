@@ -1,6 +1,6 @@
 package authkit
 
-import "github.com/click33/sa-token-go/stputil"
+import "github.com/sa-tokens/sa-token-go/stputil"
 
 var (
 	ADMIN *stputil.StpLogic

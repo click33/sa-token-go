@@ -4,8 +4,8 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/click33/sa-token-go/core"
 	"github.com/labstack/echo/v4"
+	"github.com/sa-tokens/sa-token-go/core"
 )
 
 // Plugin Echo plugin for Sa-Token | Echo插件

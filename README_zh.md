@@ -2,7 +2,7 @@
 
 **中文文档** | **[English](README.md)**
 
-[![Go Version](https://img.shields.io/badge/Go-%3E%3D1.21-blue)](https://img.shields.io)
+[![Go Version](https://img.shields.io/badge/Go-%3E%3D1.25-blue)](https://img.shields.io)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://opensource.org/licenses/Apache-2.0)
 
 一个轻量级、高性能的 Go 权限认证框架，参考 [sa-token](https://github.com/dromara/sa-token) 设计。
@@ -41,47 +41,47 @@
 
 ```bash
 # 只导入框架集成包（自动包含 core + stputil）
-go get github.com/click33/sa-token-go/integrations/gin@latest    # Gin框架
+go get github.com/sa-tokens/sa-token-go/integrations/gin@latest    # Gin框架
 # 或
-go get github.com/click33/sa-token-go/integrations/echo@latest   # Echo框架
+go get github.com/sa-tokens/sa-token-go/integrations/echo@latest   # Echo框架
 # 或
-go get github.com/click33/sa-token-go/integrations/fiber@latest  # Fiber框架
+go get github.com/sa-tokens/sa-token-go/integrations/fiber@latest  # Fiber框架
 # 或
-go get github.com/click33/sa-token-go/integrations/chi@latest    # Chi框架
+go get github.com/sa-tokens/sa-token-go/integrations/chi@latest    # Chi框架
 # 或
-go get github.com/click33/sa-token-go/integrations/gf@latest     # GoFrame框架
+go get github.com/sa-tokens/sa-token-go/integrations/gf@latest     # GoFrame框架
 # 或
-go get github.com/click33/sa-token-go/integrations/kratos@latest # Kratos框架
+go get github.com/sa-tokens/sa-token-go/integrations/kratos@latest # Kratos框架
 # 或
-go get github.com/click33/sa-token-go/integrations/hertz@latest  # Hertz框架
+go get github.com/sa-tokens/sa-token-go/integrations/hertz@latest  # Hertz框架
 # 或
-go get github.com/click33/sa-token-go/integrations/iris@latest   # Iris框架
+go get github.com/sa-tokens/sa-token-go/integrations/iris@latest   # Iris框架
 
 # 存储模块（选一个）
-go get github.com/click33/sa-token-go/storage/memory@latest # 内存存储（开发）
-go get github.com/click33/sa-token-go/storage/redis@latest  # Redis存储（生产）
+go get github.com/sa-tokens/sa-token-go/storage/memory@latest # 内存存储（开发）
+go get github.com/sa-tokens/sa-token-go/storage/redis@latest  # Redis存储（生产）
 ```
 
 #### 方式二：分开导入
 
 ```bash
 # 核心模块
-go get github.com/click33/sa-token-go/core@latest 
-go get github.com/click33/sa-token-go/stputil@latest 
+go get github.com/sa-tokens/sa-token-go/core@latest 
+go get github.com/sa-tokens/sa-token-go/stputil@latest 
 
 # 存储模块（选一个）
-go get github.com/click33/sa-token-go/storage/memory@latest # 内存存储（开发）
-go get github.com/click33/sa-token-go/storage/redis@latest  # Redis存储（生产）
+go get github.com/sa-tokens/sa-token-go/storage/memory@latest # 内存存储（开发）
+go get github.com/sa-tokens/sa-token-go/storage/redis@latest  # Redis存储（生产）
 
 # 框架集成（可选）
-go get github.com/click33/sa-token-go/integrations/gin@latest    # Gin框架
-go get github.com/click33/sa-token-go/integrations/echo@latest   # Echo框架
-go get github.com/click33/sa-token-go/integrations/fiber@latest  # Fiber框架
-go get github.com/click33/sa-token-go/integrations/chi@latest    # Chi框架
-go get github.com/click33/sa-token-go/integrations/gf@latest     # GoFrame框架
-go get github.com/click33/sa-token-go/integrations/kratos@latest # Kratos框架
-go get github.com/click33/sa-token-go/integrations/hertz@latest  # Hertz框架
-go get github.com/click33/sa-token-go/integrations/iris@latest   # Iris框架
+go get github.com/sa-tokens/sa-token-go/integrations/gin@latest    # Gin框架
+go get github.com/sa-tokens/sa-token-go/integrations/echo@latest   # Echo框架
+go get github.com/sa-tokens/sa-token-go/integrations/fiber@latest  # Fiber框架
+go get github.com/sa-tokens/sa-token-go/integrations/chi@latest    # Chi框架
+go get github.com/sa-tokens/sa-token-go/integrations/gf@latest     # GoFrame框架
+go get github.com/sa-tokens/sa-token-go/integrations/kratos@latest # Kratos框架
+go get github.com/sa-tokens/sa-token-go/integrations/hertz@latest  # Hertz框架
+go get github.com/sa-tokens/sa-token-go/integrations/iris@latest   # Iris框架
 ```
 
 ### ⚡ 超简洁使用（一行初始化）
@@ -90,9 +90,9 @@ go get github.com/click33/sa-token-go/integrations/iris@latest   # Iris框架
 package main
 
 import (
-    "github.com/click33/sa-token-go/core"
-    "github.com/click33/sa-token-go/stputil"
-    "github.com/click33/sa-token-go/storage/memory"
+    "github.com/sa-tokens/sa-token-go/core"
+    "github.com/sa-tokens/sa-token-go/stputil"
+    "github.com/sa-tokens/sa-token-go/storage/memory"
 )
 
 func init() {
@@ -119,7 +119,7 @@ func init() {
 /____/\__,_/   /_/  \____/_/|_|\___/_/ /_/      \____/\____/ 
                                                              
 :: Sa-Token-Go ::                                    (v0.2.1)
-:: Go Version ::                                     go1.21.0
+:: Go Version ::                                     go1.25.0
 :: GOOS/GOARCH ::                                    linux/amd64
 
 ┌─────────────────────────────────────────────────────────┐
@@ -309,9 +309,9 @@ package context
 import (
 	"strings"
 
-	"github.com/click33/sa-token-go/core/adapter"
-	"github.com/click33/sa-token-go/core/config"
-	"github.com/click33/sa-token-go/core/manager"
+	"github.com/sa-tokens/sa-token-go/core/adapter"
+	"github.com/sa-tokens/sa-token-go/core/config"
+	"github.com/sa-tokens/sa-token-go/core/manager"
 )
 
 const bearerPrefix = "Bearer "
@@ -387,8 +387,8 @@ func ReadTokenFromRequest(ctx adapter.RequestContext, mgr *manager.Manager) stri
 ```go
 import (
     "github.com/gin-gonic/gin"
-    sagin "github.com/click33/sa-token-go/integrations/gin"  // 只需这一个导入！
-    "github.com/click33/sa-token-go/storage/memory"
+    sagin "github.com/sa-tokens/sa-token-go/integrations/gin"  // 只需这一个导入！
+    "github.com/sa-tokens/sa-token-go/storage/memory"
 )
 
 func main() {
@@ -444,7 +444,7 @@ func main() {
 **使用示例：**
 
 ```go
-import sagin "github.com/click33/sa-token-go/integrations/gin"
+import sagin "github.com/sa-tokens/sa-token-go/integrations/gin"
 
 func main() {
     r := gin.Default()
@@ -481,8 +481,8 @@ func main() {
 import (
     "github.com/gogf/gf/v2/frame/g"
     "github.com/gogf/gf/v2/net/ghttp"
-    sagf "github.com/click33/sa-token-go/integrations/gf"  // 只需这一个导入！
-    "github.com/click33/sa-token-go/storage/memory"
+    sagf "github.com/sa-tokens/sa-token-go/integrations/gf"  // 只需这一个导入！
+    "github.com/sa-tokens/sa-token-go/storage/memory"
 )
 
 func main() {
@@ -519,27 +519,27 @@ func main() {
 
 ```go
 // Echo
-import saecho "github.com/click33/sa-token-go/integrations/echo"
+import saecho "github.com/sa-tokens/sa-token-go/integrations/echo"
 e.GET("/user", saecho.CheckLogin(), handler)
 
 // Fiber
-import safiber "github.com/click33/sa-token-go/integrations/fiber"
+import safiber "github.com/sa-tokens/sa-token-go/integrations/fiber"
 app.Get("/user", safiber.CheckLogin(), handler)
 
 // Chi
-import sachi "github.com/click33/sa-token-go/integrations/chi"
+import sachi "github.com/sa-tokens/sa-token-go/integrations/chi"
 r.Get("/user", sachi.CheckLogin(), handler)
 
 // Kratos
-import sakratos "github.com/click33/sa-token-go/integrations/kratos"
+import sakratos "github.com/sa-tokens/sa-token-go/integrations/kratos"
 // 使用 Plugin.Server() 作为中间件
 
 // Hertz
-import sahertz "github.com/click33/sa-token-go/integrations/hertz"
+import sahertz "github.com/sa-tokens/sa-token-go/integrations/hertz"
 h.GET("/user", sahertz.CheckLogin(), handler)
 
 // Iris
-import sairis "github.com/click33/sa-token-go/integrations/iris"
+import sairis "github.com/sa-tokens/sa-token-go/integrations/iris"
 app.Get("/user", sairis.CheckLogin(), handler)
 ```
 
@@ -794,7 +794,7 @@ sa-token-go/
 | 🌐 Chi集成 | Chi框架集成 | [examples/chi/chi-example/](examples/chi/chi-example/) |
 | 🌐 GoFrame集成 | GoFrame框架集成 | [examples/gf/](examples/gf/) |
 | 🌐 Kratos集成 | Kratos框架集成 | [examples/kratos/kratos-example/](examples/kratos/kratos-example/) |
-| 🌐 Hertz集成 | Hertz框架集成 | [examples/hertz/herz-example/](examples/hertz/herz-example/) |
+| 🌐 Hertz集成 | Hertz框架集成 | [examples/hertz/hertz-example/](examples/hertz/hertz-example/) |
 | 🌐 Iris集成 | Iris框架集成 | [examples/iris/iris-example/](examples/iris/iris-example/) |
 
 ### 💾 存储方案

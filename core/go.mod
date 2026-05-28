@@ -1,12 +1,12 @@
-module github.com/click33/sa-token-go/core
+module github.com/sa-tokens/sa-token-go/core
 
 go 1.25.0
 
 require (
-	github.com/click33/sa-token-go/storage/memory v0.2.1
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/panjf2000/ants/v2 v2.12.0
+	github.com/sa-tokens/sa-token-go/storage/memory v0.2.1
 	github.com/stretchr/testify v1.11.1
 )
 
@@ -19,3 +19,5 @@ require (
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/sa-tokens/sa-token-go/storage/memory => ../storage/memory

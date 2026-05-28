@@ -5,14 +5,14 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/click33/sa-token-go/core/config"
-	"github.com/click33/sa-token-go/core/manager"
-	"github.com/click33/sa-token-go/storage/memory"
-	"github.com/click33/sa-token-go/stputil"
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/app/server"
 	"github.com/cloudwego/hertz/pkg/common/ut"
 	"github.com/cloudwego/hertz/pkg/common/utils"
+	"github.com/sa-tokens/sa-token-go/core/config"
+	"github.com/sa-tokens/sa-token-go/core/manager"
+	"github.com/sa-tokens/sa-token-go/storage/memory"
+	"github.com/sa-tokens/sa-token-go/stputil"
 	"github.com/stretchr/testify/assert"
 )
 

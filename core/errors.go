@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/click33/sa-token-go/core/errs"
+	"github.com/sa-tokens/sa-token-go/core/errs"
 )
 
 // Re-export sentinels from errs (manager/oauth2/sso import errs; callers may use core.*) | 从 errs 再导出
@@ -75,6 +75,20 @@ var (
 
 	ErrStorageUnavailable = errs.ErrStorageUnavailable
 	ErrInvalidConfig      = errs.ErrInvalidConfig
+
+	ErrSameTokenInvalid = errs.ErrSameTokenInvalid
+
+	ErrApiKeyNotFound = errs.ErrApiKeyNotFound
+	ErrApiKeyExpired  = errs.ErrApiKeyExpired
+	ErrApiKeyDisabled = errs.ErrApiKeyDisabled
+
+	ErrSignatureInvalid = errs.ErrSignatureInvalid
+	ErrSignatureExpired = errs.ErrSignatureExpired
+	ErrNonceAlreadyUsed = errs.ErrNonceAlreadyUsed
+
+	ErrTempTokenNotFound = errs.ErrTempTokenNotFound
+	ErrTempTokenExpired  = errs.ErrTempTokenExpired
+	ErrTempTokenUsed     = errs.ErrTempTokenUsed
 )
 
 // SaTokenError custom error with code and context | 自定义错误类型

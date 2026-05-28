@@ -3,8 +3,8 @@ package gin
 import (
 	"net/http"
 
-	"github.com/click33/sa-token-go/core/adapter"
 	"github.com/gin-gonic/gin"
+	"github.com/sa-tokens/sa-token-go/core/adapter"
 )
 
 // GinContext Gin request context adapter | Gin请求上下文适配器
@@ -113,7 +113,7 @@ func (g *GinContext) SetCookieWithOptions(options *adapter.CookieOptions) {
 		options.Secure,
 		options.HttpOnly,
 	)
-	
+
 	// Set SameSite attribute
 	switch options.SameSite {
 	case "Strict":

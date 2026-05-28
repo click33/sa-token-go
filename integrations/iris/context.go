@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/click33/sa-token-go/core/adapter"
 	irisfw "github.com/kataras/iris/v12"
+	"github.com/sa-tokens/sa-token-go/core/adapter"
 )
 
 // IrisContext adapts iris.Context to sa-token core's RequestContext.

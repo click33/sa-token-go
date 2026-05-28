@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	core "github.com/click33/sa-token-go/core"
-	"github.com/click33/sa-token-go/core/manager"
-	"github.com/click33/sa-token-go/core/session"
-	"github.com/click33/sa-token-go/core/utils"
-	"github.com/click33/sa-token-go/plugins/sso/common"
+	core "github.com/sa-tokens/sa-token-go/core"
+	"github.com/sa-tokens/sa-token-go/core/manager"
+	"github.com/sa-tokens/sa-token-go/core/session"
+	"github.com/sa-tokens/sa-token-go/core/utils"
+	"github.com/sa-tokens/sa-token-go/plugins/sso/common"
 )
 
 const ssoClientInfoKey = "SSO_CLIENT_INFO_LIST"

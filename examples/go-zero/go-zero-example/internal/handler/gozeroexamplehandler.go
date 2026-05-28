@@ -5,9 +5,9 @@ import (
 
 	"github.com/zeromicro/go-zero/rest/httpx"
 
-	"github.com/click33/sa-token-go/examples/go-zero/go-zero-example/internal/logic"
-	"github.com/click33/sa-token-go/examples/go-zero/go-zero-example/internal/svc"
-	"github.com/click33/sa-token-go/examples/go-zero/go-zero-example/internal/types"
+	"github.com/sa-tokens/sa-token-go/examples/go-zero/go-zero-example/internal/logic"
+	"github.com/sa-tokens/sa-token-go/examples/go-zero/go-zero-example/internal/svc"
+	"github.com/sa-tokens/sa-token-go/examples/go-zero/go-zero-example/internal/types"
 )
 
 func LoginHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {

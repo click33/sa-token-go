@@ -1,8 +1,8 @@
 package fiber
 
 import (
-	"github.com/click33/sa-token-go/core/adapter"
 	"github.com/gofiber/fiber/v2"
+	"github.com/sa-tokens/sa-token-go/core/adapter"
 	"time"
 )
 
@@ -134,7 +134,7 @@ func (f *FiberContext) SetCookieWithOptions(options *adapter.CookieOptions) {
 		HTTPOnly: options.HttpOnly,
 		SameSite: "Lax", // Default to Lax
 	}
-	
+
 	// Set SameSite attribute
 	switch options.SameSite {
 	case "Strict":
@@ -144,11 +144,11 @@ func (f *FiberContext) SetCookieWithOptions(options *adapter.CookieOptions) {
 	case "None":
 		cookie.SameSite = "None"
 	}
-	
+
 	if options.MaxAge > 0 {
 		cookie.Expires = time.Now().Add(time.Duration(options.MaxAge) * time.Second)
 	}
-	
+
 	f.c.Cookie(cookie)
 }
 

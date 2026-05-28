@@ -90,7 +90,7 @@ stputil.HasPermission(1000, "user:read")     // false
 ### 装饰器模式
 
 ```go
-import sagin "github.com/click33/sa-token-go/integrations/gin"
+import sagin "github.com/sa-tokens/sa-token-go/integrations/gin"
 
 // 需要user:read权限
 r.GET("/users", sagin.CheckPermission("user:read"), listUsersHandler)

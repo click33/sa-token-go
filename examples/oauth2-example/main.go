@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/click33/sa-token-go/core"
-	"github.com/click33/sa-token-go/storage/memory"
 	"github.com/gin-gonic/gin"
+	"github.com/sa-tokens/sa-token-go/core"
+	"github.com/sa-tokens/sa-token-go/storage/memory"
 )
 
 var oauth2Server *core.OAuth2Server

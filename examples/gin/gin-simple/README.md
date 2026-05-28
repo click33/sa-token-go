@@ -4,7 +4,7 @@ This example demonstrates how to use Sa-Token-Go with Gin by **only importing th
 
 ## Features
 
-✅ **Single Import** - Only need `github.com/click33/sa-token-go/integrations/gin`  
+✅ **Single Import** - Only need `github.com/sa-tokens/sa-token-go/integrations/gin`  
 ✅ **All Functions** - Access to all core and stputil functions  
 ✅ **Simple API** - Clean and easy to use  
 
@@ -13,8 +13,8 @@ This example demonstrates how to use Sa-Token-Go with Gin by **only importing th
 ### 1. Install dependencies
 
 ```bash
-go get github.com/click33/sa-token-go/integrations/gin@v0.1.0
-go get github.com/click33/sa-token-go/storage/memory@v0.1.0
+go get github.com/sa-tokens/sa-token-go/integrations/gin@v0.1.0
+go get github.com/sa-tokens/sa-token-go/storage/memory@v0.1.0
 go get github.com/gin-gonic/gin
 ```
 
@@ -63,9 +63,9 @@ curl -X POST -H "token: YOUR_TOKEN" http://localhost:8080/api/kickout/1000
 
 ```go
 import (
-    "github.com/click33/sa-token-go/core"
-    "github.com/click33/sa-token-go/stputil"
-    "github.com/click33/sa-token-go/integrations/gin"
+    "github.com/sa-tokens/sa-token-go/core"
+    "github.com/sa-tokens/sa-token-go/stputil"
+    "github.com/sa-tokens/sa-token-go/integrations/gin"
 )
 
 config := core.DefaultConfig()
@@ -78,7 +78,7 @@ token, _ := stputil.Login(userID)
 
 ```go
 import (
-    sagin "github.com/click33/sa-token-go/integrations/gin"
+    sagin "github.com/sa-tokens/sa-token-go/integrations/gin"
 )
 
 config := sagin.DefaultConfig()

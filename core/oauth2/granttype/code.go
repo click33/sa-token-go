@@ -1,8 +1,8 @@
 package granttype
 
 import (
-	"github.com/click33/sa-token-go/core/adapter"
-	"github.com/click33/sa-token-go/core/errs"
+	"github.com/sa-tokens/sa-token-go/core/adapter"
+	"github.com/sa-tokens/sa-token-go/core/errs"
 )
 
 // AuthorizationCodeHandler authorization_code grant | 授权码模式

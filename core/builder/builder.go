@@ -2,14 +2,14 @@ package builder
 
 import (
 	"fmt"
-	"github.com/click33/sa-token-go/core/pool"
+	"github.com/sa-tokens/sa-token-go/core/pool"
 	"strings"
 	"time"
 
-	"github.com/click33/sa-token-go/core/adapter"
-	"github.com/click33/sa-token-go/core/banner"
-	"github.com/click33/sa-token-go/core/config"
-	"github.com/click33/sa-token-go/core/manager"
+	"github.com/sa-tokens/sa-token-go/core/adapter"
+	"github.com/sa-tokens/sa-token-go/core/banner"
+	"github.com/sa-tokens/sa-token-go/core/config"
+	"github.com/sa-tokens/sa-token-go/core/manager"
 )
 
 // Builder Sa-Token builder for fluent configuration | Sa-Token构建器，用于流式配置
@@ -36,6 +36,7 @@ type Builder struct {
 	keyPrefix              string
 	cookieConfig           *config.CookieConfig
 	renewPoolConfig        *pool.RenewPoolConfig
+	rememberMeTimeout      int64
 }
 
 // NewBuilder creates a new builder with default configuration | 创建新的构建器（使用默认配置）
@@ -59,6 +60,7 @@ func NewBuilder() *Builder {
 		dataRefreshPeriod:      config.NoLimit,
 		tokenSessionCheckLogin: true,
 		keyPrefix:              "satoken:",
+		rememberMeTimeout:      604800, // 7 days | 7天
 		cookieConfig: &config.CookieConfig{
 			Domain:   "",
 			Path:     config.DefaultCookiePath,
@@ -256,6 +258,12 @@ func (b *Builder) RenewPoolConfig(cfg *pool.RenewPoolConfig) *Builder {
 	return b
 }
 
+// RememberMeTimeout sets the remember-me token timeout in seconds | 设置记住我模式Token超时时间（秒）
+func (b *Builder) RememberMeTimeout(seconds int64) *Builder {
+	b.rememberMeTimeout = seconds
+	return b
+}
+
 // KeyPrefix sets storage key prefix | 设置存储键前缀
 // Automatically adds ":" suffix if not present (except for empty string) | 自动添加 ":" 后缀（空字符串除外）
 // Examples: "satoken" -> "satoken:", "myapp" -> "myapp:", "" -> ""
@@ -356,19 +364,44 @@ func (b *Builder) Validate() error {
 	return nil
 }
 
-// Build builds Manager and prints startup banner | 构建Manager并打印启动Banner
-func (b *Builder) Build() *manager.Manager {
-	// Validate configuration | 验证配置
+// TryBuild builds Manager, returning error on validation failure | 构建Manager，验证失败时返回错误
+func (b *Builder) TryBuild() (*manager.Manager, error) {
 	if err := b.Validate(); err != nil {
-		panic(fmt.Sprintf("invalid configuration: %v", err))
+		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
 
+	cfg := b.buildConfig()
+
+	if b.isPrintBanner || b.isLog {
+		banner.PrintWithConfig(cfg)
+	}
+
+	mgr := manager.NewManager(b.storage, cfg)
+	return mgr, nil
+}
+
+// Build builds Manager and prints startup banner | 构建Manager并打印启动Banner
+func (b *Builder) Build() *manager.Manager {
+	mgr, err := b.TryBuild()
+	if err != nil {
+		panic(err.Error())
+	}
+	return mgr
+}
+
+// MustBuild builds Manager and panics if validation fails | 构建Manager，验证失败时panic
+func (b *Builder) MustBuild() *manager.Manager {
+	return b.Build()
+}
+
+// buildConfig constructs Config from builder fields | 从构建器字段构造Config
+func (b *Builder) buildConfig() *config.Config {
 	// Automatically adjust MaxRefresh if user customized Timeout but didn't set MaxRefresh | 自动调整MaxRefresh逻辑
 	if b.timeout != config.DefaultTimeout && b.maxRefresh == config.DefaultTimeout/2 {
 		b.maxRefresh = b.timeout / 2
 	}
 
-	cfg := &config.Config{
+	return &config.Config{
 		TokenName:              b.tokenName,
 		Timeout:                b.timeout,
 		MaxRefresh:             b.maxRefresh,
@@ -390,23 +423,6 @@ func (b *Builder) Build() *manager.Manager {
 		KeyPrefix:              b.keyPrefix,
 		CookieConfig:           b.cookieConfig,
 		RenewPoolConfig:        b.renewPoolConfig,
+		RememberMeTimeout:      b.rememberMeTimeout,
 	}
-
-	// Print startup banner with full configuration | 打印启动Banner和完整配置
-	// Only skip printing when both IsLog=false AND IsPrintBanner=false | 只有当 IsLog=false 且 IsPrintBanner=false 时才不打印
-	if b.isPrintBanner || b.isLog {
-		banner.PrintWithConfig(cfg)
-	}
-
-	mgr := manager.NewManager(b.storage, cfg)
-
-	// Note: If you use the stputil package, it will automatically set the global Manager | 注意：如果你使用了 stputil 包，它会自动设置全局 Manager
-	// We don't directly call stputil.SetManager here to avoid hard dependencies | 这里不直接调用 stputil.SetManager，避免强依赖
-
-	return mgr
-}
-
-// MustBuild builds Manager and panics if validation fails | 构建Manager，验证失败时panic
-func (b *Builder) MustBuild() *manager.Manager {
-	return b.Build()
 }

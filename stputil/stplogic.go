@@ -5,12 +5,12 @@ import (
 	"sync"
 	"time"
 
-	core "github.com/click33/sa-token-go/core"
-	"github.com/click33/sa-token-go/core/adapter"
-	"github.com/click33/sa-token-go/core/manager"
-	"github.com/click33/sa-token-go/core/oauth2"
-	"github.com/click33/sa-token-go/core/security"
-	"github.com/click33/sa-token-go/core/session"
+	core "github.com/sa-tokens/sa-token-go/core"
+	"github.com/sa-tokens/sa-token-go/core/adapter"
+	"github.com/sa-tokens/sa-token-go/core/manager"
+	"github.com/sa-tokens/sa-token-go/core/oauth2"
+	"github.com/sa-tokens/sa-token-go/core/security"
+	"github.com/sa-tokens/sa-token-go/core/session"
 )
 
 var (
@@ -447,8 +447,72 @@ func (s *StpLogic) UntieDisable(loginID interface{}, services ...string) error {
 	return s.manager.UntieDisableServices(toString(loginID), services...)
 }
 
+// LoginRememberMe performs login with remember-me mode | 记住我模式登录
+func (s *StpLogic) LoginRememberMe(loginID interface{}, device ...string) (string, error) {
+	return s.manager.LoginRememberMe(toString(loginID), device...)
+}
+
+// IsRememberMeLogin checks if token was created with remember-me | 检查是否为记住我模式登录
+func (s *StpLogic) IsRememberMeLogin(tokenValue string) (bool, error) {
+	return s.manager.IsRememberMeLogin(tokenValue)
+}
+
 func (s *StpLogic) UpdateLastActiveToNow(tokenValue string) error {
 	return s.manager.UpdateLastActiveToNow(tokenValue)
+}
+
+// ============ API Key | API Key 管理 ============
+
+func (s *StpLogic) CreateApiKey(loginID, title string, expireSeconds int64, extra string) (*security.ApiKeyInfo, error) {
+	return s.manager.CreateApiKey(loginID, title, expireSeconds, extra)
+}
+
+func (s *StpLogic) GetApiKeyInfo(key string) (*security.ApiKeyInfo, error) {
+	return s.manager.GetApiKeyInfo(key)
+}
+
+func (s *StpLogic) VerifyApiKey(key string) (*security.ApiKeyInfo, error) {
+	return s.manager.VerifyApiKey(key)
+}
+
+func (s *StpLogic) DeleteApiKey(key string) error {
+	return s.manager.DeleteApiKey(key)
+}
+
+func (s *StpLogic) DisableApiKey(key string) error {
+	return s.manager.DisableApiKey(key)
+}
+
+func (s *StpLogic) EnableApiKey(key string) error {
+	return s.manager.EnableApiKey(key)
+}
+
+// ============ Signature | 参数签名 ============
+
+func (s *StpLogic) Sign(params map[string]string, secret string) string {
+	return s.manager.Sign(params, secret)
+}
+
+func (s *StpLogic) VerifySign(params map[string]string, secret, timestamp, nonce, signature string, maxAgeSeconds int64) error {
+	return s.manager.VerifySign(params, secret, timestamp, nonce, signature, maxAgeSeconds)
+}
+
+// ============ Temp Token | 临时Token ============
+
+func (s *StpLogic) CreateTempToken(loginID string, expireSeconds int64, extra string) (*security.TempTokenInfo, error) {
+	return s.manager.CreateTempToken(loginID, expireSeconds, extra)
+}
+
+func (s *StpLogic) VerifyTempToken(token string) (*security.TempTokenInfo, error) {
+	return s.manager.VerifyTempToken(token)
+}
+
+func (s *StpLogic) GetTempTokenInfo(token string) (*security.TempTokenInfo, error) {
+	return s.manager.GetTempTokenInfo(token)
+}
+
+func (s *StpLogic) DeleteTempToken(token string) error {
+	return s.manager.DeleteTempToken(token)
 }
 
 func (s *StpLogic) GetTokenLastActiveTime(tokenValue string) (int64, error) {
@@ -509,6 +573,28 @@ func (s *StpLogic) GetLoginDeviceID(tokenValue string) (string, error) {
 
 func (s *StpLogic) IsTrustDeviceID(loginID interface{}, deviceID string) bool {
 	return s.manager.IsTrustDeviceID(toString(loginID), deviceID)
+}
+
+// ============ Same-Token | 服务间调用令牌 ============
+
+// GetSameToken returns the current same-token | 获取服务间调用令牌
+func (s *StpLogic) GetSameToken() (string, error) {
+	return s.manager.GetSameToken()
+}
+
+// RefreshSameToken rotates the same-token | 刷新服务间调用令牌
+func (s *StpLogic) RefreshSameToken() (string, error) {
+	return s.manager.RefreshSameToken()
+}
+
+// CheckSameToken validates a same-token value | 验证服务间调用令牌
+func (s *StpLogic) CheckSameToken(tokenValue string) error {
+	return s.manager.CheckSameToken(tokenValue)
+}
+
+// IsSameTokenValid checks if a same-token is valid | 检查服务间调用令牌是否有效
+func (s *StpLogic) IsSameTokenValid(tokenValue string) bool {
+	return s.manager.IsSameTokenValid(tokenValue)
 }
 
 // CloseManager Closes the manager and releases all resources | 关闭管理器并释放所有资源
