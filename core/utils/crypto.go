@@ -40,8 +40,13 @@ func pkcs7Unpadding(data []byte) ([]byte, error) {
 		return nil, fmt.Errorf("empty data")
 	}
 	padding := int(data[len(data)-1])
-	if padding > len(data) || padding > aes.BlockSize {
+	if padding == 0 || padding > len(data) || padding > aes.BlockSize {
 		return nil, fmt.Errorf("invalid padding")
+	}
+	for i := len(data) - padding; i < len(data); i++ {
+		if data[i] != byte(padding) {
+			return nil, fmt.Errorf("invalid padding")
+		}
 	}
 	return data[:len(data)-padding], nil
 }
