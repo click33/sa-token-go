@@ -2,7 +2,7 @@
 
 **中文文档** | **[English](README.md)**
 
-[![Go Version](https://img.shields.io/badge/Go-%3E%3D1.21-blue)](https://img.shields.io)
+[![Go Version](https://img.shields.io/badge/Go-%3E%3D1.25-blue)](https://img.shields.io)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://opensource.org/licenses/Apache-2.0)
 
 一个轻量级、高性能的 Go 权限认证框架，参考 [sa-token](https://github.com/dromara/sa-token) 设计。
@@ -119,7 +119,7 @@ func init() {
 /____/\__,_/   /_/  \____/_/|_|\___/_/ /_/      \____/\____/ 
                                                              
 :: Sa-Token-Go ::                                    (v0.2.1)
-:: Go Version ::                                     go1.21.0
+:: Go Version ::                                     go1.25.0
 :: GOOS/GOARCH ::                                    linux/amd64
 
 ┌─────────────────────────────────────────────────────────┐
@@ -794,7 +794,7 @@ sa-token-go/
 | 🌐 Chi集成 | Chi框架集成 | [examples/chi/chi-example/](examples/chi/chi-example/) |
 | 🌐 GoFrame集成 | GoFrame框架集成 | [examples/gf/](examples/gf/) |
 | 🌐 Kratos集成 | Kratos框架集成 | [examples/kratos/kratos-example/](examples/kratos/kratos-example/) |
-| 🌐 Hertz集成 | Hertz框架集成 | [examples/hertz/herz-example/](examples/hertz/herz-example/) |
+| 🌐 Hertz集成 | Hertz框架集成 | [examples/hertz/hertz-example/](examples/hertz/hertz-example/) |
 | 🌐 Iris集成 | Iris框架集成 | [examples/iris/iris-example/](examples/iris/iris-example/) |
 
 ### 💾 存储方案

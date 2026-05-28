@@ -3,7 +3,7 @@ go 1.25.4
 use (
 	./core
 	./examples/go-zero/go-zero-example
-	./examples/hertz/herz-example
+	./examples/hertz/hertz-example
 	./examples/iris/iris-example
 	./examples/kratos/kratos-example
 	./examples/multi-certification

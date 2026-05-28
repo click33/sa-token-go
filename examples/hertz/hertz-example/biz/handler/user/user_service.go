@@ -8,7 +8,7 @@ import (
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
-	user "github.com/sa-tokens/sa-token-go/examples/hertz/herz-example/biz/model/user"
+	user "github.com/sa-tokens/sa-token-go/examples/hertz/hertz-example/biz/model/user"
 	sahertz "github.com/sa-tokens/sa-token-go/integrations/hertz"
 	"github.com/sa-tokens/sa-token-go/stputil"
 )

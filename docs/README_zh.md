@@ -55,7 +55,7 @@
 - [chi-example](../examples/chi/chi-example/) - Chi 集成示例
 - [gf-example](../examples/gf/) - GoFrame 集成示例
 - [kratos-example](../examples/kratos/kratos-example/) - Kratos 集成示例
-- [hertz-example](../examples/hertz/herz-example/) - Hertz 集成示例
+- [hertz-example](../examples/hertz/hertz-example/) - Hertz 集成示例
 
 ### 🔄 集成能力更新说明
 
@@ -73,5 +73,5 @@
 
 ---
 
-**Sa-Token-Go v0.1.0**
+**Sa-Token-Go v0.2.1**
 

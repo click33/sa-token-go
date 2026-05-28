@@ -2,7 +2,7 @@
 
 **English** | **[中文](README_zh.md)**
 
-[![Go Version](https://img.shields.io/badge/Go-%3E%3D1.21-blue)](https://img.shields.io)
+[![Go Version](https://img.shields.io/badge/Go-%3E%3D1.25-blue)](https://img.shields.io)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://opensource.org/licenses/Apache-2.0)
 
 A lightweight, high-performance Go authentication and authorization framework, inspired by [sa-token](https://github.com/dromara/sa-token).
@@ -113,7 +113,7 @@ func init() {
 /____/\__,_/   /_/  \____/_/|_|\___/_/ /_/      \____/\____/ 
                                                              
 :: Sa-Token-Go ::                                    (v0.2.1)
-:: Go Version ::                                     go1.21.0
+:: Go Version ::                                     go1.25.0
 :: GOOS/GOARCH ::                                    linux/amd64
 
 ┌─────────────────────────────────────────────────────────┐
@@ -781,7 +781,7 @@ sa-token-go/
 | 🌐 Chi Integration | Chi framework integration | [examples/chi/chi-example/](examples/chi/chi-example/) |
 | 🌐 GoFrame Integration | GoFrame framework integration | [examples/gf/](examples/gf/) |
 | 🌐 Kratos Integration | Kratos framework integration | [examples/kratos/kratos-example/](examples/kratos/kratos-example/) |
-| 🌐 Hertz Integration | Hertz framework integration | [examples/hertz/herz-example/](examples/hertz/herz-example/) |
+| 🌐 Hertz Integration | Hertz framework integration | [examples/hertz/hertz-example/](examples/hertz/hertz-example/) |
 | 🌐 Iris Integration | Iris framework integration | [examples/iris/iris-example/](examples/iris/iris-example/) |
 
 ### 💾 Storage Options

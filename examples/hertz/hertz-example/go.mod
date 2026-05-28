@@ -1,4 +1,4 @@
-module github.com/sa-tokens/sa-token-go/examples/hertz/herz-example
+module github.com/sa-tokens/sa-token-go/examples/hertz/hertz-example
 
 go 1.25.4
 
