@@ -38,6 +38,14 @@ github.com/panjf2000/ants/v2 v2.12.0/go.mod h1:tSQuaNQ6r6NRhPt+IZVUevvDyFMTs+eS4
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 h1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
+github.com/sa-tokens/sa-token-go/core v0.2.2 h1:CJQNpyDLhqEMwWoBhsgl6d6aDXt5rIbp6gl57+Gfdps=
+github.com/sa-tokens/sa-token-go/core v0.2.2/go.mod h1:H0PpyDf6d8Wae/35mTCJZ7gzEPgs1jJ1IyGDhoBM3eI=
+github.com/sa-tokens/sa-token-go/integrations/hertz v0.2.2 h1:2xgbdrJLslwB4r+lNAOi3OqvkRnF8tonUfc/oF2peSg=
+github.com/sa-tokens/sa-token-go/integrations/hertz v0.2.2/go.mod h1:0aLUffrvH6K4x8vaFZwR94A/mB74akGNGMQ1+CW6ang=
+github.com/sa-tokens/sa-token-go/storage/memory v0.2.2 h1:xM7Kr7y672VFXLmF8OHpV6CPr4fylpeOPibUXmKQB+k=
+github.com/sa-tokens/sa-token-go/storage/memory v0.2.2/go.mod h1:n+iaMwUlxmiagBVJEd+Jsr3/GBO1ICbaxwe7hhUwzA4=
+github.com/sa-tokens/sa-token-go/stputil v0.2.2 h1:A8+HrgoOmzjS3RRtfTJSwz8t2YMAuSaPClm2r/rLa24=
+github.com/sa-tokens/sa-token-go/stputil v0.2.2/go.mod h1:EZleeqYC14JMjJ2GDbaTRZtsoz4NIqjmtpi9Rmhztes=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.4.0/go.mod h1:YvHI0jy2hoMjB+UWwv71VJQ9isScKT/TqJzVSSt89Yw=
 github.com/stretchr/objx v0.5.0/go.mod h1:Yh+to48EsGEfYuaHDzXPcE3xhTkx73EhmCGUpEOglKo=
