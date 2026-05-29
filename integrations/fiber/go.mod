@@ -4,8 +4,8 @@ go 1.25.0
 
 require (
 	github.com/gofiber/fiber/v2 v2.52.13
-	github.com/sa-tokens/sa-token-go/core v0.2.1
-	github.com/sa-tokens/sa-token-go/stputil v0.2.1
+	github.com/sa-tokens/sa-token-go/core v0.2.2
+	github.com/sa-tokens/sa-token-go/stputil v0.2.2
 )
 
 require (
@@ -24,8 +24,3 @@ require (
 	golang.org/x/sys v0.44.0 // indirect
 )
 
-replace github.com/sa-tokens/sa-token-go/core => ../../core
-
-replace github.com/sa-tokens/sa-token-go/stputil => ../../stputil
-
-replace github.com/sa-tokens/sa-token-go/storage/memory => ../../storage/memory

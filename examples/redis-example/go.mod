@@ -4,9 +4,9 @@ go 1.25.0
 
 require (
 	github.com/redis/go-redis/v9 v9.19.0
-	github.com/sa-tokens/sa-token-go/core v0.2.1
-	github.com/sa-tokens/sa-token-go/storage/redis v0.2.1
-	github.com/sa-tokens/sa-token-go/stputil v0.2.1
+	github.com/sa-tokens/sa-token-go/core v0.2.2
+	github.com/sa-tokens/sa-token-go/storage/redis v0.2.2
+	github.com/sa-tokens/sa-token-go/stputil v0.2.2
 )
 
 require (
@@ -18,10 +18,3 @@ require (
 	golang.org/x/sync v0.20.0 // indirect
 )
 
-replace github.com/sa-tokens/sa-token-go/core => ../../core
-
-replace github.com/sa-tokens/sa-token-go/stputil => ../../stputil
-
-replace github.com/sa-tokens/sa-token-go/storage/redis => ../../storage/redis
-
-replace github.com/sa-tokens/sa-token-go/storage/memory => ../../storage/memory

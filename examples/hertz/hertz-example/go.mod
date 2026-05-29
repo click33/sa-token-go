@@ -5,9 +5,9 @@ go 1.25.4
 require (
 	github.com/apache/thrift v0.23.0
 	github.com/cloudwego/hertz v0.10.4
-	github.com/sa-tokens/sa-token-go/integrations/hertz v0.2.1
-	github.com/sa-tokens/sa-token-go/storage/memory v0.2.1
-	github.com/sa-tokens/sa-token-go/stputil v0.2.1
+	github.com/sa-tokens/sa-token-go/integrations/hertz v0.2.2
+	github.com/sa-tokens/sa-token-go/storage/memory v0.2.2
+	github.com/sa-tokens/sa-token-go/stputil v0.2.2
 )
 
 require (
@@ -22,7 +22,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/panjf2000/ants/v2 v2.12.0 // indirect
-	github.com/sa-tokens/sa-token-go/core v0.2.1 // indirect
+	github.com/sa-tokens/sa-token-go/core v0.2.2 // indirect
 	github.com/tidwall/gjson v1.19.0 // indirect
 	github.com/tidwall/match v1.2.0 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
@@ -35,10 +35,3 @@ require (
 
 replace github.com/apache/thrift => github.com/apache/thrift v0.13.0
 
-replace github.com/sa-tokens/sa-token-go/storage/memory => ../../../storage/memory
-
-replace github.com/sa-tokens/sa-token-go/core => ../../../core
-
-replace github.com/sa-tokens/sa-token-go/stputil => ../../../stputil
-
-replace github.com/sa-tokens/sa-token-go/integrations/hertz => ../../../integrations/hertz

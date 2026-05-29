@@ -6,7 +6,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/panjf2000/ants/v2 v2.12.0
-	github.com/sa-tokens/sa-token-go/storage/memory v0.2.1
+	github.com/sa-tokens/sa-token-go/storage/memory v0.2.2
 	github.com/stretchr/testify v1.11.1
 )
 
@@ -20,4 +20,3 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/sa-tokens/sa-token-go/storage/memory => ../storage/memory

@@ -73,4 +73,4 @@ English | [中文文档](README_zh.md)
 
 ---
 
-**Sa-Token-Go v0.2.1**
+**Sa-Token-Go v0.2.2**

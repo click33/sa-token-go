@@ -73,5 +73,5 @@
 
 ---
 
-**Sa-Token-Go v0.2.1**
+**Sa-Token-Go v0.2.2**
 

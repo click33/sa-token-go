@@ -4,9 +4,9 @@ go 1.25.0
 
 require (
 	github.com/gofiber/fiber/v2 v2.52.13
-	github.com/sa-tokens/sa-token-go/core v0.2.1
-	github.com/sa-tokens/sa-token-go/integrations/fiber v0.2.1
-	github.com/sa-tokens/sa-token-go/storage/memory v0.2.1
+	github.com/sa-tokens/sa-token-go/core v0.2.2
+	github.com/sa-tokens/sa-token-go/integrations/fiber v0.2.2
+	github.com/sa-tokens/sa-token-go/storage/memory v0.2.2
 )
 
 require (
@@ -19,17 +19,10 @@ require (
 	github.com/mattn/go-isatty v0.0.22 // indirect
 	github.com/mattn/go-runewidth v0.0.23 // indirect
 	github.com/panjf2000/ants/v2 v2.12.0 // indirect
-	github.com/sa-tokens/sa-token-go/stputil v0.2.1 // indirect
+	github.com/sa-tokens/sa-token-go/stputil v0.2.2 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.71.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/sys v0.44.0 // indirect
 )
 
-replace github.com/sa-tokens/sa-token-go/storage/memory => ../../../storage/memory
-
-replace github.com/sa-tokens/sa-token-go/core => ../../../core
-
-replace github.com/sa-tokens/sa-token-go/stputil => ../../../stputil
-
-replace github.com/sa-tokens/sa-token-go/integrations/fiber => ../../../integrations/fiber
