@@ -30,9 +30,16 @@ const AuthHeaderName = context.AuthHeaderName
 
 // Configuration related types | 配置相关类型
 type (
-	Config       = config.Config
-	CookieConfig = config.CookieConfig
-	TokenStyle   = config.TokenStyle
+	Config                     = config.Config
+	CookieConfig               = config.CookieConfig
+	TokenStyle                 = config.TokenStyle
+	PermissionAndRoleOperation = config.PermissionAndRoleOperation
+)
+
+// permission and role operation related types | 权限和角色操作相关类型
+const (
+	PermissionAndRoleOperationAND PermissionAndRoleOperation = config.PermissionAndRoleOperationAND
+	PermissionAndRoleOperationOR  PermissionAndRoleOperation = config.PermissionAndRoleOperationOR
 )
 
 // Token style constants | Token风格常量

@@ -1,6 +1,7 @@
 package gin
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 
@@ -20,11 +21,12 @@ const (
 
 // Annotation annotation structure | 注解结构体
 type Annotation struct {
-	CheckLogin      bool     `json:"checkLogin"`
-	CheckRole       []string `json:"checkRole"`
-	CheckPermission []string `json:"checkPermission"`
-	CheckDisable    bool     `json:"checkDisable"`
-	Ignore          bool     `json:"ignore"`
+	CheckLogin                 bool                             `json:"checkLogin"`
+	CheckRole                  []string                         `json:"checkRole"`
+	CheckPermission            []string                         `json:"checkPermission"`
+	CheckDisable               bool                             `json:"checkDisable"`
+	Ignore                     bool                             `json:"ignore"`
+	PermissionAndRoleOperation *core.PermissionAndRoleOperation `json:"permissionAndRoleOperation"`
 }
 
 // ParseTag parses struct tags | 解析结构体标签
@@ -131,15 +133,15 @@ func GetHandler(handler interface{}, annotations ...*Annotation) ginfw.HandlerFu
 		}
 
 		// Check permission | 检查权限
+		hasPermission := false
 		if len(annotations) > 0 && len(annotations[0].CheckPermission) > 0 {
-			hasPermission := false
 			for _, perm := range annotations[0].CheckPermission {
 				if stputil.HasPermission(loginID, strings.TrimSpace(perm)) {
 					hasPermission = true
 					break
 				}
 			}
-			if !hasPermission {
+			if !hasPermission && annotations[0].PermissionAndRoleOperation == nil {
 				writeErrorResponse(c, core.NewPermissionDeniedError(strings.Join(annotations[0].CheckPermission, ",")))
 				c.Abort()
 				return
@@ -147,18 +149,35 @@ func GetHandler(handler interface{}, annotations ...*Annotation) ginfw.HandlerFu
 		}
 
 		// Check role | 检查角色
+		hasRole := false
 		if len(annotations) > 0 && len(annotations[0].CheckRole) > 0 {
-			hasRole := false
 			for _, role := range annotations[0].CheckRole {
 				if stputil.HasRole(loginID, strings.TrimSpace(role)) {
 					hasRole = true
 					break
 				}
 			}
-			if !hasRole {
+			if !hasRole && annotations[0].PermissionAndRoleOperation == nil {
 				writeErrorResponse(c, core.NewRoleDeniedError(strings.Join(annotations[0].CheckRole, ",")))
 				c.Abort()
 				return
+			}
+		}
+
+		if annotations[0].PermissionAndRoleOperation != nil {
+			if *annotations[0].PermissionAndRoleOperation == core.PermissionAndRoleOperationAND {
+				if !(hasPermission && hasRole) {
+					writeErrorResponse(c, core.NewRoleDeniedError(fmt.Sprintf("角色： %s 与 权限：%s 校验失败", strings.Join(annotations[0].CheckRole, ","), strings.Join(annotations[0].CheckPermission, ","))))
+					c.Abort()
+					return
+				}
+			}
+			if *annotations[0].PermissionAndRoleOperation == core.PermissionAndRoleOperationOR {
+				if !(hasPermission || hasRole) {
+					writeErrorResponse(c, core.NewRoleDeniedError(fmt.Sprintf("角色： %s 或 权限：%s 校验失败", strings.Join(annotations[0].CheckRole, ","), strings.Join(annotations[0].CheckPermission, ","))))
+					c.Abort()
+					return
+				}
 			}
 		}
 
@@ -219,6 +238,18 @@ func CheckRole(roles ...string) ginfw.HandlerFunc {
 // CheckPermission decorator for permission checking | 检查权限装饰器
 func CheckPermission(perms ...string) ginfw.HandlerFunc {
 	return GetHandler(nil, &Annotation{CheckPermission: perms})
+}
+
+// CheckPermissionRole decorator for permission and role checking with AND operation | 检查权限和角色操作装饰器 AND操作
+func CheckPermissionRoleAnd(permissions, roles []string) ginfw.HandlerFunc {
+	op := core.PermissionAndRoleOperationAND
+	return GetHandler(nil, &Annotation{CheckPermission: permissions, CheckRole: roles, PermissionAndRoleOperation: &op})
+}
+
+// CheckPermissionRole decorator for permission and role checking with OR operation | 检查权限和角色操作装饰器 OR操作
+func CheckPermissionRoleOr(permissions, roles []string) ginfw.HandlerFunc {
+	op := core.PermissionAndRoleOperationOR
+	return GetHandler(nil, &Annotation{CheckPermission: permissions, CheckRole: roles, PermissionAndRoleOperation: &op})
 }
 
 // CheckDisable decorator for checking if account is disabled | 检查是否被封禁装饰器

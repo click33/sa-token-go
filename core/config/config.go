@@ -63,6 +63,14 @@ func (ts TokenStyle) IsValid() bool {
 	}
 }
 
+// PermissionAndRoleOperation Permission and role operation type | 权限和角色操作类型
+type PermissionAndRoleOperation string
+
+const (
+	PermissionAndRoleOperationAND PermissionAndRoleOperation = "AND"
+	PermissionAndRoleOperationOR  PermissionAndRoleOperation = "OR"
+)
+
 // Config Sa-Token configuration | Sa-Token配置
 type Config struct {
 	// TokenName Token name (also used as Cookie name) | Token名称（同时也是Cookie名称）
