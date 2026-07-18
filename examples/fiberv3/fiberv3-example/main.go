@@ -41,4 +41,5 @@ func main() {
 		Include: []string{"/**"},         // 默认拦截全局 /api 下的所有路由
 		Exclude: []string{"/user/login"}, // 唯独放行登录接口
 	}))
+	log.Fatal(app.Listen(":3000"))
 }
