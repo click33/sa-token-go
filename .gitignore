@@ -7,3 +7,4 @@ bin/
 examples/iris/iris-example/iris-example
 /go.work.sum
 /integrations/fiberv3/go.sum
+/examples/fiberv3/fiberv3-example/fiberv3-example
