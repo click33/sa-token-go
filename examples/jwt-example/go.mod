@@ -3,9 +3,9 @@ module github.com/sa-tokens/sa-token-go/examples/jwt-example
 go 1.25.0
 
 require (
-	github.com/sa-tokens/sa-token-go/core v0.2.2
-	github.com/sa-tokens/sa-token-go/storage/memory v0.2.2
-	github.com/sa-tokens/sa-token-go/stputil v0.2.2
+	github.com/sa-tokens/sa-token-go/core v0.2.3
+	github.com/sa-tokens/sa-token-go/storage/memory v0.2.3
+	github.com/sa-tokens/sa-token-go/stputil v0.2.3
 )
 
 require (

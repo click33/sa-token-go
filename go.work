@@ -23,3 +23,28 @@ use (
 	./storage/redis
 	./stputil
 )
+
+replace (
+	github.com/sa-tokens/sa-token-go/core v0.2.3 => ./core
+	github.com/sa-tokens/sa-token-go/examples/fiberv3-example v0.2.3 => ./examples/fiberv3/fiberv3-example
+	github.com/sa-tokens/sa-token-go/examples/go-zero/go-zero-example v0.2.3 => ./examples/go-zero/go-zero-example
+	github.com/sa-tokens/sa-token-go/examples/hertz/hertz-example v0.2.3 => ./examples/hertz/hertz-example
+	github.com/sa-tokens/sa-token-go/examples/iris/iris-example v0.2.3 => ./examples/iris/iris-example
+	github.com/sa-tokens/sa-token-go/examples/kratos/kratos-example v0.2.3 => ./examples/kratos/kratos-example
+	github.com/sa-tokens/sa-token-go/examples/multi-certification v0.2.3 => ./examples/multi-certification
+	github.com/sa-tokens/sa-token-go/integrations/chi v0.2.3 => ./integrations/chi
+	github.com/sa-tokens/sa-token-go/integrations/echo v0.2.3 => ./integrations/echo
+	github.com/sa-tokens/sa-token-go/integrations/fiber v0.2.3 => ./integrations/fiber
+	github.com/sa-tokens/sa-token-go/integrations/fiberv3 v0.2.3 => ./integrations/fiberv3
+	github.com/sa-tokens/sa-token-go/integrations/gf v0.2.3 => ./integrations/gf
+	github.com/sa-tokens/sa-token-go/integrations/gin v0.2.3 => ./integrations/gin
+	github.com/sa-tokens/sa-token-go/integrations/go-zero v0.2.3 => ./integrations/go-zero
+	github.com/sa-tokens/sa-token-go/integrations/hertz v0.2.3 => ./integrations/hertz
+	github.com/sa-tokens/sa-token-go/integrations/iris v0.2.3 => ./integrations/iris
+	github.com/sa-tokens/sa-token-go/integrations/kratos v0.2.3 => ./integrations/kratos
+	github.com/sa-tokens/sa-token-go/plugins/sso v0.2.3 => ./plugins/sso
+	github.com/sa-tokens/sa-token-go/storage/memory v0.2.3 => ./storage/memory
+	github.com/sa-tokens/sa-token-go/storage/redis v0.2.3 => ./storage/redis
+	github.com/sa-tokens/sa-token-go/stputil v0.2.3 => ./stputil
+)
+

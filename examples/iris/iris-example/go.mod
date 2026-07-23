@@ -4,8 +4,8 @@ go 1.25.0
 
 require (
 	github.com/kataras/iris/v12 v12.2.11
-	github.com/sa-tokens/sa-token-go/integrations/iris v0.2.2
-	github.com/sa-tokens/sa-token-go/storage/memory v0.2.2
+	github.com/sa-tokens/sa-token-go/integrations/iris v0.2.3
+	github.com/sa-tokens/sa-token-go/storage/memory v0.2.3
 )
 
 require (
@@ -36,8 +36,8 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.26 // indirect
 	github.com/panjf2000/ants/v2 v2.12.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/sa-tokens/sa-token-go/core v0.2.2 // indirect
-	github.com/sa-tokens/sa-token-go/stputil v0.2.2 // indirect
+	github.com/sa-tokens/sa-token-go/core v0.2.3 // indirect
+	github.com/sa-tokens/sa-token-go/stputil v0.2.3 // indirect
 	github.com/schollz/closestmatch v2.1.0+incompatible // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/tdewolff/minify/v2 v2.20.19 // indirect
