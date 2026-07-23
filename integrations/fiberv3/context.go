@@ -9,13 +9,13 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-// FiberContext Fiber request context adapter | Fiber请求上下文适配器
+// FiberContext Fiber v3 request context adapter | Fiber v3 请求上下文适配器
 type FiberContext struct {
 	c       fiber.Ctx
 	aborted bool
 }
 
-// NewFiberContext creates a Fiber context adapter | 创建Fiber上下文适配器
+// NewFiberContext creates a Fiber v3 context adapter | 创建 Fiber v3 上下文适配器
 func NewFiberContext(c fiber.Ctx) adapter.RequestContext {
 	return &FiberContext{c: c}
 }

@@ -18,7 +18,7 @@
 - 💾 **Session会话** - 完整的Session管理
 - ⏰ **活跃检测** - 自动检测Token活跃度
 - 🔄 **自动续期** - Token异步自动续期（性能提升400%）
-- 🎨 **注解支持** - `@SaCheckLogin`、`@SaCheckRole`、`@SaCheckPermission`
+- 🎨 **注解支持** - `@SaCheckLogin`、`@SaCheckRole`、`@SaCheckPermission`，以及权限组×角色组 AND/OR
 - 🎧 **事件监听** - 强大的事件系统、支持优先级、异步执行
 - 📦 **模块化设计** - 按需导入、最小依赖
 - 🔒 **Nonce防重放** - 防止请求重放攻击、一次性令牌
@@ -45,7 +45,8 @@ go get github.com/sa-tokens/sa-token-go/integrations/gin@latest    # Gin框架
 # 或
 go get github.com/sa-tokens/sa-token-go/integrations/echo@latest   # Echo框架
 # 或
-go get github.com/sa-tokens/sa-token-go/integrations/fiber@latest  # Fiber框架
+go get github.com/sa-tokens/sa-token-go/integrations/fiber@latest  # Fiber v2框架
+go get github.com/sa-tokens/sa-token-go/integrations/fiberv3@latest # Fiber v3框架
 # 或
 go get github.com/sa-tokens/sa-token-go/integrations/chi@latest    # Chi框架
 # 或
@@ -76,7 +77,8 @@ go get github.com/sa-tokens/sa-token-go/storage/redis@latest  # Redis存储（�
 # 框架集成（可选）
 go get github.com/sa-tokens/sa-token-go/integrations/gin@latest    # Gin框架
 go get github.com/sa-tokens/sa-token-go/integrations/echo@latest   # Echo框架
-go get github.com/sa-tokens/sa-token-go/integrations/fiber@latest  # Fiber框架
+go get github.com/sa-tokens/sa-token-go/integrations/fiber@latest  # Fiber v2框架
+go get github.com/sa-tokens/sa-token-go/integrations/fiberv3@latest # Fiber v3框架
 go get github.com/sa-tokens/sa-token-go/integrations/chi@latest    # Chi框架
 go get github.com/sa-tokens/sa-token-go/integrations/gf@latest     # GoFrame框架
 go get github.com/sa-tokens/sa-token-go/integrations/kratos@latest # Kratos框架
@@ -298,7 +300,7 @@ _ = tokens
 
 1. **`ResolveTokenName` / `ReadTokenFromRequest`** 定义在 [`core/context/context.go`](core/context/context.go)。`SaTokenContext.GetTokenValue()` 内部直接调用 `ReadTokenFromRequest`，保证与集成层、`PathAuth` 同源逻辑。
 2. **`core/satoken.go`** 将 `ResolveTokenName`、`ReadTokenFromRequest` **重导出**到 `core` 根包，各 integration 可使用 `core.ReadTokenFromRequest`，无需额外引用子包别名。
-3. **七个集成插件**（Gin、Echo、Fiber、Hertz、Chi、GoFrame、Kratos）均实现 **`TokenInterceptor()`**：仅用 `core.ReadTokenFromRequest` 解析一次，将结果写入框架上下文键 **`satoken_token`**，**不做登录校验**。业务 Handler 通过 **`GetTokenFromCtx(...)`** 取值。**`PathAuthMiddleware`** 同样改为调用该 helper，避免手写 Header/Cookie 时遗漏 Query、未走 `CutTokenPrefix`、`TokenName` 为空时不回退 `Authorization` 等问题。
+3. **各集成插件**（Gin、Echo、Fiber v2、Fiber v3、Hertz、Chi、GoFrame、Kratos 等）均实现 **`TokenInterceptor()`**：仅用 `core.ReadTokenFromRequest` 解析一次，将结果写入框架上下文键 **`satoken_token`**，**不做登录校验**。业务 Handler 通过 **`GetTokenFromCtx(...)`** 取值。**`PathAuthMiddleware`** 同样改为调用该 helper，避免手写 Header/Cookie 时遗漏 Query、未走 `CutTokenPrefix`、`TokenName` 为空时不回退 `Authorization` 等问题。
 4. **读取顺序**：Header（含名为 `Authorization` 时的 Bearer 剥离；自定义 `TokenName` 时再尝试 `Authorization` Bearer 兜底）→ Cookie → Query（URL 参数传 token / apikey 场景）。每路取值经 **`mgr.CutTokenPrefix`** 处理。是否读 Header/Cookie 受 **`IsReadHeader`** / **`IsReadCookie`** 控制；Query 在前序无命中时尝试。
 
 以下为 `core/context/context.go` 中生产代码的等价摘录（**代码块内注释为中文**）：
@@ -437,9 +439,11 @@ func main() {
 |------|------|------|
 | `@SaIgnore` | 忽略认证 | `sagin.Ignore()` |
 | `@SaCheckLogin` | 检查登录 | `sagin.CheckLogin()` |
-| `@SaCheckRole` | 检查角色 | `sagin.CheckRole("admin")` |
-| `@SaCheckPermission` | 检查权限 | `sagin.CheckPermission("admin:*")` |
+| `@SaCheckRole` | 检查角色（组内 OR） | `sagin.CheckRole("admin")` |
+| `@SaCheckPermission` | 检查权限（组内 OR） | `sagin.CheckPermission("admin:*")` |
 | `@SaCheckDisable` | 检查封禁 | `sagin.CheckDisable()` |
+| 权限组×角色组 AND | 权限组与角色组都必须通过 | `sagin.CheckPermissionRoleAnd(perms, roles)` |
+| 权限组×角色组 OR | 权限组或角色组任一通过即可 | `sagin.CheckPermissionRoleOr(perms, roles)` |
 
 **使用示例：**
 
@@ -458,13 +462,29 @@ func main() {
     // 需要管理员权限
     r.GET("/admin", sagin.CheckPermission("admin:*"), adminHandler)
 
-    // 需要多个权限之一（OR逻辑）
+    // 需要多个权限之一（组内 OR）
     r.GET("/user-or-admin",
         sagin.CheckPermission("user:read", "admin:*"),
         userOrAdminHandler)
 
     // 需要管理员角色
     r.GET("/manager", sagin.CheckRole("admin"), managerHandler)
+
+    // 权限组与角色组都必须通过（组内仍为 OR，组间 AND）
+    r.GET("/secure",
+        sagin.CheckPermissionRoleAnd(
+            []string{"user:read", "user:write"},
+            []string{"Admin", "Manager"},
+        ),
+        secureHandler)
+
+    // 权限组或角色组任一通过即可（组间 OR）
+    r.GET("/either",
+        sagin.CheckPermissionRoleOr(
+            []string{"user:read"},
+            []string{"Admin"},
+        ),
+        eitherHandler)
 
     // 检查账号是否被封禁
     r.GET("/sensitive", sagin.CheckDisable(), sensitiveHandler)
@@ -515,16 +535,20 @@ func main() {
 
 ### 🔌 其他框架集成
 
-**Echo / Fiber / Chi / Kratos / Hertz / Iris** 同样支持注解装饰器：
+**Echo / Fiber / Fiber v3 / Chi / Kratos / Hertz / Iris** 同样支持注解装饰器：
 
 ```go
 // Echo
 import saecho "github.com/sa-tokens/sa-token-go/integrations/echo"
 e.GET("/user", saecho.CheckLogin(), handler)
 
-// Fiber
+// Fiber (v2)
 import safiber "github.com/sa-tokens/sa-token-go/integrations/fiber"
 app.Get("/user", safiber.CheckLogin(), handler)
+
+// Fiber v3
+import safiberv3 "github.com/sa-tokens/sa-token-go/integrations/fiberv3"
+app.Get("/user", safiberv3.CheckLogin(), handler)
 
 // Chi
 import sachi "github.com/sa-tokens/sa-token-go/integrations/chi"
@@ -722,9 +746,10 @@ sa-token-go/
 │   └── redis/              # Redis存储
 │
 ├── integrations/           # 框架集成
-│   ├── gin/                # Gin集成（含注解）
+│   ├── gin/                # Gin集成（含注解；支持权限组×角色组 AND/OR）
 │   ├── echo/               # Echo集成
-│   ├── fiber/              # Fiber集成
+│   ├── fiber/              # Fiber v2 集成
+│   ├── fiberv3/            # Fiber v3 集成
 │   ├── chi/                # Chi集成
 │   ├── gf/                 # GoFrame集成
 │   ├── kratos/             # Kratos集成
@@ -740,7 +765,7 @@ sa-token-go/
 │   ├── jwt-example/        # JWT示例
 │   ├── redis-example/      # Redis示例
 │   ├── listener-example/   # 事件监听示例
-│   └── gin/echo/fiber/chi/gf/kratos/hertz/ # 框架集成示例
+│   └── gin/echo/fiber/fiberv3/chi/gf/kratos/hertz/ # 框架集成示例
 │
 └── docs/                   # 文档
     ├── tutorial/           # 教程
@@ -790,7 +815,8 @@ sa-token-go/
 | 🌐 Gin（简版） | Gin 最简集成示例 | [examples/gin/gin-simple/](examples/gin/gin-simple/) |
 | 🌐 Gin（完整） | Gin 配置化集成示例 | [examples/gin/gin-example/](examples/gin/gin-example/) |
 | 🌐 Echo集成 | Echo框架集成 | [examples/echo/echo-example/](examples/echo/echo-example/) |
-| 🌐 Fiber集成 | Fiber框架集成 | [examples/fiber/fiber-example/](examples/fiber/fiber-example/) |
+| 🌐 Fiber集成 | Fiber v2 框架集成 | [examples/fiber/fiber-example/](examples/fiber/fiber-example/) |
+| 🌐 Fiber v3集成 | Fiber v3 框架集成 | [examples/fiberv3/fiberv3-example/](examples/fiberv3/fiberv3-example/) |
 | 🌐 Chi集成 | Chi框架集成 | [examples/chi/chi-example/](examples/chi/chi-example/) |
 | 🌐 GoFrame集成 | GoFrame框架集成 | [examples/gf/](examples/gf/) |
 | 🌐 Kratos集成 | Kratos框架集成 | [examples/kratos/kratos-example/](examples/kratos/kratos-example/) |

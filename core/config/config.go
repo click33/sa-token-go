@@ -63,6 +63,33 @@ func (ts TokenStyle) IsValid() bool {
 	}
 }
 
+// PermissionAndRoleOperation combines the permission-set result with the role-set result.
+// PermissionAndRoleOperation 权限组结果与角色组结果之间的组合运算。
+// Within each list, multiple permissions/roles remain OR (same as CheckPermission variadic);
+// 注意：组内多权限/多角色仍为 OR（与现网 CheckPermission 变参一致）；
+// this enum only describes how the two set-results are combined.
+// 本枚举只描述「权限组是否通过」与「角色组是否通过」之间的关系。
+type PermissionAndRoleOperation string
+
+const (
+	// PermissionAndRoleOperationAND requires both permission-set and role-set to pass | 权限组与角色组都必须通过
+	PermissionAndRoleOperationAND PermissionAndRoleOperation = "AND"
+	// PermissionAndRoleOperationOR requires either permission-set or role-set to pass | 权限组或角色组任一通过即可
+	PermissionAndRoleOperationOR PermissionAndRoleOperation = "OR"
+)
+
+// IsValid reports whether op is a known combine operator.
+// Empty string means independent mode (handled by annotation layer) and is not a valid combine op.
+// IsValid 报告运算子是否为已知组合值（空串表示独立模式，由注解层解释，不算合法组合算子）
+func (op PermissionAndRoleOperation) IsValid() bool {
+	switch op {
+	case PermissionAndRoleOperationAND, PermissionAndRoleOperationOR:
+		return true
+	default:
+		return false
+	}
+}
+
 // Config Sa-Token configuration | Sa-Token配置
 type Config struct {
 	// TokenName Token name (also used as Cookie name) | Token名称（同时也是Cookie名称）

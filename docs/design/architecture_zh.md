@@ -15,7 +15,7 @@
 ┌─────────────┐  ┌─────────────┐
 │ 框架集成层   │  │  全局工具类  │
 │ Gin/Echo/   │  │  StpUtil    │
-│ Fiber/Chi   │  │             │
+│ Fiber/v3/Chi│  │             │
 └──────┬──────┘  └──────┬──────┘
        │                │
        └───────┬────────┘
@@ -82,15 +82,17 @@ type Storage interface {
 **职责**：提供Web框架集成
 
 **实现**：
-- `Gin` - Gin框架集成（包含注解）
+- `Gin` - Gin框架集成（包含注解；支持权限组×角色组 AND/OR）
 - `Echo` - Echo框架集成
-- `Fiber` - Fiber框架集成
+- `Fiber` - Fiber v2 框架集成
+- `Fiber v3` - Fiber v3 框架集成（`integrations/fiberv3`）
 - `Chi` - Chi框架集成
+- `GoFrame` / `Kratos` / `Hertz` / `Iris` / `go-zero` - 其他框架集成
 
 **功能**：
 - 中间件适配
 - 上下文适配
-- 注解装饰器（Gin）
+- 注解装饰器（Gin 等；Gin 另支持 `CheckPermissionRoleAnd` / `CheckPermissionRoleOr`）
 
 ## 设计模式
 

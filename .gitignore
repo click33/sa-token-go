@@ -5,3 +5,5 @@ coverage.out
 coverage.html
 bin/
 examples/iris/iris-example/iris-example
+/go.work.sum
+/integrations/fiberv3/go.sum

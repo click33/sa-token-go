@@ -13,7 +13,7 @@ English | [中文文档](README_zh.md)
 - [Authentication](guide/authentication.md) - Login, logout, token management
 - [Permission Verification](guide/permission.md) - Permission system, wildcard usage
 - [Path-Based Auth](guide/path-auth.md) - Path auth and ant-style route matching
-- [Annotations](guide/annotation.md) - Decorator pattern guide
+- [Annotations](guide/annotation.md) - Decorator pattern guide (Gin; permission-set × role-set AND/OR)
 - [Event Listener](guide/listener.md) - Event system usage guide
 - [JWT Integration](guide/jwt.md) - JWT token configuration and usage
 - [Redis Storage](guide/redis-storage.md) - Redis storage configuration guide
@@ -51,7 +51,8 @@ English | [中文文档](README_zh.md)
 - [gin-simple](../examples/gin/gin-simple/) - Minimal gin integration example
 - [gin-example](../examples/gin/gin-example/) - Gin integration with config file
 - [echo-example](../examples/echo/echo-example/) - Echo integration example
-- [fiber-example](../examples/fiber/fiber-example/) - Fiber integration example
+- [fiber-example](../examples/fiber/fiber-example/) - Fiber v2 integration example
+- [fiberv3-example](../examples/fiberv3/fiberv3-example/) - Fiber v3 integration example
 - [chi-example](../examples/chi/chi-example/) - Chi integration example
 - [gf-example](../examples/gf/) - GoFrame integration example
 - [kratos-example](../examples/kratos/kratos-example/) - Kratos integration example

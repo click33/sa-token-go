@@ -1,3 +1,5 @@
+// Package fiberv3 integrates Sa-Token with Fiber v3.
+// Package fiberv3 将 Sa-Token 集成到 Fiber v3。
 package fiberv3
 
 import (
@@ -9,12 +11,12 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
-// Plugin Fiber plugin for Sa-Token | Fiber插件
+// Plugin Fiber v3 plugin for Sa-Token | Fiber v3 插件
 type Plugin struct {
 	manager *core.Manager
 }
 
-// NewPlugin creates a Fiber plugin | 创建Fiber插件
+// NewPlugin creates a Fiber v3 plugin | 创建 Fiber v3 插件
 func NewPlugin(manager *core.Manager) *Plugin {
 	return &Plugin{
 		manager: manager,

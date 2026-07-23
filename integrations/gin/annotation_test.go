@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	ginfw "github.com/gin-gonic/gin"
+	"github.com/sa-tokens/sa-token-go/core"
 	"github.com/sa-tokens/sa-token-go/core/config"
 	"github.com/sa-tokens/sa-token-go/core/manager"
 	"github.com/sa-tokens/sa-token-go/storage/memory"
@@ -486,4 +487,130 @@ func TestAnnotationValidate(t *testing.T) {
 			assert.Equal(t, tt.valid, result)
 		})
 	}
+}
+
+// mockLoginWithRoleAndPerm 同时设置角色与权限，用于组合鉴权
+func mockLoginWithRoleAndPerm(loginID interface{}, roles, perms []string) string {
+	token, _ := stputil.Login(loginID)
+	if len(roles) > 0 {
+		_ = stputil.SetRoles(loginID, roles)
+	}
+	if len(perms) > 0 {
+		_ = stputil.SetPermissions(loginID, perms)
+	}
+	return token
+}
+
+func TestCheckPermissionRoleAnd_BothOK(t *testing.T) {
+	router := setupTestRouter()
+	router.GET("/x", CheckPermissionRoleAnd([]string{"user.read", "user.write"}, []string{"Admin", "User"}), func(c *ginfw.Context) {
+		c.JSON(http.StatusOK, ginfw.H{"ok": true})
+	})
+	token := mockLoginWithRoleAndPerm("u-and-ok", []string{"Admin"}, []string{"user.read"})
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/x", nil)
+	req.Header.Set("Authorization", token)
+	router.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestCheckPermissionRoleAnd_OnlyPerm(t *testing.T) {
+	router := setupTestRouter()
+	router.GET("/x", CheckPermissionRoleAnd([]string{"user.read"}, []string{"Admin"}), func(c *ginfw.Context) {
+		c.JSON(http.StatusOK, ginfw.H{"ok": true})
+	})
+	token := mockLoginWithRoleAndPerm("u-and-perm", nil, []string{"user.read"})
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/x", nil)
+	req.Header.Set("Authorization", token)
+	router.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	assert.Contains(t, w.Body.String(), "permission and role combine check failed")
+}
+
+func TestCheckPermissionRoleAnd_OnlyRole(t *testing.T) {
+	router := setupTestRouter()
+	router.GET("/x", CheckPermissionRoleAnd([]string{"user.read"}, []string{"Admin"}), func(c *ginfw.Context) {
+		c.JSON(http.StatusOK, ginfw.H{"ok": true})
+	})
+	token := mockLoginWithRoleAndPerm("u-and-role", []string{"Admin"}, nil)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/x", nil)
+	req.Header.Set("Authorization", token)
+	router.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func TestCheckPermissionRoleOr_OnlyPerm(t *testing.T) {
+	router := setupTestRouter()
+	router.GET("/x", CheckPermissionRoleOr([]string{"user.read"}, []string{"Admin"}), func(c *ginfw.Context) {
+		c.JSON(http.StatusOK, ginfw.H{"ok": true})
+	})
+	token := mockLoginWithRoleAndPerm("u-or-perm", nil, []string{"user.read"})
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/x", nil)
+	req.Header.Set("Authorization", token)
+	router.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestCheckPermissionRoleOr_Neither(t *testing.T) {
+	router := setupTestRouter()
+	router.GET("/x", CheckPermissionRoleOr([]string{"user.read"}, []string{"Admin"}), func(c *ginfw.Context) {
+		c.JSON(http.StatusOK, ginfw.H{"ok": true})
+	})
+	token := mockLogin("u-or-none")
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/x", nil)
+	req.Header.Set("Authorization", token)
+	router.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func TestMiddleware_CombineAnd_MatchesGetHandler(t *testing.T) {
+	router := setupTestRouter()
+	ann := &Annotation{
+		CheckPermission:            []string{"user.read"},
+		CheckRole:                  []string{"Admin"},
+		PermissionAndRoleOperation: core.PermissionAndRoleOperationAND,
+	}
+	router.GET("/mw", Middleware(ann), func(c *ginfw.Context) {
+		c.JSON(http.StatusOK, ginfw.H{"ok": true})
+	})
+	token := mockLoginWithRoleAndPerm("u-mw", []string{"Admin"}, []string{"user.read"})
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/mw", nil)
+	req.Header.Set("Authorization", token)
+	router.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestValidate_CombineAndIndependent(t *testing.T) {
+	assert.True(t, (&Annotation{
+		CheckPermission:            []string{"a"},
+		CheckRole:                  []string{"r"},
+		PermissionAndRoleOperation: core.PermissionAndRoleOperationAND,
+	}).Validate())
+	assert.False(t, (&Annotation{
+		CheckPermission:            []string{"a"},
+		PermissionAndRoleOperation: core.PermissionAndRoleOperationAND,
+	}).Validate())
+	// 独立模式允许同时配置 perm+role（对齐文档自定义注解）
+	assert.True(t, (&Annotation{
+		CheckPermission: []string{"a"},
+		CheckRole:       []string{"r"},
+	}).Validate())
+	assert.False(t, (&Annotation{
+		PermissionAndRoleOperation: core.PermissionAndRoleOperation("XOR"),
+		CheckPermission:            []string{"a"},
+		CheckRole:                  []string{"r"},
+	}).Validate())
+}
+
+func TestParseTag_ModeAND(t *testing.T) {
+	ann := ParseTag("permission=user.read|user.write,role=Admin,mode=AND")
+	assert.Equal(t, core.PermissionAndRoleOperationAND, ann.PermissionAndRoleOperation)
+	assert.Equal(t, []string{"user.read", "user.write"}, ann.CheckPermission)
+	assert.Equal(t, []string{"Admin"}, ann.CheckRole)
+	assert.True(t, ann.Validate())
 }

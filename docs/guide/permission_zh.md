@@ -170,9 +170,25 @@ if stputil.HasRole(1000, "editor") &&
 }
 ```
 
+在 Gin 路由上也可使用注解组合（组内 OR，组间 AND/OR）：
+
+```go
+import sagin "github.com/sa-tokens/sa-token-go/integrations/gin"
+
+// 权限组与角色组都必须通过
+r.GET("/publish",
+    sagin.CheckPermissionRoleAnd(
+        []string{"article:publish"},
+        []string{"editor"},
+    ),
+    publishHandler)
+```
+
+详见 [注解使用](annotation_zh.md)。
+
 ## 下一步
 
 - [角色管理](role.md)
-- [注解使用](annotation.md)
+- [注解使用](annotation_zh.md)
 - [配置说明](configuration.md)
 

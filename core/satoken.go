@@ -30,9 +30,10 @@ const AuthHeaderName = context.AuthHeaderName
 
 // Configuration related types | 配置相关类型
 type (
-	Config       = config.Config
-	CookieConfig = config.CookieConfig
-	TokenStyle   = config.TokenStyle
+	Config                     = config.Config
+	CookieConfig               = config.CookieConfig
+	TokenStyle                 = config.TokenStyle
+	PermissionAndRoleOperation = config.PermissionAndRoleOperation // Combine op for permission-set × role-set | 权限组×角色组组合运算
 )
 
 // Token style constants | Token风格常量
@@ -46,6 +47,12 @@ const (
 	TokenStyleHash      = config.TokenStyleHash
 	TokenStyleTimestamp = config.TokenStyleTimestamp
 	TokenStyleTik       = config.TokenStyleTik
+)
+
+// Permission/role combine operation constants | 权限组与角色组组合运算常量
+const (
+	PermissionAndRoleOperationAND = config.PermissionAndRoleOperationAND // Both sets must pass | 两组都通过
+	PermissionAndRoleOperationOR  = config.PermissionAndRoleOperationOR  // Either set may pass | 任一组通过
 )
 
 // Core types | 核心类型

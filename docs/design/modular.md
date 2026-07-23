@@ -104,9 +104,9 @@ github.com/sa-tokens/sa-token-go/integrations/gin
 - Annotation decorators
 - Built-in handlers
 
-#### Echo/Fiber/Chi Integration
+#### Echo/Fiber/Fiber v3/Chi Integration
 
-Similar to Gin, each framework is an independent module.
+Similar to Gin, each framework is an independent module (Fiber v2 and Fiber v3 live in `integrations/fiber` and `integrations/fiberv3`).
 
 ## Dependency Relationships
 

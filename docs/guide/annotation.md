@@ -13,6 +13,8 @@ Sa-Token-Go provides annotation-like decorators for Gin framework, similar to Ja
 - `@CheckPermission` - Check if user has specified permission
 - `@CheckDisable` - Check if account is disabled
 - `@Ignore` - Ignore authentication
+- `CheckPermissionRoleAnd(perms, roles)` - Both permission-set and role-set must pass
+- `CheckPermissionRoleOr(perms, roles)` - Either permission-set or role-set must pass
 
 ## Basic Usage
 
@@ -56,6 +58,32 @@ r.DELETE("/user/:id", sagin.CheckPermission("user:delete", "admin:*"), func(c *g
     c.JSON(200, gin.H{"message": "User deleted"})
 })
 ```
+
+### Permission-set × Role-set (AND / OR)
+
+Within each list, multiple permissions/roles remain **OR**. The APIs below combine the permission-set result with the role-set result.
+
+```go
+// Must pass both: any of perms AND any of roles
+r.GET("/secure",
+    sagin.CheckPermissionRoleAnd(
+        []string{"user:read", "user:write"},
+        []string{"Admin", "Manager"},
+    ),
+    handler)
+
+// Pass either: any of perms OR any of roles
+r.GET("/either",
+    sagin.CheckPermissionRoleOr(
+        []string{"user:read"},
+        []string{"Admin"},
+    ),
+    handler)
+```
+
+Struct tags may use `mode=AND` / `mode=OR` (or `combine=`).
+
+Independent mode with both `CheckPermission` and `CheckRole` set also requires both sides to pass (implicit AND). Prefer `CheckPermissionRoleAnd` when you want an explicit combine error message.
 
 ### CheckDisable
 

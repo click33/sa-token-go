@@ -16,7 +16,7 @@ English | [中文文档](architecture_zh.md)
 │ Framework    │  │  Global     │
 │ Integration  │  │  Utility    │
 │ Gin/Echo/    │  │  StpUtil    │
-│ Fiber/Chi    │  │             │
+│ Fiber/v3/Chi │  │             │
 └──────┬──────┘  └──────┬──────┘
        │                │
        └───────┬────────┘
@@ -83,15 +83,17 @@ type Storage interface {
 **Responsibilities**: Provide web framework integrations
 
 **Implementations**:
-- `Gin` - Gin framework integration (with annotations)
+- `Gin` - Gin framework integration (with annotations; permission-set × role-set AND/OR)
 - `Echo` - Echo framework integration
-- `Fiber` - Fiber framework integration
+- `Fiber` - Fiber v2 framework integration
+- `Fiber v3` - Fiber v3 framework integration (`integrations/fiberv3`)
 - `Chi` - Chi framework integration
+- `GoFrame` / `Kratos` / `Hertz` / `Iris` / `go-zero` - other frameworks
 
 **Features**:
 - Middleware adaptation
 - Context adaptation
-- Annotation decorators (Gin)
+- Annotation decorators (Gin and others; Gin also provides `CheckPermissionRoleAnd` / `CheckPermissionRoleOr`)
 
 ## Design Patterns
 

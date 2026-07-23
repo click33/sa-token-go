@@ -15,6 +15,8 @@ Sa-Token-Go 提供了类似 Java 版 sa-token 的注解功能，使用装饰器�
 | 检查角色 | `@SaCheckRole("admin")` | `sagin.CheckRole("admin")` | 需要指定角色 |
 | 检查权限 | `@SaCheckPermission("admin:*")` | `sagin.CheckPermission("admin:*")` | 需要指定权限 |
 | 检查封禁 | `@SaCheckDisable` | `sagin.CheckDisable()` | 检查账号是否被封禁 |
+| 权限组×角色组 AND | — | `sagin.CheckPermissionRoleAnd(perms, roles)` | 权限组与角色组都必须通过 |
+| 权限组×角色组 OR | — | `sagin.CheckPermissionRoleOr(perms, roles)` | 权限组或角色组任一通过即可 |
 
 ## 基础使用
 
@@ -88,6 +90,32 @@ r.GET("/dashboard",
     dashboardHandler)
 ```
 
+### 权限组 × 角色组（AND / OR）
+
+组内多个权限/角色仍为 **OR**；下列 API 描述的是「权限组是否通过」与「角色组是否通过」之间的关系。
+
+```go
+// 必须：拥有权限组之一，且拥有角色组之一
+r.GET("/secure",
+    sagin.CheckPermissionRoleAnd(
+        []string{"user:read", "user:write"},
+        []string{"Admin", "Manager"},
+    ),
+    handler)
+
+// 只需：权限组之一 或 角色组之一
+r.GET("/either",
+    sagin.CheckPermissionRoleOr(
+        []string{"user:read"},
+        []string{"Admin"},
+    ),
+    handler)
+```
+
+结构体标签可用 `mode=AND` / `mode=OR`（亦支持 `combine=`）。
+
+独立模式下同时配置 `CheckPermission` 与 `CheckRole` 时，两边都必须通过（隐式 AND）；若需要显式组合错误文案，请使用 `CheckPermissionRoleAnd`。
+
 ### 组合使用
 
 ```go
@@ -102,7 +130,8 @@ r.GET("/super-admin",
 ### 自定义注解
 
 ```go
-// 创建自定义注解
+// 独立模式下同时写 Permission+Role = 两边都要过（隐式 AND）
+// 若需显式组合错误文案，请使用 CheckPermissionRoleAnd / mode=AND
 customAnnotation := &sagin.Annotation{
     CheckPermission: []string{"admin:write", "super:write"},
     CheckRole:       []string{"admin"},

@@ -84,9 +84,9 @@ github.com/sa-tokens/sa-token-go/integrations/gin
 - 注解装饰器
 - 内置处理器
 
-#### Echo/Fiber/Chi集成
+#### Echo/Fiber/Fiber v3/Chi集成
 
-类似Gin，每个框架都是独立模块。
+类似Gin，每个框架都是独立模块（Fiber v2 与 Fiber v3 分属 `integrations/fiber` 与 `integrations/fiberv3`）。
 
 ## 依赖关系
 

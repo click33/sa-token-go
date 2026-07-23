@@ -2,6 +2,7 @@ go 1.25.4
 
 use (
 	./core
+	./examples/fiberv3/fiberv3-example
 	./examples/go-zero/go-zero-example
 	./examples/hertz/hertz-example
 	./examples/iris/iris-example
@@ -10,6 +11,7 @@ use (
 	./integrations/chi
 	./integrations/echo
 	./integrations/fiber
+	./integrations/fiberv3
 	./integrations/gf
 	./integrations/gin
 	./integrations/go-zero

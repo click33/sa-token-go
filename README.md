@@ -18,7 +18,7 @@ A lightweight, high-performance Go authentication and authorization framework, i
 - 💾 **Session Management** - Complete Session management
 - ⏰ **Active Detection** - Automatic token activity detection
 - 🔄 **Auto Renewal** - Asynchronous token auto-renewal (400% performance improvement)
-- 🎨 **Annotation Support** - `@SaCheckLogin`, `@SaCheckRole`, `@SaCheckPermission`
+- 🎨 **Annotation Support** - `@SaCheckLogin`, `@SaCheckRole`, `@SaCheckPermission`, plus permission-set × role-set AND/OR
 - 🎧 **Event System** - Powerful event system with priority and async execution
 - 📦 **Modular Design** - Import only what you need, minimal dependencies
 - 🔒 **Nonce Anti-Replay** - Prevent replay attacks with one-time tokens
@@ -39,7 +39,8 @@ go get github.com/sa-tokens/sa-token-go/integrations/gin@latest    # Gin framewo
 # or
 go get github.com/sa-tokens/sa-token-go/integrations/echo@latest   # Echo framework
 # or
-go get github.com/sa-tokens/sa-token-go/integrations/fiber@latest  # Fiber framework
+go get github.com/sa-tokens/sa-token-go/integrations/fiber@latest  # Fiber v2 framework
+go get github.com/sa-tokens/sa-token-go/integrations/fiberv3@latest # Fiber v3 framework
 # or
 go get github.com/sa-tokens/sa-token-go/integrations/chi@latest    # Chi framework
 # or
@@ -70,7 +71,8 @@ go get github.com/sa-tokens/sa-token-go/storage/redis@latest  # Redis storage (p
 # Framework integration (optional)
 go get github.com/sa-tokens/sa-token-go/integrations/gin@latest    # Gin framework
 go get github.com/sa-tokens/sa-token-go/integrations/echo@latest   # Echo framework
-go get github.com/sa-tokens/sa-token-go/integrations/fiber@latest  # Fiber framework
+go get github.com/sa-tokens/sa-token-go/integrations/fiber@latest  # Fiber v2 framework
+go get github.com/sa-tokens/sa-token-go/integrations/fiberv3@latest # Fiber v3 framework
 go get github.com/sa-tokens/sa-token-go/integrations/chi@latest    # Chi framework
 go get github.com/sa-tokens/sa-token-go/integrations/gf@latest     # GoFrame framework
 go get github.com/sa-tokens/sa-token-go/integrations/kratos@latest # Kratos framework
@@ -292,7 +294,7 @@ Design and rollout are captured in [.cursor/plans/plugin-token-interceptor_8a06e
 
 1. **`ResolveTokenName` / `ReadTokenFromRequest`** live in [`core/context/context.go`](core/context/context.go). `SaTokenContext.GetTokenValue()` calls `ReadTokenFromRequest` so all code paths share the same order and prefix handling.
 2. **`core/satoken.go`** re-exports `ResolveTokenName` and `ReadTokenFromRequest` as package-level identifiers so integrations can use `core.ReadTokenFromRequest` without importing `context` separately.
-3. **Seven integrations** (Gin, Echo, Fiber, Hertz, Chi, GoFrame, Kratos) each provide **`TokenInterceptor()`**, which reads the token once via `core.ReadTokenFromRequest`, stores it on the framework context under **`satoken_token`**, and does **not** perform login checks. Handlers retrieve it with **`GetTokenFromCtx(...)`**. **`PathAuthMiddleware`** uses the same helper instead of ad-hoc header/cookie reads (fixes missing Query/`CutTokenPrefix`/`Authorization` fallback).
+3. **Integrations** (Gin, Echo, Fiber v2, Fiber v3, Hertz, Chi, GoFrame, Kratos, …) each provide **`TokenInterceptor()`**, which reads the token once via `core.ReadTokenFromRequest`, stores it on the framework context under **`satoken_token`**, and does **not** perform login checks. Handlers retrieve it with **`GetTokenFromCtx(...)`**. **`PathAuthMiddleware`** uses the same helper instead of ad-hoc header/cookie reads (fixes missing Query/`CutTokenPrefix`/`Authorization` fallback).
 4. **Read order**: Header (including Bearer when the resolved name is `Authorization`, plus `Authorization` fallback when `TokenName` is custom) → Cookie → Query (`?tokenName=value`, api-key style). **`mgr.CutTokenPrefix`** is applied to the final raw string. Header/cookie reads respect **`IsReadHeader`** / **`IsReadCookie`**; Query is attempted when earlier steps yield nothing.
 
 The following mirrors the production helpers in `core/context/context.go` (**English comments for this excerpt**):
@@ -431,9 +433,11 @@ func main() {
 |------------|-------------|---------|
 | `@SaIgnore` | Ignore authentication | `sagin.Ignore()` |
 | `@SaCheckLogin` | Check login | `sagin.CheckLogin()` |
-| `@SaCheckRole` | Check role | `sagin.CheckRole("admin")` |
-| `@SaCheckPermission` | Check permission | `sagin.CheckPermission("admin:*")` |
+| `@SaCheckRole` | Check role (OR within list) | `sagin.CheckRole("admin")` |
+| `@SaCheckPermission` | Check permission (OR within list) | `sagin.CheckPermission("admin:*")` |
 | `@SaCheckDisable` | Check if disabled | `sagin.CheckDisable()` |
+| Permission × Role AND | Both permission-set and role-set must pass | `sagin.CheckPermissionRoleAnd(perms, roles)` |
+| Permission × Role OR | Either permission-set or role-set may pass | `sagin.CheckPermissionRoleOr(perms, roles)` |
 
 **Usage example:**
 
@@ -452,13 +456,29 @@ func main() {
     // Admin permission required
     r.GET("/admin", sagin.CheckPermission("admin:*"), adminHandler)
 
-    // Any of multiple permissions (OR logic)
+    // Any of multiple permissions (OR within list)
     r.GET("/user-or-admin",
         sagin.CheckPermission("user:read", "admin:*"),
         userOrAdminHandler)
 
     // Admin role required
     r.GET("/manager", sagin.CheckRole("admin"), managerHandler)
+
+    // Both permission-set and role-set must pass (OR within each set, AND between sets)
+    r.GET("/secure",
+        sagin.CheckPermissionRoleAnd(
+            []string{"user:read", "user:write"},
+            []string{"Admin", "Manager"},
+        ),
+        secureHandler)
+
+    // Either permission-set or role-set may pass (OR between sets)
+    r.GET("/either",
+        sagin.CheckPermissionRoleOr(
+            []string{"user:read"},
+            []string{"Admin"},
+        ),
+        eitherHandler)
 
     // Check if account is disabled
     r.GET("/sensitive", sagin.CheckDisable(), sensitiveHandler)
@@ -509,16 +529,20 @@ func main() {
 
 ### 🔌 Other Framework Integrations
 
-**Echo / Fiber / Chi / Kratos / Hertz / Iris** also support annotation decorators:
+**Echo / Fiber / Fiber v3 / Chi / Kratos / Hertz / Iris** also support annotation decorators:
 
 ```go
 // Echo
 import saecho "github.com/sa-tokens/sa-token-go/integrations/echo"
 e.GET("/user", saecho.CheckLogin(), handler)
 
-// Fiber
+// Fiber (v2)
 import safiber "github.com/sa-tokens/sa-token-go/integrations/fiber"
 app.Get("/user", safiber.CheckLogin(), handler)
+
+// Fiber v3
+import safiberv3 "github.com/sa-tokens/sa-token-go/integrations/fiberv3"
+app.Get("/user", safiberv3.CheckLogin(), handler)
 
 // Chi
 import sachi "github.com/sa-tokens/sa-token-go/integrations/chi"
@@ -709,9 +733,10 @@ sa-token-go/
 │   └── redis/              # Redis storage
 │
 ├── integrations/           # Framework integrations
-│   ├── gin/                # Gin integration (with annotations)
+│   ├── gin/                # Gin integration (with annotations; permission×role AND/OR)
 │   ├── echo/               # Echo integration
-│   ├── fiber/              # Fiber integration
+│   ├── fiber/              # Fiber v2 integration
+│   ├── fiberv3/            # Fiber v3 integration
 │   ├── chi/                # Chi integration
 │   ├── gf/                 # GoFrame integration
 │   ├── kratos/             # Kratos integration
@@ -727,7 +752,7 @@ sa-token-go/
 │   ├── jwt-example/        # JWT example
 │   ├── redis-example/      # Redis example
 │   ├── listener-example/   # Event listener example
-│   └── gin/echo/fiber/chi/gf/kratos/hertz/ # Framework integration examples
+│   └── gin/echo/fiber/fiberv3/chi/gf/kratos/hertz/ # Framework integration examples
 │
 └── docs/                   # Documentation
     ├── tutorial/           # Tutorials
@@ -777,7 +802,8 @@ sa-token-go/
 | 🌐 Gin (Simple) | Minimal Gin integration | [examples/gin/gin-simple/](examples/gin/gin-simple/) |
 | 🌐 Gin (Full) | Config-driven Gin integration | [examples/gin/gin-example/](examples/gin/gin-example/) |
 | 🌐 Echo Integration | Echo framework integration | [examples/echo/echo-example/](examples/echo/echo-example/) |
-| 🌐 Fiber Integration | Fiber framework integration | [examples/fiber/fiber-example/](examples/fiber/fiber-example/) |
+| 🌐 Fiber Integration | Fiber v2 framework integration | [examples/fiber/fiber-example/](examples/fiber/fiber-example/) |
+| 🌐 Fiber v3 Integration | Fiber v3 framework integration | [examples/fiberv3/fiberv3-example/](examples/fiberv3/fiberv3-example/) |
 | 🌐 Chi Integration | Chi framework integration | [examples/chi/chi-example/](examples/chi/chi-example/) |
 | 🌐 GoFrame Integration | GoFrame framework integration | [examples/gf/](examples/gf/) |
 | 🌐 Kratos Integration | Kratos framework integration | [examples/kratos/kratos-example/](examples/kratos/kratos-example/) |

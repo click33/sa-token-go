@@ -187,6 +187,27 @@ func NewRoleDeniedListError(roles []string) *SaTokenError {
 		WithContext("roles", roles)
 }
 
+// NewPermissionRoleCombineError builds a combine-check failure (AND/OR).
+// Message is English; mode is stored in Context for troubleshooting.
+// NewPermissionRoleCombineError 权限组与角色组组合校验失败（AND/OR）；对外 Message 为英文。
+func NewPermissionRoleCombineError(mode string, permissions, roles []string) *SaTokenError {
+	return NewError(
+		CodePermissionDenied,
+		"permission and role combine check failed",
+		ErrPermissionDenied,
+	).WithContext("mode", mode).
+		WithContext("permissions", permissions).
+		WithContext("roles", roles)
+}
+
+// NewInvalidAnnotationError builds a bad-request error for invalid annotation config
+// (e.g. AND/OR without both permission and role lists).
+// NewInvalidAnnotationError 注解配置非法（例如 AND/OR 但缺一侧列表）。
+func NewInvalidAnnotationError(reason string) *SaTokenError {
+	return NewError(CodeBadRequest, "invalid annotation configuration", ErrInvalidConfig).
+		WithContext("reason", reason)
+}
+
 // NewAccountDisabledError | 账号禁用
 func NewAccountDisabledError(loginID string) *SaTokenError {
 	return NewError(CodeAccountDisabled, "account disabled", ErrAccountDisabled).

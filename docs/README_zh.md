@@ -13,7 +13,7 @@
 - [登录认证](guide/authentication_zh.md) - 登录、登出、Token管理
 - [权限验证](guide/permission_zh.md) - 权限系统详解、通配符使用
 - [路径鉴权](guide/path-auth_zh.md) - 路径鉴权与 Ant 风格匹配
-- [注解使用](guide/annotation_zh.md) - 装饰器模式详解
+- [注解使用](guide/annotation_zh.md) - 装饰器模式详解（Gin；支持权限组×角色组 AND/OR）
 - [事件监听](guide/listener_zh.md) - 事件系统使用指南
 - [JWT集成](guide/jwt_zh.md) - JWT Token配置和使用
 - [Redis存储](guide/redis-storage_zh.md) - Redis存储配置详解
@@ -51,7 +51,8 @@
 - [gin-simple](../examples/gin/gin-simple/) - Gin 最简集成示例
 - [gin-example](../examples/gin/gin-example/) - Gin 配置化集成示例
 - [echo-example](../examples/echo/echo-example/) - Echo 集成示例
-- [fiber-example](../examples/fiber/fiber-example/) - Fiber 集成示例
+- [fiber-example](../examples/fiber/fiber-example/) - Fiber v2 集成示例
+- [fiberv3-example](../examples/fiberv3/fiberv3-example/) - Fiber v3 集成示例
 - [chi-example](../examples/chi/chi-example/) - Chi 集成示例
 - [gf-example](../examples/gf/) - GoFrame 集成示例
 - [kratos-example](../examples/kratos/kratos-example/) - Kratos 集成示例

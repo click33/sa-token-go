@@ -139,8 +139,31 @@ func main() {
     if stputil.HasPermissionsAnd(1000, []string{"user:read", "user:write"}) {
         println("✅ Can read and write user")
     }
+
+    // Combine role and permission in application code
+    stputil.SetRoles(1000, []string{"editor"})
+    if stputil.HasRole(1000, "editor") &&
+        stputil.HasPermission(1000, "article:publish") {
+        println("✅ Editor can publish")
+    }
 }
 ```
+
+On Gin routes you can also combine permission-set and role-set (OR within each set; AND/OR between sets):
+
+```go
+import sagin "github.com/sa-tokens/sa-token-go/integrations/gin"
+
+// Both permission-set and role-set must pass
+r.GET("/publish",
+    sagin.CheckPermissionRoleAnd(
+        []string{"article:publish"},
+        []string{"editor"},
+    ),
+    publishHandler)
+```
+
+See [Annotation Usage](annotation.md).
 
 ## Related Documentation
 
