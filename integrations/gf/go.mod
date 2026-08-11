@@ -4,8 +4,8 @@ go 1.25.0
 
 require (
 	github.com/gogf/gf/v2 v2.10.2
-	github.com/sa-tokens/sa-token-go/core v0.2.3
-	github.com/sa-tokens/sa-token-go/stputil v0.2.3
+	github.com/sa-tokens/sa-token-go/core v0.2.4
+	github.com/sa-tokens/sa-token-go/stputil v0.2.4
 )
 
 require (

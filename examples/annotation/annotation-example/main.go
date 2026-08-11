@@ -32,7 +32,13 @@ func (h *UserHandler) GetPublic(c *gin.Context) {
 
 // 需要登录
 func (h *UserHandler) GetUserInfo(c *gin.Context) {
-	loginID, _ := stputil.GetLoginID(c.GetHeader("Authorization"))
+	// 使用集成层已归一化的 token，避免把原始 Authorization 头直接当裸 token
+	token := sagin.GetTokenFromCtx(c)
+	if token == "" {
+		saCtx := core.NewContext(sagin.NewGinContext(c), stputil.GetManager())
+		token = saCtx.GetTokenValue()
+	}
+	loginID, _ := stputil.GetLoginID(token)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "用户个人信息",
@@ -42,7 +48,12 @@ func (h *UserHandler) GetUserInfo(c *gin.Context) {
 
 // 需要管理员权限
 func (h *UserHandler) GetAdminData(c *gin.Context) {
-	loginID, _ := stputil.GetLoginID(c.GetHeader("Authorization"))
+	token := sagin.GetTokenFromCtx(c)
+	if token == "" {
+		saCtx := core.NewContext(sagin.NewGinContext(c), stputil.GetManager())
+		token = saCtx.GetTokenValue()
+	}
+	loginID, _ := stputil.GetLoginID(token)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "管理员数据",
@@ -53,7 +64,12 @@ func (h *UserHandler) GetAdminData(c *gin.Context) {
 
 // 需要多个权限之一
 func (h *UserHandler) GetUserOrAdmin(c *gin.Context) {
-	loginID, _ := stputil.GetLoginID(c.GetHeader("Authorization"))
+	token := sagin.GetTokenFromCtx(c)
+	if token == "" {
+		saCtx := core.NewContext(sagin.NewGinContext(c), stputil.GetManager())
+		token = saCtx.GetTokenValue()
+	}
+	loginID, _ := stputil.GetLoginID(token)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "用户或管理员都可以访问",
@@ -63,7 +79,12 @@ func (h *UserHandler) GetUserOrAdmin(c *gin.Context) {
 
 // 需要特定角色
 func (h *UserHandler) GetManagerData(c *gin.Context) {
-	loginID, _ := stputil.GetLoginID(c.GetHeader("Authorization"))
+	token := sagin.GetTokenFromCtx(c)
+	if token == "" {
+		saCtx := core.NewContext(sagin.NewGinContext(c), stputil.GetManager())
+		token = saCtx.GetTokenValue()
+	}
+	loginID, _ := stputil.GetLoginID(token)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "经理数据",
@@ -73,7 +94,12 @@ func (h *UserHandler) GetManagerData(c *gin.Context) {
 
 // 检查账号是否被封禁
 func (h *UserHandler) GetSensitiveData(c *gin.Context) {
-	loginID, _ := stputil.GetLoginID(c.GetHeader("Authorization"))
+	token := sagin.GetTokenFromCtx(c)
+	if token == "" {
+		saCtx := core.NewContext(sagin.NewGinContext(c), stputil.GetManager())
+		token = saCtx.GetTokenValue()
+	}
+	loginID, _ := stputil.GetLoginID(token)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "敏感数据",

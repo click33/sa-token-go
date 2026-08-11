@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/kataras/iris/v12"
+	"github.com/sa-tokens/sa-token-go/core"
 	sairis "github.com/sa-tokens/sa-token-go/integrations/iris"
 	"github.com/sa-tokens/sa-token-go/storage/memory"
 )
@@ -59,7 +60,11 @@ func main() {
 
 	// 登出接口 | Logout endpoint
 	app.Post("/logout", func(c iris.Context) {
-		token := c.GetHeader("token")
+		token := sairis.GetTokenFromCtx(c)
+		if token == "" {
+			saCtx := core.NewContext(sairis.NewIrisContext(c), manager)
+			token = saCtx.GetTokenValue()
+		}
 		if token == "" {
 			c.StatusCode(iris.StatusBadRequest)
 			_ = c.JSON(iris.Map{"error": "token is required"})
@@ -77,7 +82,11 @@ func main() {
 
 	// 检查登录状态 | Check login status
 	app.Get("/check", func(c iris.Context) {
-		token := c.GetHeader("token")
+		token := sairis.GetTokenFromCtx(c)
+		if token == "" {
+			saCtx := core.NewContext(sairis.NewIrisContext(c), manager)
+			token = saCtx.GetTokenValue()
+		}
 		if token == "" {
 			c.StatusCode(iris.StatusBadRequest)
 			_ = c.JSON(iris.Map{"error": "token is required"})

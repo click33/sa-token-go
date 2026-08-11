@@ -15,6 +15,13 @@ const (
 	AuthHeaderName = "Authorization"
 )
 
+// TokenPrefixManager ReadTokenFromRequest 所需最小能力
+// *manager.Manager 与 oauth2.ManagerLike（扩展 GetConfig 后）均可实现
+type TokenPrefixManager interface {
+	GetConfig() *config.Config
+	CutTokenPrefix(raw string) string
+}
+
 // SaTokenContext Sa-Token context for current request | Sa-Token上下文，用于当前请求
 type SaTokenContext struct {
 	ctx     adapter.RequestContext
@@ -53,9 +60,17 @@ func ResolveTokenName(cfg *config.Config) string {
 	return AuthHeaderName
 }
 
-// ReadTokenFromRequest 从适配请求中按 Header → Cookie → Query 读取 Token，并对结果执行 CutTokenPrefix（与 PathAuth、TokenInterceptor 同源；Query 常用于 apikey）
-// ReadTokenFromRequest reads token: Header first, then Cookie, then Query (apikey); applies CutTokenPrefix on the raw value
-func ReadTokenFromRequest(ctx adapter.RequestContext, mgr *manager.Manager) string {
+// ReadTokenFromRequest 按 Header → Cookie → Query 读取 Token，并执行 CutTokenPrefix
+// mgr 使用 TokenPrefixManager 接口，便于 OAuth2 ManagerLike 直接传入
+//
+// 流程：
+//   Header(TokenName)
+//     ├─ TokenName == Authorization → extractBearerToken 后再 CutTokenPrefix
+//     └─ 其他名 → CutTokenPrefix；若空且名≠Authorization，再尝试 Authorization Bearer 兜底
+//   Cookie(同名键)
+//     └─ CookieAutoFillPrefix=true 时先拼 TokenPrefix，再 CutTokenPrefix
+//   Query(同名键) → CutTokenPrefix
+func ReadTokenFromRequest(ctx adapter.RequestContext, mgr TokenPrefixManager) string {
 	if ctx == nil || mgr == nil {
 		return ""
 	}
@@ -65,7 +80,7 @@ func ReadTokenFromRequest(ctx adapter.RequestContext, mgr *manager.Manager) stri
 	readHeader := cfg == nil || cfg.IsReadHeader
 	readCookie := cfg == nil || cfg.IsReadCookie
 
-	// 1) Header：先读 TokenName 对应头；若名不是 Authorization，再尝试 Authorization Bearer 兜底
+	// 1) Header
 	if readHeader {
 		if v := strings.TrimSpace(ctx.GetHeader(name)); v != "" {
 			if strings.EqualFold(name, AuthHeaderName) {
@@ -75,6 +90,7 @@ func ReadTokenFromRequest(ctx adapter.RequestContext, mgr *manager.Manager) stri
 			}
 			return mgr.CutTokenPrefix(v)
 		}
+		// TokenName 不是 Authorization 时，额外尝试标准 Authorization Bearer
 		if !strings.EqualFold(name, AuthHeaderName) {
 			if auth := strings.TrimSpace(ctx.GetHeader(AuthHeaderName)); auth != "" {
 				if t := extractBearerToken(auth); t != "" {
@@ -84,14 +100,17 @@ func ReadTokenFromRequest(ctx adapter.RequestContext, mgr *manager.Manager) stri
 		}
 	}
 
-	// 2) Cookie：键与 Header 使用同一 ResolveTokenName
+	// 2) Cookie：存的是裸 token；开启 CookieAutoFillPrefix 则先拼前缀再统一裁剪
 	if readCookie {
 		if v := strings.TrimSpace(ctx.GetCookie(name)); v != "" {
+			if cfg != nil && cfg.CookieAutoFillPrefix && cfg.TokenPrefix != "" {
+				v = cfg.TokenPrefix + v
+			}
 			return mgr.CutTokenPrefix(v)
 		}
 	}
 
-	// 3) Query（URL 参数传递 token，例如 ?satoken=xxx 或回退名 ?Authorization=xxx）
+	// 3) Query（如 ?satoken=xxx）
 	if v := strings.TrimSpace(ctx.GetQuery(name)); v != "" {
 		return mgr.CutTokenPrefix(v)
 	}

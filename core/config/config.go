@@ -172,7 +172,13 @@ type Config struct {
 	OverflowLogoutMode string
 
 	// TokenPrefix bearer prefix in header e.g. "Bearer " | Token 前缀
+	// 推荐写法带尾部空格，如 "Bearer "，与 Java TOKEN_CONNECTOR_CHAT 空格拼接语义对齐
 	TokenPrefix string
+
+	// CookieAutoFillPrefix 读取 Cookie 时是否自动拼接 TokenPrefix
+	// Cookie 不支持存储空格，因此 Cookie 中只存裸 token；开启后读取时先拼前缀再走统一裁剪逻辑
+	// 默认 false（与 Java Sa-Token cookieAutoFillPrefix 同源）
+	CookieAutoFillPrefix bool
 
 	// SafeAuthDefaultService default second-level auth service tag | 二级认证默认 service
 	SafeAuthDefaultService string
@@ -269,6 +275,7 @@ func DefaultConfig() *Config {
 		ReplacedRange:              "CURR_DEVICE",
 		OverflowLogoutMode:         "LOGOUT",
 		TokenPrefix:                "",
+		CookieAutoFillPrefix:       false,
 		SafeAuthDefaultService:     "important",
 		RememberMeTimeout:          604800, // 7 days | 7天
 		SameTokenTimeout:           86400,  // 24 hours | 24小时
@@ -524,5 +531,17 @@ func (c *Config) SetCookieConfig(cookieConfig *CookieConfig) *Config {
 // SetRenewPoolConfig Set renewal pool configuration | 设置续期池配置
 func (c *Config) SetRenewPoolConfig(renewPoolConfig *pool.RenewPoolConfig) *Config {
 	c.RenewPoolConfig = renewPoolConfig
+	return c
+}
+
+// SetTokenPrefix 设置 Token 前缀（如 "Bearer "）
+func (c *Config) SetTokenPrefix(prefix string) *Config {
+	c.TokenPrefix = prefix
+	return c
+}
+
+// SetCookieAutoFillPrefix 设置是否在读取 Cookie 时自动拼接 TokenPrefix
+func (c *Config) SetCookieAutoFillPrefix(auto bool) *Config {
+	c.CookieAutoFillPrefix = auto
 	return c
 }

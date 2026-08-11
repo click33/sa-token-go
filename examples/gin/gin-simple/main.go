@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sa-tokens/sa-token-go/core"
 	sagin "github.com/sa-tokens/sa-token-go/integrations/gin"
 	"github.com/sa-tokens/sa-token-go/storage/memory"
 )
@@ -53,7 +54,12 @@ func main() {
 
 	// 登出接口 | Logout endpoint
 	r.POST("/logout", func(c *gin.Context) {
-		token := c.GetHeader("token")
+		// 优先走拦截器缓存的归一化 token；无拦截器时自行读请求
+		token := sagin.GetTokenFromCtx(c)
+		if token == "" {
+			saCtx := core.NewContext(sagin.NewGinContext(c), manager)
+			token = saCtx.GetTokenValue()
+		}
 		if token == "" {
 			c.JSON(400, gin.H{"error": "token is required"})
 			return
@@ -70,7 +76,11 @@ func main() {
 
 	// 检查登录状态 | Check login status
 	r.GET("/check", func(c *gin.Context) {
-		token := c.GetHeader("token")
+		token := sagin.GetTokenFromCtx(c)
+		if token == "" {
+			saCtx := core.NewContext(sagin.NewGinContext(c), manager)
+			token = saCtx.GetTokenValue()
+		}
 		if token == "" {
 			c.JSON(400, gin.H{"error": "token is required"})
 			return

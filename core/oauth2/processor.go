@@ -1,7 +1,10 @@
 package oauth2
 
 import (
+	"strings"
+
 	"github.com/sa-tokens/sa-token-go/core/adapter"
+	"github.com/sa-tokens/sa-token-go/core/config"
 	"github.com/sa-tokens/sa-token-go/core/errs"
 	"github.com/sa-tokens/sa-token-go/core/oauth2/granttype"
 )
@@ -17,13 +20,16 @@ type APIPaths struct {
 	ClientToken string
 }
 
-// ManagerLike minimal manager surface for OAuth2 processor | Processor 所需 Manager 能力
+// ManagerLike Processor 所需 Manager 能力
+// 增加 GetConfig，以便在本包内联与 ReadTokenFromRequest 等价的读取逻辑
+// 注意：不得 import core/context（manager → oauth2 → context → manager 会形成循环依赖）
 type ManagerLike interface {
 	GetLoginID(token string) (string, error)
 	IsLogin(token string) bool
 	Login(loginID string, device ...string) (string, error)
 	CutTokenPrefix(raw string) string
 	GetTokenName() string
+	GetConfig() *config.Config
 }
 
 // OAuth2ServerProcessor routes OAuth2 HTTP endpoints | OAuth2 路由处理器
@@ -87,12 +93,71 @@ func (p *OAuth2ServerProcessor) Dispatch(ctx adapter.RequestContext) (bool, any,
 	return false, nil, nil
 }
 
+// readToken 从请求中读取主会话 Token
+// 与 core/context.ReadTokenFromRequest 语义对齐（Header → Cookie → Query + Bearer 兜底 + CutTokenPrefix）
+// 因 oauth2 被 manager 引用，不可 import context，故在此内联同等逻辑
 func (p *OAuth2ServerProcessor) readToken(ctx adapter.RequestContext) string {
-	if p.manager == nil {
+	if p.manager == nil || ctx == nil {
 		return ""
 	}
-	name := p.manager.GetTokenName()
-	return p.manager.CutTokenPrefix(ctx.GetHeader(name))
+	mgr := p.manager
+	cfg := mgr.GetConfig()
+	// 与 context.ResolveTokenName 一致：有 TokenName 用配置，否则回退 Authorization
+	name := "Authorization"
+	if cfg != nil && strings.TrimSpace(cfg.TokenName) != "" {
+		name = cfg.TokenName
+	}
+
+	readHeader := cfg == nil || cfg.IsReadHeader
+	readCookie := cfg == nil || cfg.IsReadCookie
+
+	// 1) Header
+	if readHeader {
+		if v := strings.TrimSpace(ctx.GetHeader(name)); v != "" {
+			if strings.EqualFold(name, "Authorization") {
+				if t := extractBearerToken(v); t != "" {
+					return mgr.CutTokenPrefix(t)
+				}
+			}
+			return mgr.CutTokenPrefix(v)
+		}
+		if !strings.EqualFold(name, "Authorization") {
+			if auth := strings.TrimSpace(ctx.GetHeader("Authorization")); auth != "" {
+				if t := extractBearerToken(auth); t != "" {
+					return mgr.CutTokenPrefix(t)
+				}
+			}
+		}
+	}
+
+	// 2) Cookie：开启 CookieAutoFillPrefix 时先拼 TokenPrefix 再裁剪
+	if readCookie {
+		if v := strings.TrimSpace(ctx.GetCookie(name)); v != "" {
+			if cfg != nil && cfg.CookieAutoFillPrefix && cfg.TokenPrefix != "" {
+				v = cfg.TokenPrefix + v
+			}
+			return mgr.CutTokenPrefix(v)
+		}
+	}
+
+	// 3) Query
+	if v := strings.TrimSpace(ctx.GetQuery(name)); v != "" {
+		return mgr.CutTokenPrefix(v)
+	}
+	return ""
+}
+
+// extractBearerToken 从 Authorization 头提取 Bearer token（大小写不敏感）
+func extractBearerToken(auth string) string {
+	auth = strings.TrimSpace(auth)
+	if auth == "" {
+		return ""
+	}
+	const bearerPrefix = "Bearer "
+	if len(auth) > 7 && strings.EqualFold(auth[:7], bearerPrefix) {
+		return strings.TrimSpace(auth[7:])
+	}
+	return auth
 }
 
 func (p *OAuth2ServerProcessor) authorize(ctx adapter.RequestContext) (any, error) {
@@ -185,6 +250,8 @@ func (p *OAuth2ServerProcessor) refresh(ctx adapter.RequestContext) (any, error)
 	return r.Data, nil
 }
 
+// revoke 吊销 access_token
+// 表单里的 token 也可能带 TokenPrefix，统一裁剪后再交给 RevokeToken
 func (p *OAuth2ServerProcessor) revoke(ctx adapter.RequestContext) (any, error) {
 	tok := ctx.GetPostForm("access_token")
 	if tok == "" {
@@ -192,6 +259,10 @@ func (p *OAuth2ServerProcessor) revoke(ctx adapter.RequestContext) (any, error) 
 	}
 	if tok == "" {
 		return nil, errs.ErrOAuth2ParamMissing("access_token")
+	}
+	// 客户端可能原样回传带前缀的 access_token
+	if p.manager != nil {
+		tok = p.manager.CutTokenPrefix(tok)
 	}
 	if err := p.server.RevokeToken(tok); err != nil {
 		return nil, err

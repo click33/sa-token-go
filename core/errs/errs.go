@@ -12,6 +12,10 @@ var (
 	ErrTokenExpired   = fmt.Errorf("token expired: please login again to get a new token")
 	ErrInvalidLoginID = fmt.Errorf("invalid login ID: the login identifier cannot be empty")
 	ErrInvalidDevice  = fmt.Errorf("invalid device: the device identifier is not valid")
+
+	// ErrTokenNoPrefix 配置了 TokenPrefix，但提交的 token 未携带正确前缀
+	// 对齐 Java Sa-Token NotLoginException.NO_PREFIX（CODE_11017）
+	ErrTokenNoPrefix = fmt.Errorf("token prefix mismatch: the submitted token does not carry the required prefix")
 )
 
 // Authorization | 授权

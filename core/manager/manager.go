@@ -536,30 +536,33 @@ func (m *Manager) ReplacedByToken(tokenValue string) error {
 
 // ============ Token Validation | Token验证 ============
 
-// IsLogin Checks if user is logged in | 检查是否登录
+// IsLogin 检查是否登录（传入值自动去前缀）
+// 续期逻辑中的 getTokenKey / getRenewKey 必须使用去前缀后的值，否则会写错 Redis 键
 func (m *Manager) IsLogin(tokenValue string) bool {
 	if tokenValue == "" {
 		return false
 	}
+	// 统一归一化：后续拼 key、renewKey、闭包里 renewToken 均用裸 token
+	tokenValue = m.CutTokenPrefix(tokenValue)
 	if _, err := m.getTokenInfo(tokenValue, false); err != nil {
 		return false
 	}
 
-	// Async auto-renew for better performance | 异步自动续期（提高性能）
+	// 异步自动续期（提高性能）
 	if m.config.AutoRenew && m.config.Timeout > 0 {
 		tokenKey := m.getTokenKey(tokenValue)
 		if ttl, err := m.storage.TTL(tokenKey); err == nil {
 			ttlSeconds := int64(ttl.Seconds())
 
-			// Perform renewal if TTL is below MaxRefresh threshold and RenewInterval allows | TTL和RenewInterval同时满足条件才续期
+			// TTL 低于 MaxRefresh 且 RenewInterval 允许时才续期
 			if ttlSeconds > 0 && (m.config.MaxRefresh <= 0 || ttlSeconds <= m.config.MaxRefresh) && (m.config.RenewInterval <= 0 || !m.storage.Exists(m.getRenewKey(tokenValue))) {
+				// 闭包捕获已归一化的 tokenValue，避免把 "Bearer xxx" 传入 renewToken
 				renewFunc := func() { m.renewToken(tokenValue) }
 
-				// Submit to pool if configured, otherwise use goroutine | 使用续期池或协程执行续期
 				if m.renewPool != nil {
-					_ = m.renewPool.Submit(renewFunc) // Submit token renewal task to the pool | 提交Token续期任务到续期池
+					_ = m.renewPool.Submit(renewFunc)
 				} else {
-					go renewFunc() // Fallback to goroutine if pool is not configured | 如果续期池未配置，使用普通协程
+					go renewFunc()
 				}
 			}
 		}
@@ -576,32 +579,33 @@ func (m *Manager) CheckLogin(tokenValue string) error {
 	return nil
 }
 
-// CheckLoginWithState Checks if user is logged in | 检查是否登录（返回详细状态）
+// CheckLoginWithState 检查是否登录（返回详细状态）
+// 与 IsLogin 相同：先归一化 token，再查信息与续期，避免带前缀时续期写错键
 func (m *Manager) CheckLoginWithState(tokenValue string) (bool, error) {
 	if tokenValue == "" {
 		return false, nil
 	}
+	// 归一化 token，保证后续 getTokenKey / getRenewKey / renewToken 一致
+	tokenValue = m.CutTokenPrefix(tokenValue)
 
-	// Try to get token info with state check | 尝试获取Token信息（包含状态检查）
+	// 尝试获取 Token 信息（包含状态检查：踢下线/顶号）
 	_, err := m.getTokenInfo(tokenValue)
 	if err != nil {
 		return false, err
 	}
 
-	// Async auto-renew for better performance | 异步自动续期（提高性能）
+	// 异步自动续期
 	if m.config.AutoRenew && m.config.Timeout > 0 {
 		if ttl, err := m.storage.TTL(m.getTokenKey(tokenValue)); err == nil {
 			ttlSeconds := int64(ttl.Seconds())
 
-			// Perform renewal if TTL is below MaxRefresh threshold and RenewInterval allows | TTL和RenewInterval同时满足条件才续期
 			if ttlSeconds > 0 && (m.config.MaxRefresh <= 0 || ttlSeconds <= m.config.MaxRefresh) && (m.config.RenewInterval <= 0 || !m.storage.Exists(m.getRenewKey(tokenValue))) {
 				renewFunc := func() { m.renewToken(tokenValue) }
 
-				// Submit to pool if configured, otherwise use goroutine | 使用续期池或协程执行续期
 				if m.renewPool != nil {
-					_ = m.renewPool.Submit(renewFunc) // Submit token renewal task to the pool | 提交Token续期任务到续期池
+					_ = m.renewPool.Submit(renewFunc)
 				} else {
-					go renewFunc() // Fallback to goroutine if pool is not configured | 如果续期池未配置，使用普通协程
+					go renewFunc()
 				}
 			}
 		}
@@ -1007,15 +1011,20 @@ func (m *Manager) getLoginIDByToken(tokenValue string) (string, error) {
 	return info.LoginID, nil
 }
 
-// getTokenInfo Gets token information | 获取Token信息
+// getTokenInfo 获取 Token 信息（内部统一入口）
+// 入口处执行 CutTokenPrefix，确保无论传入带前缀或不带前缀的 token 均能正确查询
+// 参考 Java StpLogic.getLoginIdNotHandle：存储侧始终使用裸 token 作为键后缀
 func (m *Manager) getTokenInfo(tokenValue string, checkState ...bool) (*TokenInfo, error) {
+	// 统一裁剪前缀：传入 "Bearer xxx" 或 "xxx" 均归一化为 "xxx"
+	// CutTokenPrefix 幂等，已去前缀后再调一次仍返回原值
+	tokenValue = m.CutTokenPrefix(tokenValue)
 	tokenKey := m.getTokenKey(tokenValue)
 	data, err := m.storage.Get(tokenKey)
 	if err != nil || data == nil {
 		return nil, err
 	}
 
-	// Convert storage value to string | 将存储值统一转换为字符串
+	// 将存储值统一转换为字符串
 	var str string
 	switch v := data.(type) {
 	case []byte:
@@ -1026,17 +1035,17 @@ func (m *Manager) getTokenInfo(tokenValue string, checkState ...bool) (*TokenInf
 		return nil, ErrInvalidTokenData
 	}
 
-	// Check for special token states (if enabled) | 检查是否为特殊状态（当启用检查时）
+	// 检查是否为特殊状态（被踢下线/被顶号）；checkState 默认 true
 	if len(checkState) == 0 || checkState[0] {
 		switch str {
 		case string(TokenStateKickout):
-			return nil, errs.ErrKickedOutWithToken(tokenValue) // 被踢下线 | kicked out
+			return nil, errs.ErrKickedOutWithToken(tokenValue)
 		case string(TokenStateReplaced):
-			return nil, errs.ErrTokenReplacedWithToken(tokenValue) // 被顶号下线 | replaced
+			return nil, errs.ErrTokenReplacedWithToken(tokenValue)
 		}
 	}
 
-	// Parse TokenInfo from JSON | 从JSON解析Token信息
+	// 从 JSON 解析 Token 信息
 	var info TokenInfo
 	if err := json.Unmarshal([]byte(str), &info); err != nil {
 		return nil, errs.ErrInvalidTokenDataWrap(err)

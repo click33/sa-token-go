@@ -5,6 +5,7 @@ import (
 
 	core "github.com/sa-tokens/sa-token-go/core"
 	"github.com/sa-tokens/sa-token-go/core/adapter"
+	satokenctx "github.com/sa-tokens/sa-token-go/core/context"
 )
 
 const (
@@ -47,9 +48,10 @@ func (p *Processor) Dispatch(ctx adapter.RequestContext) (bool, any, error) {
 	}
 }
 
+// readToken 从请求中读取 Token
+// 统一走 ReadTokenFromRequest：Header/Cookie/Query + Authorization Bearer 兜底 + CutTokenPrefix
 func (p *Processor) readToken(ctx adapter.RequestContext) string {
-	m := p.tpl.mgr
-	return m.CutTokenPrefix(ctx.GetHeader(m.GetTokenName()))
+	return satokenctx.ReadTokenFromRequest(ctx, p.tpl.mgr)
 }
 
 func (p *Processor) auth(ctx adapter.RequestContext) (any, error) {

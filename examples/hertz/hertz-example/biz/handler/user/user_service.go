@@ -8,6 +8,7 @@ import (
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
+	"github.com/sa-tokens/sa-token-go/core"
 	user "github.com/sa-tokens/sa-token-go/examples/hertz/hertz-example/biz/model/user"
 	sahertz "github.com/sa-tokens/sa-token-go/integrations/hertz"
 	"github.com/sa-tokens/sa-token-go/stputil"
@@ -61,10 +62,11 @@ func Public(ctx context.Context, c *app.RequestContext) {
 func UserInfo(ctx context.Context, c *app.RequestContext) {
 
 	resp := new(user.UserInfoResp)
-	// 优先读取 TokenInterceptor 写入的 token，未接入拦截器时回退到默认 satoken 头
+	// 优先拦截器归一化结果；否则走 ReadTokenFromRequest 同源逻辑（含 CutTokenPrefix）
 	token := sahertz.GetTokenFromCtx(c)
 	if token == "" {
-		token = string(c.Request.Header.Get("satoken"))
+		saCtx := core.NewContext(sahertz.NewHertzContext(c), stputil.GetManager())
+		token = saCtx.GetTokenValue()
 	}
 	loginID, err := stputil.GetLoginID(token)
 	if err != nil {
@@ -108,7 +110,8 @@ func Sensitive(ctx context.Context, c *app.RequestContext) {
 	resp := new(user.SensitiveResp)
 	token := sahertz.GetTokenFromCtx(c)
 	if token == "" {
-		token = string(c.Request.Header.Get("satoken"))
+		saCtx := core.NewContext(sahertz.NewHertzContext(c), stputil.GetManager())
+		token = saCtx.GetTokenValue()
 	}
 	loginID, err := stputil.GetLoginID(token)
 	if err != nil {
@@ -127,7 +130,8 @@ func Disable(ctx context.Context, c *app.RequestContext) {
 
 	token := sahertz.GetTokenFromCtx(c)
 	if token == "" {
-		token = string(c.Request.Header.Get("satoken"))
+		saCtx := core.NewContext(sahertz.NewHertzContext(c), stputil.GetManager())
+		token = saCtx.GetTokenValue()
 	}
 	loginID, err := stputil.GetLoginID(token)
 	if err != nil {
